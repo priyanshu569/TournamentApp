@@ -6,8 +6,10 @@ import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Link } from 'expo-router';
+import { supabase } from '@/lib/supabase';
 
 export default function HomeScreen() {
+  console.log('Supabase connected:', supabase ? 'YES' : 'NO');
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
