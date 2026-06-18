@@ -2,10 +2,14 @@ import { useState } from 'react';
 import { View, TextInput, TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
+import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   async function sendOtp() {
     if (phone.length < 10) {
@@ -29,6 +33,38 @@ export default function LoginScreen() {
     }
   }
 
+  async function signInWithGoogle() {
+  setGoogleLoading(true);
+
+  const redirectUrl = AuthSession.makeRedirectUri({
+    scheme: 'tournamentapp',
+    path: 'profile',
+  });
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: redirectUrl,
+      },
+    });
+
+    if (error) {
+      setGoogleLoading(false);
+      Alert.alert('Error', error.message);
+      return;
+    }
+
+    if (data?.url) {
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+
+      if (result.type === 'success') {
+        router.replace('/profile');
+      }
+    }
+
+    setGoogleLoading(false);
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Tournament App 🏆</Text>
@@ -49,6 +85,16 @@ export default function LoginScreen() {
       <TouchableOpacity style={styles.button} onPress={sendOtp} disabled={loading}>
         <Text style={styles.buttonText}>{loading ? 'Sending...' : 'Send OTP'}</Text>
       </TouchableOpacity>
+
+      <View style={styles.dividerRow}>
+        <View style={styles.dividerLine} />
+        <Text style={styles.dividerText}>OR</Text>
+        <View style={styles.dividerLine} />
+      </View>
+
+      <TouchableOpacity style={styles.googleButton} onPress={signInWithGoogle} disabled={googleLoading}>
+        <Text style={styles.googleButtonText}>{googleLoading ? 'Connecting...' : 'Continue with Google'}</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -62,4 +108,9 @@ const styles = StyleSheet.create({
   input: { flex: 1, fontSize: 16, paddingVertical: 14 },
   button: { backgroundColor: '#534AB7', paddingVertical: 16, borderRadius: 10, alignItems: 'center' },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  dividerRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 24 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: '#ddd' },
+  dividerText: { marginHorizontal: 12, color: '#999', fontSize: 13 },
+  googleButton: { borderWidth: 1, borderColor: '#ddd', paddingVertical: 16, borderRadius: 10, alignItems: 'center' },
+  googleButtonText: { color: '#333', fontSize: 16, fontWeight: '600' },
 });
