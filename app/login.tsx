@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
+import { AntDesign } from '@expo/vector-icons';
 WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
@@ -37,9 +38,9 @@ export default function LoginScreen() {
   setGoogleLoading(true);
 
   const redirectUrl = AuthSession.makeRedirectUri({
-    scheme: 'tournamentapp',
-    path: 'profile',
-  });
+  scheme: 'tournamentapp',
+  path: 'select-role',
+    });
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -57,9 +58,9 @@ export default function LoginScreen() {
     if (data?.url) {
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
 
-      if (result.type === 'success') {
-        router.replace('/profile');
-      }
+    if (result.type === 'success') {
+  router.replace('/select-role');
+    }
     }
 
     setGoogleLoading(false);
@@ -93,6 +94,7 @@ export default function LoginScreen() {
       </View>
 
       <TouchableOpacity style={styles.googleButton} onPress={signInWithGoogle} disabled={googleLoading}>
+        <AntDesign name="google" size={20} color="#DB4437" style={{ marginRight: 10 }} />
         <Text style={styles.googleButtonText}>{googleLoading ? 'Connecting...' : 'Continue with Google'}</Text>
       </TouchableOpacity>
     </View>
@@ -111,6 +113,6 @@ const styles = StyleSheet.create({
   dividerRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 24 },
   dividerLine: { flex: 1, height: 1, backgroundColor: '#ddd' },
   dividerText: { marginHorizontal: 12, color: '#999', fontSize: 13 },
-  googleButton: { borderWidth: 1, borderColor: '#ddd', paddingVertical: 16, borderRadius: 10, alignItems: 'center' },
+  googleButton: { borderWidth: 1, borderColor: '#ddd', paddingVertical: 16, borderRadius: 10, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
   googleButtonText: { color: '#333', fontSize: 16, fontWeight: '600' },
 });

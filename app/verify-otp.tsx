@@ -28,7 +28,7 @@ export default function VerifyOtpScreen() {
       Alert.alert('Error', error.message);
     } else {
       Alert.alert('Success', 'Logged in successfully!');
-      router.replace('/profile');
+      router.replace('/select-role');
     }
   }
 
