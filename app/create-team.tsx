@@ -27,18 +27,39 @@ export default function CreateTeam() {
       return;
     }
 
-    const { error } = await supabase.from('teams').insert({
-      name: teamName.trim(),
-      captain_id: user.id,
-      tournament_id: tournament_id,
-    });
+    // Step 1: Create the team
+    const { data: team, error: teamError } = await supabase
+      .from('teams')
+      .insert({
+        name: teamName.trim(),
+        captain_id: user.id,
+        tournament_id: tournament_id,
+      })
+      .select()
+      .single();
+
+    if (teamError) {
+      Alert.alert('Error', teamError.message);
+      setLoading(false);
+      return;
+    }
+
+    // Step 2: Create the registration
+    const { error: regError } = await supabase
+      .from('registrations')
+      .insert({
+        tournament_id: tournament_id,
+        team_id: team.id,
+        player_id: user.id,
+        status: 'pending',
+      });
 
     setLoading(false);
 
-    if (error) {
-      Alert.alert('Error', error.message);
+    if (regError) {
+      Alert.alert('Error', regError.message);
     } else {
-      Alert.alert('Team Created!', `${teamName} is ready to compete 🏆`, [
+      Alert.alert('Registered! 🎉', `${teamName} is registered for the tournament!`, [
         { text: 'OK', onPress: () => router.back() }
       ]);
     }
