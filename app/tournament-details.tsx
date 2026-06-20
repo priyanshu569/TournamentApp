@@ -11,12 +11,24 @@ export default function TournamentDetails() {
   const router = useRouter();
   const [tournament, setTournament] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchTournament();
+    fetchData();
   }, []);
 
-  async function fetchTournament() {
+  async function fetchData() {
+    const { data: userData } = await supabase.auth.getUser();
+
+    if (userData.user) {
+      const { data: profile } = await supabase
+        .from('Profiles')
+        .select('role')
+        .eq('id', userData.user.id)
+        .single();
+      if (profile) setRole(profile.role);
+    }
+
     const { data, error } = await supabase
       .from('tournaments')
       .select('*')
@@ -68,12 +80,21 @@ export default function TournamentDetails() {
         </View>
       </View>
 
-      <TouchableOpacity
-        style={styles.registerButton}
-        onPress={() => router.push(`/create-team?tournament_id=${tournament.id}`)}
-      >
-        <Text style={styles.registerButtonText}>Register Team</Text>
-      </TouchableOpacity>
+      {role === 'host' ? (
+        <TouchableOpacity
+          style={styles.registerButton}
+          onPress={() => router.push(`/registrations?tournament_id=${tournament.id}`)}
+        >
+          <Text style={styles.registerButtonText}>View Registrations</Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={styles.registerButton}
+          onPress={() => router.push(`/create-team?tournament_id=${tournament.id}`)}
+        >
+          <Text style={styles.registerButtonText}>Register Team</Text>
+        </TouchableOpacity>
+      )}
     </ScrollView>
   );
 }

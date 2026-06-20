@@ -2,9 +2,11 @@ import { supabase } from '@/lib/supabase';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
+
 export default function HomeScreen() {
   const [role, setRole] = useState<string | null>(null);
   const [username, setUsername] = useState('');
+  const [userId, setUserId] = useState<string | null>(null);
   const [tournaments, setTournaments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -20,6 +22,8 @@ export default function HomeScreen() {
       return;
     }
 
+    setUserId(userData.user.id);
+
     const { data: profile } = await supabase
       .from('Profiles')
       .select('role, username')
@@ -31,10 +35,18 @@ export default function HomeScreen() {
       setUsername(profile.username || '');
     }
 
-    const { data: tournamentData } = await supabase
+    const isHost = profile?.role === 'host';
+
+    const query = supabase
       .from('tournaments')
       .select('*')
       .order('created_at', { ascending: false });
+
+    if (isHost) {
+      query.eq('host_id', userData.user.id);
+    }
+
+    const { data: tournamentData } = await query;
 
     if (tournamentData) {
       setTournaments(tournamentData);
@@ -68,10 +80,14 @@ export default function HomeScreen() {
             data={tournaments}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>{item.title}</Text>
-            <Text style={styles.cardSub}>{item.game} • {item.status}</Text>
-          </View>
+              <TouchableOpacity
+                style={styles.card}
+                onPress={() => router.push(`/tournament-details?id=${item.id}`)}
+              >
+                <Text style={styles.cardTitle}>{item.title}</Text>
+                <Text style={styles.cardSub}>{item.game} • {item.status}</Text>
+                <Text style={styles.cardAction}>View Registrations →</Text>
+              </TouchableOpacity>
             )}
           />
         )}
@@ -91,7 +107,10 @@ export default function HomeScreen() {
           data={tournaments}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <TouchableOpacity style={styles.card} onPress={() => router.push(`/tournament-details?id=${item.id}`)}>
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() => router.push(`/tournament-details?id=${item.id}`)}
+            >
               <Text style={styles.cardTitle}>{item.title}</Text>
               <Text style={styles.cardSub}>{item.game} • Entry: ₹{item.entry_fee}</Text>
             </TouchableOpacity>
@@ -113,4 +132,5 @@ const styles = StyleSheet.create({
   card: { borderWidth: 1, borderColor: '#eee', borderRadius: 12, padding: 16, marginBottom: 10 },
   cardTitle: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
   cardSub: { fontSize: 13, color: '#666' },
+  cardAction: { fontSize: 12, color: '#534AB7', marginTop: 6, fontWeight: '600' },
 });
