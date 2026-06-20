@@ -68,7 +68,10 @@ export default function TournamentDetails() {
         </View>
       </View>
 
-      <TouchableOpacity style={styles.registerButton}>
+      <TouchableOpacity
+        style={styles.registerButton}
+        onPress={() => router.push(`/create-team?tournament_id=${tournament.id}`)}
+      >
         <Text style={styles.registerButtonText}>Register Team</Text>
       </TouchableOpacity>
     </ScrollView>
