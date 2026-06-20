@@ -1,12 +1,13 @@
 import { supabase } from '@/lib/supabase';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
+import { useRouter } from 'expo-router';
 export default function HomeScreen() {
   const [role, setRole] = useState<string | null>(null);
   const [username, setUsername] = useState('');
   const [tournaments, setTournaments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     loadData();
@@ -56,7 +57,7 @@ export default function HomeScreen() {
         <Text style={styles.greeting}>Welcome back, {username} 🏆</Text>
         <Text style={styles.sectionTitle}>Your Tournaments</Text>
 
-        <TouchableOpacity style={styles.createButton}>
+        <TouchableOpacity style={styles.createButton} onPress={() => router.push('/create-tournament')}>
           <Text style={styles.createButtonText}>+ Create Tournament</Text>
         </TouchableOpacity>
 
@@ -67,10 +68,10 @@ export default function HomeScreen() {
             data={tournaments}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-              <View style={styles.card}>
-                <Text style={styles.cardTitle}>{item.title}</Text>
-                <Text style={styles.cardSub}>{item.game} • {item.status}</Text>
-              </View>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>{item.title}</Text>
+            <Text style={styles.cardSub}>{item.game} • {item.status}</Text>
+          </View>
             )}
           />
         )}
@@ -90,10 +91,10 @@ export default function HomeScreen() {
           data={tournaments}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <View style={styles.card}>
+            <TouchableOpacity style={styles.card} onPress={() => router.push(`/tournament-details?id=${item.id}`)}>
               <Text style={styles.cardTitle}>{item.title}</Text>
               <Text style={styles.cardSub}>{item.game} • Entry: ₹{item.entry_fee}</Text>
-            </View>
+            </TouchableOpacity>
           )}
         />
       )}
