@@ -90,7 +90,7 @@ export default function TournamentDetails() {
       ) : (
         <TouchableOpacity
           style={styles.registerButton}
-          onPress={() => router.push(`/create-team?tournament_id=${tournament.id}`)}
+          onPress={() => router.push(`/create-team?tournament_id=${tournament.id}&entry_fee=${tournament.entry_fee}`)}
         >
           <Text style={styles.registerButtonText}>Register Team</Text>
         </TouchableOpacity>

@@ -13,7 +13,7 @@ type Member = {
 
 export default function CreateTeam() {
   const router = useRouter();
-  const { tournament_id } = useLocalSearchParams();
+  const { tournament_id, entry_fee } = useLocalSearchParams();
   const [teamName, setTeamName] = useState('');
   const [loading, setLoading] = useState(false);
   const [members, setMembers] = useState<Member[]>([
@@ -86,22 +86,33 @@ export default function CreateTeam() {
     }
 
     // Step 3: Create registration
-    const { error: regError } = await supabase
+    const { data: reg, error: regError } = await supabase
       .from('registrations')
       .insert({
         tournament_id: tournament_id,
         team_id: team.id,
         player_id: user.id,
         status: 'pending',
-      });
+      })
+      .select()
+      .single();
 
     setLoading(false);
 
     if (regError) {
       Alert.alert('Error', regError.message);
+      return;
+    }
+
+    // Step 4: Navigate to payment if entry fee > 0
+    const fee = Number(entry_fee) || 0;
+    if (fee > 0) {
+      router.push(
+        `/payment?amount=${fee}&tournament_id=${tournament_id}&team_id=${team.id}&registration_id=${reg?.id}`
+      );
     } else {
-      Alert.alert('Registered! 🎉', `${teamName} is registered for the tournament!`, [
-        { text: 'OK', onPress: () => router.back() }
+      Alert.alert('Registered! 🎉', `${teamName} is confirmed for the tournament!`, [
+        { text: 'OK', onPress: () => router.push('/') }
       ]);
     }
   };
