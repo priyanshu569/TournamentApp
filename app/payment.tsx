@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, Alert, Text, TouchableOpacity } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '../lib/supabase';
@@ -8,6 +8,7 @@ export default function Payment() {
   const router = useRouter();
   const { amount, tournament_id, team_id, registration_id } = useLocalSearchParams();
   const [loading, setLoading] = useState(true);
+  const [webViewKey, setWebViewKey] = useState(0);
 
   const RAZORPAY_KEY = 'rzp_test_T4niiB2H7e9SDl';
 
@@ -17,14 +18,49 @@ export default function Payment() {
     <head>
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+      <style>
+        body {
+          margin: 0;
+          background: #0a0a0a;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+          font-family: -apple-system, sans-serif;
+        }
+        .info {
+          color: #aaa;
+          font-size: 14px;
+          text-align: center;
+          padding: 20px;
+        }
+        .amount {
+          color: #7C3AED;
+          font-size: 32px;
+          font-weight: 800;
+          margin-bottom: 8px;
+        }
+        .label {
+          color: #555;
+          font-size: 12px;
+          letter-spacing: 2px;
+          text-transform: uppercase;
+        }
+      </style>
     </head>
-    <body style="margin:0; background:#0a0a0a; display:flex; justify-content:center; align-items:center; height:100vh;">
+    <body>
+      <div class="info">
+        <div class="label">Entry Fee</div>
+        <div class="amount">₹${amount}</div>
+        <div class="label">Opening payment...</div>
+      </div>
       <script>
         var options = {
           key: '${RAZORPAY_KEY}',
           amount: ${Number(amount) * 100},
           currency: 'INR',
-          name: 'Priyanshu Yadav',
+          name: 'Fragify',
           description: 'Tournament Entry Fee',
           theme: { color: '#7C3AED' },
           handler: function(response) {
@@ -49,33 +85,25 @@ export default function Payment() {
             reason: response.error.description
           }));
         });
-        rzp.open();
+        setTimeout(function() { rzp.open(); }, 500);
       </script>
     </body>
     </html>
   `;
 
   const handleMessage = async (event: any) => {
-    console.log('Raw message:', event.nativeEvent.data);
-    
     let data;
     try {
       data = JSON.parse(event.nativeEvent.data);
     } catch (e) {
-      console.log('Parse error:', e);
       return;
     }
-
-    console.log('Parsed data:', JSON.stringify(data));
-    console.log('Registration ID:', registration_id);
 
     if (data.success) {
       const { error } = await supabase
         .from('registrations')
         .update({ status: 'confirmed' })
         .eq('id', registration_id);
-
-      console.log('Update error:', JSON.stringify(error));
 
       if (error) {
         Alert.alert('Error', 'Payment done but status update failed: ' + error.message);
@@ -85,22 +113,51 @@ export default function Payment() {
         ]);
       }
     } else {
-      Alert.alert(
-        'Payment Failed',
-        data.reason === 'dismissed' ? 'Payment was cancelled.' : data.reason,
-        [{ text: 'OK', onPress: () => router.back() }]
-      );
+      if (data.reason === 'dismissed') {
+        Alert.alert(
+          'Payment Cancelled',
+          'You cancelled the payment. Want to try again?',
+          [
+            { text: 'Try Again', onPress: () => setWebViewKey(k => k + 1) },
+            { text: 'Go Back', style: 'cancel', onPress: () => router.back() }
+          ]
+        );
+      } else {
+        Alert.alert('Payment Failed', data.reason, [
+          { text: 'Try Again', onPress: () => setWebViewKey(k => k + 1) },
+          { text: 'Go Back', style: 'cancel', onPress: () => router.back() }
+        ]);
+      }
     }
   };
 
   return (
     <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Text style={styles.backText}>← Back</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Payment</Text>
+        <View style={{ width: 60 }} />
+      </View>
+
+      {/* Amount Display */}
+      <View style={styles.amountBox}>
+        <Text style={styles.amountLabel}>ENTRY FEE</Text>
+        <Text style={styles.amountValue}>₹{amount}</Text>
+        <Text style={styles.amountSub}>Secured by Razorpay</Text>
+      </View>
+
       {loading && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#7C3AED" />
+          <Text style={styles.loadingText}>Opening payment...</Text>
         </View>
       )}
+
       <WebView
+        key={webViewKey}
         source={{ html: htmlContent }}
         onMessage={handleMessage}
         onLoad={() => setLoading(false)}
@@ -113,12 +170,28 @@ export default function Payment() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0a' },
-  webview: { flex: 1 },
+  header: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', paddingHorizontal: 24,
+    paddingTop: 60, paddingBottom: 16,
+  },
+  backText: { color: '#7C3AED', fontSize: 15, fontWeight: '600', width: 60 },
+  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
+  amountBox: {
+    alignItems: 'center', paddingVertical: 24,
+    borderBottomWidth: 1, borderBottomColor: '#1a1a1a',
+  },
+  amountLabel: { color: '#555', fontSize: 11, fontWeight: '800', letterSpacing: 2, marginBottom: 8 },
+  amountValue: { color: '#7C3AED', fontSize: 42, fontWeight: '900', marginBottom: 4 },
+  amountSub: { color: '#333', fontSize: 12 },
+  webview: { flex: 1, backgroundColor: '#0a0a0a' },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#0a0a0a',
     zIndex: 10,
+    gap: 12,
   },
+  loadingText: { color: '#aaa', fontSize: 14 },
 });
