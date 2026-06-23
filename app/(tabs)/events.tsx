@@ -1,23 +1,23 @@
-import { supabase } from '@/lib/supabase';
 import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator, FlatList, ScrollView, StyleSheet,
-  Text, TouchableOpacity, View
+  View, Text, StyleSheet, FlatList,
+  TouchableOpacity, ActivityIndicator, ScrollView
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { supabase } from '@/lib/supabase';
 
 const GAMES = ['All', 'Free Fire', 'BGMI', 'COD Mobile', 'Valorant'];
 
-export default function HomeScreen() {
-  const [role, setRole] = useState<string | null>(null);
-  const [username, setUsername] = useState('');
+export default function EventsScreen() {
+  const router = useRouter();
   const [tournaments, setTournaments] = useState<any[]>([]);
   const [filtered, setFiltered] = useState<any[]>([]);
   const [selectedGame, setSelectedGame] = useState('All');
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    fetchTournaments();
+  }, []);
 
   useEffect(() => {
     if (selectedGame === 'All') {
@@ -29,35 +29,16 @@ export default function HomeScreen() {
     }
   }, [selectedGame, tournaments]);
 
-  async function loadData() {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) { setLoading(false); return; }
-
-    const { data: profile } = await supabase
-      .from('Profiles')
-      .select('role, username')
-      .eq('id', userData.user.id)
-      .single();
-
-    if (profile) {
-      setRole(profile.role);
-      setUsername(profile.username || '');
-    }
-
-    const isHost = profile?.role === 'host';
-    const query = supabase
+  async function fetchTournaments() {
+    const { data } = await supabase
       .from('tournaments')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (isHost) query.eq('host_id', userData.user.id);
-
-    const { data: tournamentData } = await query;
-    if (tournamentData) {
-      setTournaments(tournamentData);
-      setFiltered(tournamentData);
+    if (data) {
+      setTournaments(data);
+      setFiltered(data);
     }
-
     setLoading(false);
   }
 
@@ -82,39 +63,14 @@ export default function HomeScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <View style={styles.logo}>
-            <Text style={styles.logoText}>F</Text>
-          </View>
-          <View>
-            <Text style={styles.appName}>FRAGIFY</Text>
-            <Text style={styles.appTagline}>ESPORTS · COMPETE · WIN</Text>
-          </View>
+        <View>
+          <Text style={styles.headerTitle}>Tournaments</Text>
+          <Text style={styles.headerSub}>{filtered.length} live & upcoming events</Text>
         </View>
         <TouchableOpacity style={styles.notifBtn}>
           <Text style={styles.notifIcon}>🔔</Text>
         </TouchableOpacity>
       </View>
-
-      {/* Welcome */}
-      <View style={styles.welcomeBox}>
-        <Text style={styles.welcomeText}>
-          {role === 'host' ? `Welcome back, ${username} 🏆` : `Hey ${username} 🎮`}
-        </Text>
-        <Text style={styles.welcomeSub}>
-          {role === 'host' ? 'Manage your tournaments' : 'Find your next tournament'}
-        </Text>
-      </View>
-
-      {/* Host Create Button */}
-      {role === 'host' && (
-        <TouchableOpacity
-          style={styles.createButton}
-          onPress={() => router.push('/create-tournament')}
-        >
-          <Text style={styles.createButtonText}>+ Create Tournament</Text>
-        </TouchableOpacity>
-      )}
 
       {/* Game Filter */}
       <ScrollView
@@ -126,12 +82,16 @@ export default function HomeScreen() {
         {GAMES.map((game) => (
           <TouchableOpacity
             key={game}
-            style={[styles.filterChip, selectedGame === game && styles.filterChipActive]}
+            style={[
+              styles.filterChip,
+              selectedGame === game && styles.filterChipActive
+            ]}
             onPress={() => setSelectedGame(game)}
           >
-            <Text style={[styles.filterChipText, selectedGame === game && styles.filterChipTextActive]}>
-              {game}
-            </Text>
+            <Text style={[
+              styles.filterChipText,
+              selectedGame === game && styles.filterChipTextActive
+            ]}>{game}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -143,9 +103,7 @@ export default function HomeScreen() {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>
-            {role === 'host' ? 'No tournaments yet. Create one!' : 'No tournaments available.'}
-          </Text>
+          <Text style={styles.emptyText}>No tournaments found.</Text>
         }
         renderItem={({ item }) => (
           <TouchableOpacity
@@ -158,7 +116,10 @@ export default function HomeScreen() {
                   {item.game.toUpperCase()}
                 </Text>
               </View>
-              <View style={styles.statusBadge}>
+              <View style={[
+                styles.statusBadge,
+                item.status === 'upcoming' ? styles.statusUpcoming : styles.statusLive
+              ]}>
                 <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
               </View>
             </View>
@@ -191,27 +152,12 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' },
   header: {
     flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', padding: 24, paddingTop: 60, paddingBottom: 12,
+    alignItems: 'center', padding: 24, paddingTop: 60, paddingBottom: 16,
   },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  logo: {
-    width: 40, height: 40, borderRadius: 10,
-    backgroundColor: '#7C3AED', justifyContent: 'center', alignItems: 'center',
-  },
-  logoText: { color: '#fff', fontSize: 20, fontWeight: '800' },
-  appName: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 2 },
-  appTagline: { color: '#555', fontSize: 9, letterSpacing: 1.5, marginTop: 1 },
+  headerTitle: { fontSize: 26, fontWeight: '800', color: '#fff' },
+  headerSub: { fontSize: 13, color: '#aaa', marginTop: 2 },
   notifBtn: { padding: 8 },
   notifIcon: { fontSize: 22 },
-  welcomeBox: { paddingHorizontal: 24, marginBottom: 16 },
-  welcomeText: { color: '#fff', fontSize: 20, fontWeight: '700' },
-  welcomeSub: { color: '#aaa', fontSize: 13, marginTop: 2 },
-  createButton: {
-    backgroundColor: '#7C3AED', marginHorizontal: 24,
-    paddingVertical: 14, borderRadius: 12,
-    alignItems: 'center', marginBottom: 16,
-  },
-  createButtonText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   filterScroll: { maxHeight: 50 },
   filterContainer: { paddingHorizontal: 24, gap: 8 },
   filterChip: {
@@ -219,11 +165,14 @@ const styles = StyleSheet.create({
     borderRadius: 20, backgroundColor: '#1a1a1a',
     borderWidth: 1, borderColor: '#2a2a2a',
   },
-  filterChipActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
+  filterChipActive: {
+    backgroundColor: '#7C3AED',
+    borderColor: '#7C3AED',
+  },
   filterChipText: { color: '#aaa', fontSize: 13, fontWeight: '600' },
   filterChipTextActive: { color: '#fff' },
-  listContent: { padding: 24, paddingTop: 12 },
-  emptyText: { color: '#555', textAlign: 'center', marginTop: 40, fontSize: 14 },
+  listContent: { padding: 24, paddingTop: 16 },
+  emptyText: { color: '#555', textAlign: 'center', marginTop: 40 },
   card: {
     backgroundColor: '#1a1a1a', borderRadius: 12,
     padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#2a2a2a',
@@ -231,8 +180,10 @@ const styles = StyleSheet.create({
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   gameTag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
   gameTagText: { fontSize: 11, fontWeight: '800' },
-  statusBadge: { backgroundColor: '#1a1a3a', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
-  statusText: { fontSize: 11, fontWeight: '700', color: '#7C3AED' },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
+  statusUpcoming: { backgroundColor: '#1a1a3a' },
+  statusLive: { backgroundColor: '#1a3a1a' },
+  statusText: { fontSize: 11, fontWeight: '700', color: '#fff' },
   cardTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 14 },
   cardStats: { flexDirection: 'row', gap: 16 },
   stat: {},
