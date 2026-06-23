@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, Alert, ActivityIndicator, ScrollView
+  StyleSheet, Alert, ActivityIndicator, ScrollView,
+  KeyboardAvoidingView, Platform
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '../lib/supabase';
@@ -51,7 +52,6 @@ export default function CreateTeam() {
       return;
     }
 
-    // Step 1: Create the team
     const { data: team, error: teamError } = await supabase
       .from('teams')
       .insert({
@@ -68,7 +68,6 @@ export default function CreateTeam() {
       return;
     }
 
-    // Step 2: Insert team members
     const { error: membersError } = await supabase
       .from('team_members')
       .insert(
@@ -85,7 +84,6 @@ export default function CreateTeam() {
       return;
     }
 
-    // Step 3: Create registration
     const { data: reg, error: regError } = await supabase
       .from('registrations')
       .insert({
@@ -104,7 +102,6 @@ export default function CreateTeam() {
       return;
     }
 
-    // Step 4: Navigate to payment if entry fee > 0
     const fee = Number(entry_fee) || 0;
     if (fee > 0) {
       router.push(
@@ -118,68 +115,119 @@ export default function CreateTeam() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.heading}>Create Your Team</Text>
-      <Text style={styles.sub}>Fill in team name and all 4 squad members.</Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    >
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.heading}>Create Your Team</Text>
+        <Text style={styles.sub}>Fill in team name and all 4 squad members.</Text>
 
-      <Text style={styles.label}>Team Name</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="e.g. Shadow Wolves"
-        placeholderTextColor="#555"
-        value={teamName}
-        onChangeText={setTeamName}
-      />
-
-      {members.map((member, index) => (
-        <View key={index} style={styles.memberBox}>
-          <Text style={styles.memberTitle}>Player {index + 1} {index === 0 ? '(Captain)' : ''}</Text>
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Team Name *</Text>
           <TextInput
             style={styles.input}
-            placeholder="In-Game Name"
-            placeholderTextColor="#555"
-            value={member.in_game_name}
-            onChangeText={(val) => updateMember(index, 'in_game_name', val)}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="UID / Player ID"
-            placeholderTextColor="#555"
-            value={member.player_uid}
-            onChangeText={(val) => updateMember(index, 'player_uid', val)}
+            placeholder="e.g. Shadow Wolves"
+            placeholderTextColor="#444"
+            value={teamName}
+            onChangeText={setTeamName}
           />
         </View>
-      ))}
 
-      <TouchableOpacity style={styles.button} onPress={handleCreate} disabled={loading}>
-        {loading
-          ? <ActivityIndicator color="#fff" />
-          : <Text style={styles.buttonText}>Register Team</Text>
-        }
-      </TouchableOpacity>
-    </ScrollView>
+        <Text style={styles.sectionTitle}>SQUAD MEMBERS</Text>
+
+        {members.map((member, index) => (
+          <View key={index} style={styles.memberBox}>
+            <View style={styles.memberHeader}>
+              <View style={styles.memberIndex}>
+                <Text style={styles.memberIndexText}>{index + 1}</Text>
+              </View>
+              <Text style={styles.memberTitle}>
+                Player {index + 1} {index === 0 ? '— Captain' : ''}
+              </Text>
+            </View>
+            <TextInput
+              style={styles.input}
+              placeholder="In-Game Name"
+              placeholderTextColor="#444"
+              value={member.in_game_name}
+              onChangeText={(val) => updateMember(index, 'in_game_name', val)}
+              returnKeyType="next"
+            />
+            <TextInput
+              style={[styles.input, { marginBottom: 0 }]}
+              placeholder="UID / Player ID"
+              placeholderTextColor="#444"
+              value={member.player_uid}
+              onChangeText={(val) => updateMember(index, 'player_uid', val)}
+              returnKeyType={index === 3 ? 'done' : 'next'}
+            />
+          </View>
+        ))}
+
+        {Number(entry_fee) > 0 && (
+          <View style={styles.feeNote}>
+            <Text style={styles.feeNoteText}>
+              💰 Entry Fee: ₹{entry_fee} — You'll be redirected to payment after this step.
+            </Text>
+          </View>
+        )}
+
+        <TouchableOpacity style={styles.button} onPress={handleCreate} disabled={loading}>
+          {loading
+            ? <ActivityIndicator color="#fff" />
+            : <Text style={styles.buttonText}>
+                {Number(entry_fee) > 0 ? `Proceed to Payment ₹${entry_fee} →` : 'Register Team 🚀'}
+              </Text>
+          }
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0a' },
-  content: { padding: 24, paddingBottom: 48 },
-  heading: { fontSize: 28, fontWeight: '800', color: '#fff', marginBottom: 8 },
+  content: { padding: 24, paddingTop: 60, paddingBottom: 80 },
+  heading: { fontSize: 28, fontWeight: '900', color: '#fff', marginBottom: 4 },
   sub: { fontSize: 14, color: '#aaa', marginBottom: 28 },
-  label: { color: '#aaa', fontSize: 13, marginBottom: 6, fontWeight: '600' },
+  sectionTitle: {
+    color: '#555', fontSize: 11, fontWeight: '800',
+    letterSpacing: 2, marginBottom: 12,
+  },
+  label: { color: '#aaa', fontSize: 13, marginBottom: 8, fontWeight: '600' },
+  fieldGroup: { marginBottom: 20 },
   input: {
     backgroundColor: '#1a1a1a', color: '#fff', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 12, fontSize: 15,
-    borderWidth: 1, borderColor: '#2a2a2a', marginBottom: 12,
+    paddingHorizontal: 14, paddingVertical: 14, fontSize: 15,
+    borderWidth: 1, borderColor: '#2a2a2a', marginBottom: 10,
   },
   memberBox: {
-    borderWidth: 1, borderColor: '#2a2a2a', borderRadius: 12,
-    padding: 16, marginBottom: 16, backgroundColor: '#111',
+    backgroundColor: '#111', borderRadius: 12, padding: 16,
+    marginBottom: 12, borderWidth: 1, borderColor: '#2a2a2a',
   },
-  memberTitle: { color: '#7C3AED', fontSize: 13, fontWeight: '700', marginBottom: 10 },
+  memberHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  memberIndex: {
+    width: 26, height: 26, borderRadius: 13,
+    backgroundColor: '#7C3AED', justifyContent: 'center',
+    alignItems: 'center', marginRight: 10,
+  },
+  memberIndexText: { color: '#fff', fontSize: 12, fontWeight: '800' },
+  memberTitle: { color: '#7C3AED', fontSize: 13, fontWeight: '700' },
+  feeNote: {
+    backgroundColor: '#1a1a00', borderRadius: 10, padding: 14,
+    marginBottom: 20, borderWidth: 1, borderColor: '#3a3a00',
+  },
+  feeNoteText: { color: '#FFB800', fontSize: 13, fontWeight: '600' },
   button: {
     backgroundColor: '#7C3AED', paddingVertical: 16,
     borderRadius: 12, alignItems: 'center', marginTop: 8,
   },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  buttonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 });
