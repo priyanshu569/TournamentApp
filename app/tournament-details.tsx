@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
-  TouchableOpacity, Alert, ScrollView
+  TouchableOpacity, Alert, ScrollView, TextInput
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '../lib/supabase';
@@ -12,18 +12,40 @@ export default function TournamentDetails() {
   const [tournament, setTournament] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isRegistered, setIsRegistered] = useState(false);
+  const [isConfirmed, setIsConfirmed] = useState(false);
+  const [showRoomForm, setShowRoomForm] = useState(false);
+  const [roomCode, setRoomCode] = useState('');
+  const [roomPassword, setRoomPassword] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => { fetchData(); }, []);
 
   async function fetchData() {
     const { data: userData } = await supabase.auth.getUser();
+
     if (userData.user) {
+      setUserId(userData.user.id);
       const { data: profile } = await supabase
         .from('Profiles')
         .select('role')
         .eq('id', userData.user.id)
         .single();
       if (profile) setRole(profile.role);
+
+      // Check if player is registered
+      const { data: reg } = await supabase
+        .from('registrations')
+        .select('status')
+        .eq('tournament_id', id)
+        .eq('player_id', userData.user.id)
+        .single();
+
+      if (reg) {
+        setIsRegistered(true);
+        setIsConfirmed(reg.status === 'confirmed');
+      }
     }
 
     const { data, error } = await supabase
@@ -33,9 +55,36 @@ export default function TournamentDetails() {
       .single();
 
     if (error) Alert.alert('Error', error.message);
-    else setTournament(data);
+    else {
+      setTournament(data);
+      setRoomCode(data.room_code ?? '');
+      setRoomPassword(data.room_password ?? '');
+    }
     setLoading(false);
   }
+
+  const handleSaveRoomCode = async () => {
+    if (!roomCode.trim()) {
+      Alert.alert('Missing', 'Please enter a room code.');
+      return;
+    }
+
+    setSaving(true);
+    const { error } = await supabase
+      .from('tournaments')
+      .update({ room_code: roomCode.trim(), room_password: roomPassword.trim() })
+      .eq('id', id);
+
+    setSaving(false);
+
+    if (error) {
+      Alert.alert('Error', error.message);
+    } else {
+      setTournament((prev: any) => ({ ...prev, room_code: roomCode, room_password: roomPassword }));
+      setShowRoomForm(false);
+      Alert.alert('Published! 🔑', 'Room code is now visible to confirmed players.');
+    }
+  };
 
   const getGameColor = (game: string) => {
     const g = game?.toLowerCase() ?? '';
@@ -102,7 +151,106 @@ export default function TournamentDetails() {
         </View>
       </View>
 
-      {/* Divider */}
+      <View style={styles.divider} />
+
+      {/* Room Code Section */}
+      {role === 'host' && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>ROOM CODE</Text>
+
+          {tournament.room_code ? (
+            <View style={styles.roomCodeBox}>
+              <View style={styles.roomRow}>
+                <Text style={styles.roomLabel}>Room ID</Text>
+                <Text style={styles.roomValue}>{tournament.room_code}</Text>
+              </View>
+              {tournament.room_password ? (
+                <View style={styles.roomRow}>
+                  <Text style={styles.roomLabel}>Password</Text>
+                  <Text style={styles.roomValue}>{tournament.room_password}</Text>
+                </View>
+              ) : null}
+              <TouchableOpacity
+                style={styles.editRoomBtn}
+                onPress={() => setShowRoomForm(true)}
+              >
+                <Text style={styles.editRoomBtnText}>Update Room Code</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: gameColor }]}
+              onPress={() => setShowRoomForm(true)}
+            >
+              <Text style={styles.actionButtonText}>🔑 Publish Room Code</Text>
+            </TouchableOpacity>
+          )}
+
+          {showRoomForm && (
+            <View style={styles.roomForm}>
+              <TextInput
+                style={styles.input}
+                placeholder="Room ID / Code"
+                placeholderTextColor="#444"
+                value={roomCode}
+                onChangeText={setRoomCode}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Password (optional)"
+                placeholderTextColor="#444"
+                value={roomPassword}
+                onChangeText={setRoomPassword}
+              />
+              <View style={styles.roomFormBtns}>
+                <TouchableOpacity
+                  style={styles.cancelBtn}
+                  onPress={() => setShowRoomForm(false)}
+                >
+                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.saveBtn, { backgroundColor: gameColor }]}
+                  onPress={handleSaveRoomCode}
+                  disabled={saving}
+                >
+                  {saving
+                    ? <ActivityIndicator color="#fff" size="small" />
+                    : <Text style={styles.saveBtnText}>Publish</Text>
+                  }
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* Room Code for confirmed players */}
+      {role === 'player' && isConfirmed && tournament.room_code && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>ROOM CODE</Text>
+          <View style={[styles.roomCodeBox, { borderColor: gameColor }]}>
+            <View style={styles.roomRow}>
+              <Text style={styles.roomLabel}>Room ID</Text>
+              <Text style={[styles.roomValue, { color: gameColor }]}>{tournament.room_code}</Text>
+            </View>
+            {tournament.room_password ? (
+              <View style={styles.roomRow}>
+                <Text style={styles.roomLabel}>Password</Text>
+                <Text style={[styles.roomValue, { color: gameColor }]}>{tournament.room_password}</Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
+      )}
+
+      {/* Waiting for room code */}
+      {role === 'player' && isConfirmed && !tournament.room_code && (
+        <View style={styles.waitingBox}>
+          <Text style={styles.waitingText}>⏳ Room code not published yet. Check back before match time!</Text>
+        </View>
+      )}
+
       <View style={styles.divider} />
 
       {/* Action Button */}
@@ -111,16 +259,23 @@ export default function TournamentDetails() {
           style={[styles.actionButton, { backgroundColor: gameColor }]}
           onPress={() => router.push(`/registrations?tournament_id=${tournament.id}`)}
         >
-          <Text style={styles.actionButtonText}>View Registrations</Text>
+          <Text style={styles.actionButtonText}>View Registrations →</Text>
         </TouchableOpacity>
-      ) : (
+      ) : !isRegistered ? (
         <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: gameColor }]}
           onPress={() => router.push(`/create-team?tournament_id=${tournament.id}&entry_fee=${tournament.entry_fee}`)}
         >
           <Text style={styles.actionButtonText}>Register Team →</Text>
         </TouchableOpacity>
+      ) : (
+        <View style={styles.alreadyRegistered}>
+          <Text style={styles.alreadyRegisteredText}>
+            {isConfirmed ? '✅ You are confirmed for this tournament!' : '⏳ Registration pending payment confirmation.'}
+          </Text>
+        </View>
       )}
+
     </ScrollView>
   );
 }
@@ -151,9 +306,53 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 4 },
   statLabel: { fontSize: 11, color: '#aaa' },
   divider: { height: 1, backgroundColor: '#1a1a1a', marginBottom: 24 },
+  section: { marginBottom: 24 },
+  sectionTitle: {
+    color: '#555', fontSize: 11, fontWeight: '800',
+    letterSpacing: 2, marginBottom: 12,
+  },
+  roomCodeBox: {
+    backgroundColor: '#1a1a1a', borderRadius: 12,
+    padding: 16, borderWidth: 1, borderColor: '#2a2a2a',
+  },
+  roomRow: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', marginBottom: 8,
+  },
+  roomLabel: { color: '#aaa', fontSize: 13 },
+  roomValue: { color: '#fff', fontSize: 18, fontWeight: '800' },
+  editRoomBtn: { marginTop: 8 },
+  editRoomBtnText: { color: '#7C3AED', fontSize: 13, fontWeight: '600' },
+  roomForm: { marginTop: 16 },
+  input: {
+    backgroundColor: '#1a1a1a', color: '#fff', borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 14, fontSize: 15,
+    borderWidth: 1, borderColor: '#2a2a2a', marginBottom: 10,
+  },
+  roomFormBtns: { flexDirection: 'row', gap: 10 },
+  cancelBtn: {
+    flex: 1, paddingVertical: 14, borderRadius: 12,
+    alignItems: 'center', backgroundColor: '#1a1a1a',
+    borderWidth: 1, borderColor: '#2a2a2a',
+  },
+  cancelBtnText: { color: '#aaa', fontSize: 14, fontWeight: '600' },
+  saveBtn: {
+    flex: 1, paddingVertical: 14,
+    borderRadius: 12, alignItems: 'center',
+  },
+  saveBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  waitingBox: {
+    backgroundColor: '#1a1a00', borderRadius: 12, padding: 16,
+    borderWidth: 1, borderColor: '#3a3a00', marginBottom: 24,
+  },
+  waitingText: { color: '#FFB800', fontSize: 13, fontWeight: '600' },
   actionButton: {
-    paddingVertical: 16, borderRadius: 12,
-    alignItems: 'center',
+    paddingVertical: 16, borderRadius: 12, alignItems: 'center',
   },
   actionButtonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  alreadyRegistered: {
+    backgroundColor: '#0a1a0a', borderRadius: 12, padding: 16,
+    borderWidth: 1, borderColor: '#1a3a1a',
+  },
+  alreadyRegisteredText: { color: '#00D4AA', fontSize: 14, fontWeight: '600', textAlign: 'center' },
 });
