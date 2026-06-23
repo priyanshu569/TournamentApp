@@ -6,100 +6,190 @@ import {
 import { useRouter } from 'expo-router';
 import { supabase } from '../lib/supabase';
 
+const GAMES = ['Free Fire', 'BGMI', 'COD Mobile', 'Valorant'];
+const STATUSES = ['upcoming', 'ongoing', 'completed'];
+
 export default function CreateTournament() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [selectedGame, setSelectedGame] = useState('Free Fire');
+  const [selectedStatus, setSelectedStatus] = useState('upcoming');
   const [form, setForm] = useState({
     title: '',
-    game: '',
     entry_fee: '',
     prize_pool: '',
-    max_teams: '',
+    max_teams: '12',
   });
 
   const handleSubmit = async () => {
-  if (!form.title || !form.game || !form.max_teams) {
-    Alert.alert('Missing Fields', 'Please fill in Title, Game, and Max Teams.');
-    return;
-  }
+    if (!form.title || !selectedGame || !form.max_teams) {
+      Alert.alert('Missing Fields', 'Please fill in Title, Game, and Max Teams.');
+      return;
+    }
 
-  setLoading(true);
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  
-  if (!user) {
-    Alert.alert('Auth Error', 'Not logged in: ' + authError?.message);
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      Alert.alert('Error', 'Not logged in.');
+      setLoading(false);
+      return;
+    }
+
+    const { error } = await supabase.from('tournaments').insert({
+      title: form.title,
+      game: selectedGame,
+      entry_fee: parseFloat(form.entry_fee) || 0,
+      prize_pool: parseFloat(form.prize_pool) || 0,
+      max_teams: parseInt(form.max_teams),
+      status: selectedStatus,
+      host_id: user?.id,
+    });
+
     setLoading(false);
-    return;
-  }
 
-  console.log('User ID:', user.id);
-
-  const { error } = await supabase.from('tournaments').insert({
-    title: form.title,
-    game: form.game,
-    entry_fee: parseFloat(form.entry_fee) || 0,
-    prize_pool: parseFloat(form.prize_pool) || 0,
-    max_teams: parseInt(form.max_teams),
-    status: 'upcoming',
-    host_id: user.id,
-  });
-
-  setLoading(false);
-
-  if (error) {
-    Alert.alert('Insert Error', error.message + ' | Code: ' + error.code);
-  } else {
-    Alert.alert('Success', 'Tournament created!', [
-      { text: 'OK', onPress: () => router.back() }
-    ]);
-  }
-};
+    if (error) {
+      Alert.alert('Error', error.message);
+    } else {
+      Alert.alert('Tournament Created! 🎉', 'Your tournament is now live.', [
+        { text: 'OK', onPress: () => router.back() }
+      ]);
+    }
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.heading}>Create Tournament</Text>
 
-      {[
-        { label: 'Tournament Title *', key: 'title', placeholder: 'e.g. Free Fire Sunday Cup' },
-        { label: 'Game *', key: 'game', placeholder: 'e.g. Free Fire, BGMI' },
-        { label: 'Entry Fee (₹)', key: 'entry_fee', placeholder: '0', keyboard: 'numeric' },
-        { label: 'Prize Pool (₹)', key: 'prize_pool', placeholder: '0', keyboard: 'numeric' },
-        { label: 'Max Teams *', key: 'max_teams', placeholder: 'e.g. 16', keyboard: 'numeric' },
-      ].map(({ label, key, placeholder, keyboard }) => (
-        <View key={key} style={styles.fieldGroup}>
-          <Text style={styles.label}>{label}</Text>
-          <TextInput
-            style={styles.input}
-            placeholder={placeholder}
-            placeholderTextColor="#555"
-            keyboardType={(keyboard as any) || 'default'}
-            value={form[key as keyof typeof form]}
-            onChangeText={(val) => setForm(prev => ({ ...prev, [key]: val }))}
-          />
-        </View>
-      ))}
+      <Text style={styles.heading}>Create Tournament</Text>
+      <Text style={styles.sub}>Fill in the details to go live.</Text>
+
+      {/* Game Selection */}
+      <Text style={styles.label}>Select Game *</Text>
+      <View style={styles.gameGrid}>
+        {GAMES.map((game) => (
+          <TouchableOpacity
+            key={game}
+            style={[styles.gameChip, selectedGame === game && styles.gameChipActive]}
+            onPress={() => setSelectedGame(game)}
+          >
+            <Text style={[styles.gameChipText, selectedGame === game && styles.gameChipTextActive]}>
+              {game}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Title */}
+      <View style={styles.fieldGroup}>
+        <Text style={styles.label}>Tournament Title *</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="e.g. Free Fire Sunday Cup"
+          placeholderTextColor="#444"
+          value={form.title}
+          onChangeText={(val) => setForm(prev => ({ ...prev, title: val }))}
+        />
+      </View>
+
+      {/* Entry Fee */}
+      <View style={styles.fieldGroup}>
+        <Text style={styles.label}>Entry Fee (₹)</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="0"
+          placeholderTextColor="#444"
+          keyboardType="numeric"
+          value={form.entry_fee}
+          onChangeText={(val) => setForm(prev => ({ ...prev, entry_fee: val }))}
+        />
+      </View>
+
+      {/* Prize Pool */}
+      <View style={styles.fieldGroup}>
+        <Text style={styles.label}>Prize Pool (₹)</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="0"
+          placeholderTextColor="#444"
+          keyboardType="numeric"
+          value={form.prize_pool}
+          onChangeText={(val) => setForm(prev => ({ ...prev, prize_pool: val }))}
+        />
+      </View>
+
+      {/* Max Teams */}
+      <View style={styles.fieldGroup}>
+        <Text style={styles.label}>Max Teams *</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="12"
+          placeholderTextColor="#444"
+          keyboardType="numeric"
+          value={form.max_teams}
+          onChangeText={(val) => setForm(prev => ({ ...prev, max_teams: val }))}
+        />
+      </View>
+
+      {/* Status */}
+      <Text style={styles.label}>Status</Text>
+      <View style={styles.statusRow}>
+        {STATUSES.map((s) => (
+          <TouchableOpacity
+            key={s}
+            style={[styles.statusChip, selectedStatus === s && styles.statusChipActive]}
+            onPress={() => setSelectedStatus(s)}
+          >
+            <Text style={[styles.statusChipText, selectedStatus === s && styles.statusChipTextActive]}>
+              {s}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Create Tournament</Text>}
+        {loading
+          ? <ActivityIndicator color="#fff" />
+          : <Text style={styles.buttonText}>Create Tournament 🚀</Text>
+        }
       </TouchableOpacity>
+
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0a' },
-  content: { padding: 24, paddingBottom: 48 },
-  heading: { fontSize: 26, fontWeight: '700', color: '#fff', marginBottom: 28 },
-  fieldGroup: { marginBottom: 18 },
-  label: { color: '#aaa', fontSize: 13, marginBottom: 6, fontWeight: '600' },
-  input: {
-    backgroundColor: '#1a1a1a', color: '#fff', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 12, fontSize: 15,
+  content: { padding: 24, paddingTop: 60, paddingBottom: 48 },
+  heading: { fontSize: 28, fontWeight: '900', color: '#fff', marginBottom: 4 },
+  sub: { fontSize: 14, color: '#aaa', marginBottom: 28 },
+  label: { color: '#aaa', fontSize: 13, marginBottom: 8, fontWeight: '600', letterSpacing: 0.5 },
+  gameGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
+  gameChip: {
+    paddingHorizontal: 16, paddingVertical: 10,
+    borderRadius: 10, backgroundColor: '#1a1a1a',
     borderWidth: 1, borderColor: '#2a2a2a',
   },
-  button: {
-    backgroundColor: '#7C3AED', paddingVertical: 16, borderRadius: 12,
-    alignItems: 'center', marginTop: 12,
+  gameChipActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
+  gameChipText: { color: '#aaa', fontSize: 13, fontWeight: '600' },
+  gameChipTextActive: { color: '#fff' },
+  fieldGroup: { marginBottom: 18 },
+  input: {
+    backgroundColor: '#1a1a1a', color: '#fff', borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 14, fontSize: 15,
+    borderWidth: 1, borderColor: '#2a2a2a',
   },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  statusRow: { flexDirection: 'row', gap: 8, marginBottom: 24 },
+  statusChip: {
+    flex: 1, paddingVertical: 10, borderRadius: 10,
+    backgroundColor: '#1a1a1a', borderWidth: 1,
+    borderColor: '#2a2a2a', alignItems: 'center',
+  },
+  statusChipActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
+  statusChipText: { color: '#aaa', fontSize: 12, fontWeight: '600' },
+  statusChipTextActive: { color: '#fff' },
+  button: {
+    backgroundColor: '#7C3AED', paddingVertical: 16,
+    borderRadius: 12, alignItems: 'center', marginTop: 8,
+  },
+  buttonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 });
