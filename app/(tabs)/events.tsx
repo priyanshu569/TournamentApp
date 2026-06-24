@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
+import VerifiedBadge from '@/components/VerifiedBadge';
 
 const GAMES = ['All', 'Free Fire', 'BGMI', 'COD Mobile', 'Valorant'];
 
@@ -42,7 +43,7 @@ export default function EventsScreen() {
   async function fetchTournaments() {
     const { data } = await supabase
       .from('tournaments')
-      .select('*')
+      .select('*, host:public_profiles!host_id(username, is_verified)')
       .order('created_at', { ascending: false });
 
     if (data) {
@@ -166,6 +167,11 @@ export default function EventsScreen() {
 
             <Text style={styles.cardTitle}>{item.title}</Text>
 
+            <View style={styles.hostRow}>
+              <Text style={styles.hostName}>by {item.host?.username}</Text>
+              {item.host?.is_verified && <VerifiedBadge size={13} />}
+            </View>
+
             <Text style={styles.cardDate}>🗓 {formatDate(item.start_time)}</Text>
 
             <View style={styles.cardStats}>
@@ -245,7 +251,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#00D4AA',
   },
   statusText: { fontSize: 11, fontWeight: '700', color: '#fff' },
-  cardTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 6 },
+  cardTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 4 },
+  hostRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  hostName: { fontSize: 12, color: '#888', fontWeight: '600' },
   cardDate: { fontSize: 12, color: '#555', marginBottom: 12 },
   cardStats: { flexDirection: 'row', gap: 16 },
   stat: {},
