@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '../lib/supabase';
+import VerifiedBadge from '@/components/VerifiedBadge';
 
 export default function TournamentDetails() {
   const { id } = useLocalSearchParams();
@@ -49,7 +50,7 @@ export default function TournamentDetails() {
 
     const { data, error } = await supabase
       .from('tournaments')
-      .select('*')
+      .select('*, host:public_profiles!host_id(username, is_verified)')
       .eq('id', id)
       .single();
 
@@ -146,6 +147,12 @@ export default function TournamentDetails() {
 
       {/* Title */}
       <Text style={styles.title}>{tournament.title}</Text>
+
+      {/* Host Row */}
+      <View style={styles.hostRow}>
+        <Text style={styles.hostedBy}>Hosted by {tournament.host?.username}</Text>
+        {tournament.host?.is_verified && <VerifiedBadge size={15} />}
+      </View>
 
       {/* Status + Date Row */}
       <View style={styles.statusRow}>
@@ -332,7 +339,9 @@ const styles = StyleSheet.create({
     paddingVertical: 6, borderRadius: 8, marginBottom: 16,
   },
   gameTagText: { fontSize: 12, fontWeight: '800', letterSpacing: 1 },
-  title: { fontSize: 30, fontWeight: '900', color: '#fff', marginBottom: 16, lineHeight: 36 },
+  title: { fontSize: 30, fontWeight: '900', color: '#fff', marginBottom: 6, lineHeight: 36 },
+  hostRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  hostedBy: { fontSize: 13, color: '#888', fontWeight: '600' },
   statusRow: {
     flexDirection: 'row', alignItems: 'center',
     gap: 12, marginBottom: 24,
