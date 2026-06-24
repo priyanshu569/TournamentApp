@@ -41,8 +41,6 @@ export default function TournamentDetails() {
         .limit(1)
         .maybeSingle();
 
-      console.log('Reg found:', JSON.stringify(reg));
-
       if (reg) {
         setIsRegistered(true);
         setIsConfirmed(reg.status === 'confirmed');
@@ -84,6 +82,19 @@ export default function TournamentDetails() {
       setTournament((prev: any) => ({ ...prev, room_code: roomCode, room_password: roomPassword }));
       setShowRoomForm(false);
       Alert.alert('Published! 🔑', 'Room code is now visible to confirmed players.');
+    }
+  };
+
+  const handleStatusUpdate = async (s: string) => {
+    const { error } = await supabase
+      .from('tournaments')
+      .update({ status: s })
+      .eq('id', id);
+
+    if (!error) {
+      setTournament((prev: any) => ({ ...prev, status: s }));
+    } else {
+      Alert.alert('Error', error.message);
     }
   };
 
@@ -143,9 +154,7 @@ export default function TournamentDetails() {
             {tournament.status.toUpperCase()}
           </Text>
         </View>
-        <Text style={styles.dateText}>
-          🗓 {formatDate(tournament.start_time)}
-        </Text>
+        <Text style={styles.dateText}>🗓 {formatDate(tournament.start_time)}</Text>
       </View>
 
       {/* Stats */}
@@ -229,6 +238,30 @@ export default function TournamentDetails() {
               </View>
             </View>
           )}
+        </View>
+      )}
+
+      {/* Status Update — Host */}
+      {role === 'host' && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>UPDATE STATUS</Text>
+          <View style={styles.statusChipRow}>
+            {['upcoming', 'ongoing', 'completed'].map((s) => (
+              <TouchableOpacity
+                key={s}
+                style={[
+                  styles.statusChip,
+                  tournament.status === s && { backgroundColor: gameColor, borderColor: gameColor }
+                ]}
+                onPress={() => handleStatusUpdate(s)}
+              >
+                <Text style={[
+                  styles.statusChipText,
+                  tournament.status === s && { color: '#fff' }
+                ]}>{s}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
       )}
 
@@ -354,6 +387,13 @@ const styles = StyleSheet.create({
     borderRadius: 12, alignItems: 'center',
   },
   saveBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  statusChipRow: { flexDirection: 'row', gap: 8 },
+  statusChip: {
+    flex: 1, paddingVertical: 10, borderRadius: 10,
+    backgroundColor: '#1a1a1a', borderWidth: 1,
+    borderColor: '#2a2a2a', alignItems: 'center',
+  },
+  statusChipText: { color: '#aaa', fontSize: 12, fontWeight: '600' },
   waitingBox: {
     backgroundColor: '#1a1a00', borderRadius: 12, padding: 16,
     borderWidth: 1, borderColor: '#3a3a00', marginBottom: 24,
