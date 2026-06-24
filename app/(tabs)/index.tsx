@@ -5,6 +5,7 @@ import {
   Text, TouchableOpacity, View
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import VerifiedBadge from '@/components/VerifiedBadge';
 
 const GAMES = ['All', 'Free Fire', 'BGMI', 'COD Mobile', 'Valorant'];
 
@@ -47,7 +48,7 @@ export default function HomeScreen() {
     const isHost = profile?.role === 'host';
     const query = supabase
       .from('tournaments')
-      .select('*')
+      .select('*, host:public_profiles!host_id(username, is_verified)')
       .order('created_at', { ascending: false });
 
     if (isHost) query.eq('host_id', userData.user.id);
@@ -165,6 +166,11 @@ export default function HomeScreen() {
 
             <Text style={styles.cardTitle}>{item.title}</Text>
 
+            <View style={styles.hostRow}>
+              <Text style={styles.hostName}>by {item.host?.username}</Text>
+              {item.host?.is_verified && <VerifiedBadge size={13} />}
+            </View>
+
             <View style={styles.cardStats}>
               <View style={styles.stat}>
                 <Text style={styles.statValue}>₹{item.prize_pool}</Text>
@@ -233,7 +239,9 @@ const styles = StyleSheet.create({
   gameTagText: { fontSize: 11, fontWeight: '800' },
   statusBadge: { backgroundColor: '#1a1a3a', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
   statusText: { fontSize: 11, fontWeight: '700', color: '#7C3AED' },
-  cardTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 14 },
+  cardTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 4 },
+  hostRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
+  hostName: { fontSize: 12, color: '#888', fontWeight: '600' },
   cardStats: { flexDirection: 'row', gap: 16 },
   stat: {},
   statValue: { fontSize: 15, fontWeight: '700', color: '#7C3AED' },
