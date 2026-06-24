@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, ScrollView, Alert, ActivityIndicator
+  StyleSheet, ScrollView, Alert, ActivityIndicator, Platform
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../lib/supabase';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const GAMES = ['Free Fire', 'BGMI', 'COD Mobile', 'Valorant'];
 const STATUSES = ['upcoming', 'ongoing', 'completed'];
@@ -14,6 +15,9 @@ export default function CreateTournament() {
   const [loading, setLoading] = useState(false);
   const [selectedGame, setSelectedGame] = useState('Free Fire');
   const [selectedStatus, setSelectedStatus] = useState('upcoming');
+  const [startTime, setStartTime] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [form, setForm] = useState({
     title: '',
     entry_fee: '',
@@ -44,6 +48,7 @@ export default function CreateTournament() {
       max_teams: parseInt(form.max_teams),
       status: selectedStatus,
       host_id: user?.id,
+      start_time: startTime.toISOString(),
     });
 
     setLoading(false);
@@ -55,6 +60,13 @@ export default function CreateTournament() {
         { text: 'OK', onPress: () => router.back() }
       ]);
     }
+  };
+
+  const formatDateTime = (date: Date) => {
+    return date.toLocaleString('en-IN', {
+      day: 'numeric', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: true,
+    });
   };
 
   return (
@@ -130,6 +142,69 @@ export default function CreateTournament() {
         />
       </View>
 
+      {/* Date & Time */}
+      <View style={styles.fieldGroup}>
+        <Text style={styles.label}>Tournament Date & Time *</Text>
+        <View style={styles.dateRow}>
+          <TouchableOpacity
+            style={[styles.dateBtn, { flex: 1 }]}
+            onPress={() => setShowDatePicker(true)}
+          >
+            <Text style={styles.dateBtnLabel}>📅 Date</Text>
+            <Text style={styles.dateBtnValue}>
+              {startTime.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.dateBtn, { flex: 1 }]}
+            onPress={() => setShowTimePicker(true)}
+          >
+            <Text style={styles.dateBtnLabel}>⏰ Time</Text>
+            <Text style={styles.dateBtnValue}>
+              {startTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.datePreview}>
+          <Text style={styles.datePreviewText}>🗓 {formatDateTime(startTime)}</Text>
+        </View>
+      </View>
+
+      {showDatePicker && (
+        <DateTimePicker
+          value={startTime}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          minimumDate={new Date()}
+          onChange={(event, date) => {
+            setShowDatePicker(false);
+            if (date) {
+              const updated = new Date(startTime);
+              updated.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+              setStartTime(updated);
+            }
+          }}
+        />
+      )}
+
+      {showTimePicker && (
+        <DateTimePicker
+          value={startTime}
+          mode="time"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={(event, date) => {
+            setShowTimePicker(false);
+            if (date) {
+              const updated = new Date(startTime);
+              updated.setHours(date.getHours(), date.getMinutes());
+              setStartTime(updated);
+            }
+          }}
+        />
+      )}
+
       {/* Status */}
       <Text style={styles.label}>Status</Text>
       <View style={styles.statusRow}>
@@ -178,6 +253,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 14, fontSize: 15,
     borderWidth: 1, borderColor: '#2a2a2a',
   },
+  dateRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
+  dateBtn: {
+    backgroundColor: '#1a1a1a', borderRadius: 10,
+    padding: 14, borderWidth: 1, borderColor: '#2a2a2a',
+  },
+  dateBtnLabel: { color: '#555', fontSize: 11, fontWeight: '600', marginBottom: 4 },
+  dateBtnValue: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  datePreview: {
+    backgroundColor: '#7C3AED22', borderRadius: 10,
+    padding: 12, borderWidth: 1, borderColor: '#7C3AED44',
+  },
+  datePreviewText: { color: '#7C3AED', fontSize: 13, fontWeight: '600' },
   statusRow: { flexDirection: 'row', gap: 8, marginBottom: 24 },
   statusChip: {
     flex: 1, paddingVertical: 10, borderRadius: 10,
