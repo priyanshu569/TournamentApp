@@ -12,7 +12,6 @@ export default function TournamentDetails() {
   const [tournament, setTournament] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
   const [isRegistered, setIsRegistered] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [showRoomForm, setShowRoomForm] = useState(false);
@@ -26,7 +25,6 @@ export default function TournamentDetails() {
     const { data: userData } = await supabase.auth.getUser();
 
     if (userData.user) {
-      setUserId(userData.user.id);
       const { data: profile } = await supabase
         .from('Profiles')
         .select('role')
@@ -34,13 +32,16 @@ export default function TournamentDetails() {
         .single();
       if (profile) setRole(profile.role);
 
-      // Check if player is registered
       const { data: reg } = await supabase
         .from('registrations')
         .select('status')
         .eq('tournament_id', id)
         .eq('player_id', userData.user.id)
-        .single();
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      console.log('Reg found:', JSON.stringify(reg));
 
       if (reg) {
         setIsRegistered(true);
@@ -95,6 +96,15 @@ export default function TournamentDetails() {
     return '#7C3AED';
   };
 
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return 'TBA';
+    const date = new Date(dateStr);
+    return date.toLocaleString('en-IN', {
+      day: 'numeric', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: true,
+    });
+  };
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -126,13 +136,16 @@ export default function TournamentDetails() {
       {/* Title */}
       <Text style={styles.title}>{tournament.title}</Text>
 
-      {/* Status Badge */}
+      {/* Status + Date Row */}
       <View style={styles.statusRow}>
         <View style={[styles.statusBadge, { borderColor: gameColor }]}>
           <Text style={[styles.statusText, { color: gameColor }]}>
             {tournament.status.toUpperCase()}
           </Text>
         </View>
+        <Text style={styles.dateText}>
+          🗓 {formatDate(tournament.start_time)}
+        </Text>
       </View>
 
       {/* Stats */}
@@ -153,7 +166,7 @@ export default function TournamentDetails() {
 
       <View style={styles.divider} />
 
-      {/* Room Code Section */}
+      {/* Room Code Section — Host */}
       {role === 'host' && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>ROOM CODE</Text>
@@ -170,10 +183,7 @@ export default function TournamentDetails() {
                   <Text style={styles.roomValue}>{tournament.room_password}</Text>
                 </View>
               ) : null}
-              <TouchableOpacity
-                style={styles.editRoomBtn}
-                onPress={() => setShowRoomForm(true)}
-              >
+              <TouchableOpacity style={styles.editRoomBtn} onPress={() => setShowRoomForm(true)}>
                 <Text style={styles.editRoomBtnText}>Update Room Code</Text>
               </TouchableOpacity>
             </View>
@@ -203,10 +213,7 @@ export default function TournamentDetails() {
                 onChangeText={setRoomPassword}
               />
               <View style={styles.roomFormBtns}>
-                <TouchableOpacity
-                  style={styles.cancelBtn}
-                  onPress={() => setShowRoomForm(false)}
-                >
+                <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowRoomForm(false)}>
                   <Text style={styles.cancelBtnText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -225,7 +232,7 @@ export default function TournamentDetails() {
         </View>
       )}
 
-      {/* Room Code for confirmed players */}
+      {/* Room Code — Confirmed Player */}
       {role === 'player' && isConfirmed && tournament.room_code && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>ROOM CODE</Text>
@@ -261,19 +268,21 @@ export default function TournamentDetails() {
         >
           <Text style={styles.actionButtonText}>View Registrations →</Text>
         </TouchableOpacity>
-      ) : !isRegistered ? (
+      ) : isRegistered ? (
+        <View style={styles.alreadyRegistered}>
+          <Text style={styles.alreadyRegisteredText}>
+            {isConfirmed
+              ? '✅ You are confirmed for this tournament!'
+              : '⏳ Registration pending payment confirmation.'}
+          </Text>
+        </View>
+      ) : (
         <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: gameColor }]}
           onPress={() => router.push(`/create-team?tournament_id=${tournament.id}&entry_fee=${tournament.entry_fee}`)}
         >
           <Text style={styles.actionButtonText}>Register Team →</Text>
         </TouchableOpacity>
-      ) : (
-        <View style={styles.alreadyRegistered}>
-          <Text style={styles.alreadyRegisteredText}>
-            {isConfirmed ? '✅ You are confirmed for this tournament!' : '⏳ Registration pending payment confirmation.'}
-          </Text>
-        </View>
       )}
 
     </ScrollView>
@@ -291,12 +300,16 @@ const styles = StyleSheet.create({
   },
   gameTagText: { fontSize: 12, fontWeight: '800', letterSpacing: 1 },
   title: { fontSize: 30, fontWeight: '900', color: '#fff', marginBottom: 16, lineHeight: 36 },
-  statusRow: { marginBottom: 24 },
+  statusRow: {
+    flexDirection: 'row', alignItems: 'center',
+    gap: 12, marginBottom: 24,
+  },
   statusBadge: {
-    alignSelf: 'flex-start', paddingHorizontal: 12,
-    paddingVertical: 4, borderRadius: 20, borderWidth: 1,
+    paddingHorizontal: 12, paddingVertical: 4,
+    borderRadius: 20, borderWidth: 1,
   },
   statusText: { fontSize: 12, fontWeight: '700' },
+  dateText: { color: '#aaa', fontSize: 13 },
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
   statBox: {
     flex: 1, backgroundColor: '#1a1a1a', borderRadius: 12,
