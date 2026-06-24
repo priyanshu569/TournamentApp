@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList,
-  TouchableOpacity, ActivityIndicator, ScrollView
+  TouchableOpacity, ActivityIndicator, ScrollView, TextInput
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
@@ -13,6 +13,7 @@ export default function EventsScreen() {
   const [tournaments, setTournaments] = useState<any[]>([]);
   const [filtered, setFiltered] = useState<any[]>([]);
   const [selectedGame, setSelectedGame] = useState('All');
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,14 +21,23 @@ export default function EventsScreen() {
   }, []);
 
   useEffect(() => {
-    if (selectedGame === 'All') {
-      setFiltered(tournaments);
-    } else {
-      setFiltered(tournaments.filter(t =>
+    let results = tournaments;
+
+    if (selectedGame !== 'All') {
+      results = results.filter(t =>
         t.game.toLowerCase().includes(selectedGame.toLowerCase())
-      ));
+      );
     }
-  }, [selectedGame, tournaments]);
+
+    if (search.trim()) {
+      results = results.filter(t =>
+        t.title.toLowerCase().includes(search.toLowerCase()) ||
+        t.game.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+
+    setFiltered(results);
+  }, [selectedGame, search, tournaments]);
 
   async function fetchTournaments() {
     const { data } = await supabase
@@ -51,6 +61,14 @@ export default function EventsScreen() {
     return '#7C3AED';
   };
 
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return 'TBA';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-IN', {
+      day: 'numeric', month: 'short', year: 'numeric',
+    });
+  };
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -65,11 +83,28 @@ export default function EventsScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.headerTitle}>Tournaments</Text>
-          <Text style={styles.headerSub}>{filtered.length} live & upcoming events</Text>
+          <Text style={styles.headerSub}>{filtered.length} events found</Text>
         </View>
         <TouchableOpacity style={styles.notifBtn}>
           <Text style={styles.notifIcon}>🔔</Text>
         </TouchableOpacity>
+      </View>
+
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <Text style={styles.searchIcon}>🔍</Text>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search tournaments..."
+          placeholderTextColor="#444"
+          value={search}
+          onChangeText={setSearch}
+        />
+        {search.length > 0 && (
+          <TouchableOpacity onPress={() => setSearch('')}>
+            <Text style={styles.clearBtn}>✕</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Game Filter */}
@@ -103,7 +138,11 @@ export default function EventsScreen() {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No tournaments found.</Text>
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyIcon}>🔍</Text>
+            <Text style={styles.emptyText}>No tournaments found.</Text>
+            <Text style={styles.emptySubText}>Try a different search or game filter.</Text>
+          </View>
         }
         renderItem={({ item }) => (
           <TouchableOpacity
@@ -118,13 +157,16 @@ export default function EventsScreen() {
               </View>
               <View style={[
                 styles.statusBadge,
-                item.status === 'upcoming' ? styles.statusUpcoming : styles.statusLive
+                item.status === 'ongoing' ? styles.statusLive : styles.statusUpcoming
               ]}>
+                {item.status === 'ongoing' && <View style={styles.liveDot} />}
                 <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
               </View>
             </View>
 
             <Text style={styles.cardTitle}>{item.title}</Text>
+
+            <Text style={styles.cardDate}>🗓 {formatDate(item.start_time)}</Text>
 
             <View style={styles.cardStats}>
               <View style={styles.stat}>
@@ -152,12 +194,24 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' },
   header: {
     flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', padding: 24, paddingTop: 60, paddingBottom: 16,
+    alignItems: 'center', padding: 24, paddingTop: 60, paddingBottom: 12,
   },
   headerTitle: { fontSize: 26, fontWeight: '800', color: '#fff' },
   headerSub: { fontSize: 13, color: '#aaa', marginTop: 2 },
   notifBtn: { padding: 8 },
   notifIcon: { fontSize: 22 },
+  searchContainer: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#1a1a1a', marginHorizontal: 24,
+    borderRadius: 12, paddingHorizontal: 14,
+    marginBottom: 14, borderWidth: 1, borderColor: '#2a2a2a',
+  },
+  searchIcon: { fontSize: 16, marginRight: 8 },
+  searchInput: {
+    flex: 1, color: '#fff', fontSize: 15,
+    paddingVertical: 12,
+  },
+  clearBtn: { color: '#555', fontSize: 16, padding: 4 },
   filterScroll: { maxHeight: 50 },
   filterContainer: { paddingHorizontal: 24, gap: 8 },
   filterChip: {
@@ -165,14 +219,14 @@ const styles = StyleSheet.create({
     borderRadius: 20, backgroundColor: '#1a1a1a',
     borderWidth: 1, borderColor: '#2a2a2a',
   },
-  filterChipActive: {
-    backgroundColor: '#7C3AED',
-    borderColor: '#7C3AED',
-  },
+  filterChipActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
   filterChipText: { color: '#aaa', fontSize: 13, fontWeight: '600' },
   filterChipTextActive: { color: '#fff' },
   listContent: { padding: 24, paddingTop: 16 },
-  emptyText: { color: '#555', textAlign: 'center', marginTop: 40 },
+  emptyContainer: { alignItems: 'center', marginTop: 60 },
+  emptyIcon: { fontSize: 40, marginBottom: 12 },
+  emptyText: { color: '#fff', fontSize: 16, fontWeight: '700', marginBottom: 4 },
+  emptySubText: { color: '#555', fontSize: 13 },
   card: {
     backgroundColor: '#1a1a1a', borderRadius: 12,
     padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#2a2a2a',
@@ -180,11 +234,19 @@ const styles = StyleSheet.create({
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   gameTag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
   gameTagText: { fontSize: 11, fontWeight: '800' },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
+  statusBadge: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, gap: 4,
+  },
   statusUpcoming: { backgroundColor: '#1a1a3a' },
   statusLive: { backgroundColor: '#1a3a1a' },
+  liveDot: {
+    width: 6, height: 6, borderRadius: 3,
+    backgroundColor: '#00D4AA',
+  },
   statusText: { fontSize: 11, fontWeight: '700', color: '#fff' },
-  cardTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 14 },
+  cardTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 6 },
+  cardDate: { fontSize: 12, color: '#555', marginBottom: 12 },
   cardStats: { flexDirection: 'row', gap: 16 },
   stat: {},
   statValue: { fontSize: 15, fontWeight: '700', color: '#7C3AED' },
