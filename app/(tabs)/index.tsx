@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import VerifiedBadge from '@/components/VerifiedBadge';
+import NotificationBell from '@/components/NotificationBell';
 
 const GAMES = ['All', 'Free Fire', 'BGMI', 'COD Mobile', 'Valorant'];
 
@@ -92,9 +93,7 @@ export default function HomeScreen() {
             <Text style={styles.appTagline}>ESPORTS · COMPETE · WIN</Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.notifBtn}>
-          <Text style={styles.notifIcon}>🔔</Text>
-        </TouchableOpacity>
+        <NotificationBell />
       </View>
 
       {/* Welcome */}
@@ -118,24 +117,25 @@ export default function HomeScreen() {
       )}
 
       {/* Game Filter */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterScroll}
-        contentContainerStyle={styles.filterContainer}
-      >
-        {GAMES.map((game) => (
-          <TouchableOpacity
-            key={game}
-            style={[styles.filterChip, selectedGame === game && styles.filterChipActive]}
-            onPress={() => setSelectedGame(game)}
-          >
-            <Text style={[styles.filterChipText, selectedGame === game && styles.filterChipTextActive]}>
-              {game}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <View style={styles.filterWrapper}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterContainer}
+        >
+          {GAMES.map((game) => (
+            <TouchableOpacity
+              key={game}
+              style={[styles.filterChip, selectedGame === game && styles.filterChipActive]}
+              onPress={() => setSelectedGame(game)}
+            >
+              <Text style={[styles.filterChipText, selectedGame === game && styles.filterChipTextActive]}>
+                {game}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       {/* Tournament List */}
       <FlatList
@@ -207,8 +207,6 @@ const styles = StyleSheet.create({
   logoText: { color: '#fff', fontSize: 20, fontWeight: '800' },
   appName: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 2 },
   appTagline: { color: '#555', fontSize: 9, letterSpacing: 1.5, marginTop: 1 },
-  notifBtn: { padding: 8 },
-  notifIcon: { fontSize: 22 },
   welcomeBox: { paddingHorizontal: 24, marginBottom: 16 },
   welcomeText: { color: '#fff', fontSize: 20, fontWeight: '700' },
   welcomeSub: { color: '#aaa', fontSize: 13, marginTop: 2 },
@@ -218,17 +216,17 @@ const styles = StyleSheet.create({
     alignItems: 'center', marginBottom: 16,
   },
   createButtonText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  filterScroll: { maxHeight: 50 },
-  filterContainer: { paddingHorizontal: 24, gap: 8 },
+  filterWrapper: { marginBottom: 8 },
+  filterContainer: { paddingHorizontal: 24, gap: 8, paddingVertical: 8 },
   filterChip: {
-    paddingHorizontal: 16, paddingVertical: 8,
+    paddingHorizontal: 16, paddingVertical: 10,
     borderRadius: 20, backgroundColor: '#1a1a1a',
     borderWidth: 1, borderColor: '#2a2a2a',
   },
   filterChipActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
   filterChipText: { color: '#aaa', fontSize: 13, fontWeight: '600' },
   filterChipTextActive: { color: '#fff' },
-  listContent: { padding: 24, paddingTop: 12 },
+  listContent: { padding: 24, paddingTop: 4 },
   emptyText: { color: '#555', textAlign: 'center', marginTop: 40, fontSize: 14 },
   card: {
     backgroundColor: '#1a1a1a', borderRadius: 12,
