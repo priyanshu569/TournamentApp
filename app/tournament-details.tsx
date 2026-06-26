@@ -6,6 +6,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import VerifiedBadge from '@/components/VerifiedBadge';
+import { notifyAndLog } from '@/lib/notifications';
 
 export default function TournamentDetails() {
   const { id } = useLocalSearchParams();
@@ -50,7 +51,7 @@ export default function TournamentDetails() {
 
     const { data, error } = await supabase
       .from('tournaments')
-      .select('*, host:public_profiles!host_id(username, is_verified)')
+      .select('*, host:Profiles!host_id(username, is_verified)')
       .eq('id', id)
       .single();
 
@@ -61,6 +62,28 @@ export default function TournamentDetails() {
       setRoomPassword(data.room_password ?? '');
     }
     setLoading(false);
+  }
+
+  async function notifyConfirmedPlayers(title: string, body: string) {
+    try {
+      const { data, error } = await supabase.rpc('get_confirmed_players', {
+        target_tournament_id: id,
+      });
+
+      if (error) {
+        console.log('Failed to fetch confirmed players:', error.message);
+        return;
+      }
+
+      const players = data ?? [];
+      await Promise.all(
+        players.map((p: any) =>
+          notifyAndLog(p.user_id, p.push_token, title, body, id as string)
+        )
+      );
+    } catch (err) {
+      console.log('Notify error:', err);
+    }
   }
 
   const handleSaveRoomCode = async () => {
@@ -83,6 +106,11 @@ export default function TournamentDetails() {
       setTournament((prev: any) => ({ ...prev, room_code: roomCode, room_password: roomPassword }));
       setShowRoomForm(false);
       Alert.alert('Published! 🔑', 'Room code is now visible to confirmed players.');
+
+      notifyConfirmedPlayers(
+        '🔑 Room Code Published',
+        `${tournament?.title ?? 'Your tournament'} room code is live — check it now!`
+      );
     }
   };
 
@@ -94,6 +122,15 @@ export default function TournamentDetails() {
 
     if (!error) {
       setTournament((prev: any) => ({ ...prev, status: s }));
+
+      const statusMessages: Record<string, string> = {
+        ongoing: `🔥 ${tournament?.title ?? 'Your tournament'} has started — get ready!`,
+        completed: `🏁 ${tournament?.title ?? 'Your tournament'} has ended. Thanks for playing!`,
+      };
+
+      if (statusMessages[s]) {
+        notifyConfirmedPlayers('Tournament Update', statusMessages[s]);
+      }
     } else {
       Alert.alert('Error', error.message);
     }
@@ -181,7 +218,23 @@ export default function TournamentDetails() {
       </View>
 
       <View style={styles.divider} />
+      {/* Description */}
+      {tournament.description && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>ABOUT</Text>
+          <Text style={styles.descriptionText}>{tournament.description}</Text>
+        </View>
+      )}
 
+      {/* Rules */}
+      {tournament.rules && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>RULES</Text>
+          <View style={styles.rulesBox}>
+            <Text style={styles.rulesText}>{tournament.rules}</Text>
+          </View>
+        </View>
+      )}
       {/* Room Code Section — Host */}
       {role === 'host' && (
         <View style={styles.section}>
@@ -330,6 +383,13 @@ export default function TournamentDetails() {
 }
 
 const styles = StyleSheet.create({
+  descriptionText: { color: '#ccc', fontSize: 14, lineHeight: 22 },
+  rulesBox: {
+    backgroundColor: '#1a1a1a', borderRadius: 12,
+    padding: 16, borderWidth: 1, borderColor: '#2a2a2a',
+  },
+  rulesText: { color: '#ccc', fontSize: 14, lineHeight: 24 },
+
   container: { flex: 1, backgroundColor: '#0a0a0a' },
   content: { padding: 24, paddingTop: 60, paddingBottom: 48 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' },
