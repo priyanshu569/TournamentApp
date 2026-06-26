@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '../lib/supabase';
+import { notifyAndLog } from '@/lib/notifications';
 
 type Member = {
   in_game_name: string;
@@ -95,19 +96,49 @@ export default function CreateTeam() {
       .select()
       .single();
 
-    setLoading(false);
-
     if (regError) {
+      setLoading(false);
       Alert.alert('Error', regError.message);
       return;
     }
 
     const fee = Number(entry_fee) || 0;
+
     if (fee > 0) {
+      setLoading(false);
       router.push(
         `/payment?amount=${fee}&tournament_id=${tournament_id}&team_id=${team.id}&registration_id=${reg?.id}`
       );
     } else {
+      // Free tournament — confirm immediately
+      const { error: confirmError } = await supabase
+        .from('registrations')
+        .update({ status: 'confirmed' })
+        .eq('id', reg.id);
+
+      if (confirmError) {
+        console.log('Failed to auto-confirm free registration:', confirmError.message);
+      }
+
+      try {
+        const { data: profile } = await supabase
+          .from('Profiles')
+          .select('push_token')
+          .eq('id', user.id)
+          .single();
+
+        await notifyAndLog(
+          user.id,
+          profile?.push_token,
+          '✅ Registration Confirmed',
+          `${teamName} is confirmed for the tournament — no entry fee required!`,
+          tournament_id as string
+        );
+      } catch (err) {
+        console.log('Notify error:', err);
+      }
+
+      setLoading(false);
       Alert.alert('Registered! 🎉', `${teamName} is confirmed for the tournament!`, [
         { text: 'OK', onPress: () => router.push('/') }
       ]);

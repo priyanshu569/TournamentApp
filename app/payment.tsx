@@ -3,6 +3,7 @@ import { View, StyleSheet, ActivityIndicator, Alert, Text, TouchableOpacity } fr
 import { WebView } from 'react-native-webview';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '../lib/supabase';
+import { notifyAndLog } from '@/lib/notifications';
 
 export default function Payment() {
   const router = useRouter();
@@ -108,6 +109,27 @@ export default function Payment() {
       if (error) {
         Alert.alert('Error', 'Payment done but status update failed: ' + error.message);
       } else {
+        try {
+          const { data: userData } = await supabase.auth.getUser();
+          if (userData.user) {
+            const { data: profile } = await supabase
+              .from('Profiles')
+              .select('push_token')
+              .eq('id', userData.user.id)
+              .single();
+
+            await notifyAndLog(
+              userData.user.id,
+              profile?.push_token,
+              '✅ Registration Confirmed',
+              'Payment received! Your team is confirmed for the tournament.',
+              tournament_id as string
+            );
+          }
+        } catch (err) {
+          console.log('Notify error:', err);
+        }
+
         Alert.alert('Payment Successful! 🎉', 'Your team is confirmed for the tournament!', [
           { text: 'OK', onPress: () => router.push('/') }
         ]);
