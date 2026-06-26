@@ -22,6 +22,8 @@ export default function CreateTournament() {
     entry_fee: '',
     prize_pool: '',
     max_teams: '12',
+    description: '',
+    rules: '',
   });
 
   const handleSubmit = async () => {
@@ -48,6 +50,8 @@ export default function CreateTournament() {
       status: selectedStatus,
       host_id: user?.id,
       start_time: startTime ? startTime.toISOString() : null,
+      description: form.description || null,
+      rules: form.rules || null,
     });
 
     setLoading(false);
@@ -138,6 +142,34 @@ export default function CreateTournament() {
           keyboardType="numeric"
           value={form.max_teams}
           onChangeText={(val) => setForm(prev => ({ ...prev, max_teams: val }))}
+        />
+      </View>
+
+      {/* Description */}
+      <View style={styles.fieldGroup}>
+        <Text style={styles.label}>Tournament Description</Text>
+        <TextInput
+          style={[styles.input, { height: 100, textAlignVertical: 'top' }]}
+          placeholder="Brief description of the tournament..."
+          placeholderTextColor="#444"
+          multiline
+          numberOfLines={4}
+          value={form.description}
+          onChangeText={(val) => setForm(prev => ({ ...prev, description: val }))}
+        />
+      </View>
+
+      {/* Rules */}
+      <View style={styles.fieldGroup}>
+        <Text style={styles.label}>Tournament Rules</Text>
+        <TextInput
+          style={[styles.input, { height: 120, textAlignVertical: 'top' }]}
+          placeholder={`1. No cheating\n2. Must join 10 mins before match\n3. Results must be submitted as screenshots`}
+          placeholderTextColor="#444"
+          multiline
+          numberOfLines={5}
+          value={form.rules}
+          onChangeText={(val) => setForm(prev => ({ ...prev, rules: val }))}
         />
       </View>
 
