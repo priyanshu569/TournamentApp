@@ -96,6 +96,9 @@ export default function ProfileScreen() {
           <View style={styles.roleBadge}>
             <Text style={styles.roleText}>{profile?.role?.toUpperCase() ?? 'PLAYER'}</Text>
           </View>
+          {profile?.free_fire_uid ? (
+            <Text style={styles.uidText}>🎮 UID: {profile.free_fire_uid}</Text>
+          ) : null}
         </View>
       </View>
 
@@ -130,6 +133,26 @@ export default function ProfileScreen() {
           <Text style={styles.menuArrow}>→</Text>
         </TouchableOpacity>
 
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => router.push('/profile')}
+        >
+          <Text style={styles.menuIcon}>✏️</Text>
+          <Text style={styles.menuText}>Edit Profile</Text>
+          <Text style={styles.menuArrow}>→</Text>
+        </TouchableOpacity>
+
+        {profile?.is_admin && (
+          <TouchableOpacity
+            style={[styles.menuItem, styles.adminItem]}
+            onPress={() => router.push('/admin-broadcast')}
+          >
+            <Text style={styles.menuIcon}>📢</Text>
+            <Text style={styles.adminText}>Admin Broadcast</Text>
+            <Text style={styles.menuArrow}>→</Text>
+          </TouchableOpacity>
+        )}
+
         <TouchableOpacity style={styles.menuItem}>
           <Text style={styles.menuIcon}>⚙️</Text>
           <Text style={styles.menuText}>Settings</Text>
@@ -160,6 +183,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', padding: 24, paddingTop: 60,
   },
+
+  uidText: { color: '#aaa', fontSize: 12, marginTop: 6, fontWeight: '600' },
+
   headerTitle: { fontSize: 26, fontWeight: '800', color: '#fff' },
   notifBtn: { padding: 8 },
   notifIcon: { fontSize: 22 },
@@ -201,6 +227,8 @@ const styles = StyleSheet.create({
   menuIcon: { fontSize: 18, marginRight: 12 },
   menuText: { flex: 1, color: '#fff', fontSize: 15, fontWeight: '600' },
   menuArrow: { color: '#555', fontSize: 16 },
+  adminItem: { borderColor: '#7C3AED' },
+  adminText: { flex: 1, color: '#7C3AED', fontSize: 15, fontWeight: '700' },
   logoutItem: { borderColor: '#3a1a1a' },
   logoutText: { flex: 1, color: '#ff4444', fontSize: 15, fontWeight: '600' },
 });
