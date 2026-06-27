@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
-  TouchableOpacity, Alert, ScrollView, TextInput
+  TouchableOpacity, Alert, ScrollView, TextInput, Share
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import { notifyAndLog } from '@/lib/notifications';
+import * as Clipboard from 'expo-clipboard';
 
 export default function TournamentDetails() {
   const { id } = useLocalSearchParams();
@@ -16,10 +17,12 @@ export default function TournamentDetails() {
   const [role, setRole] = useState<string | null>(null);
   const [isRegistered, setIsRegistered] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
+  const [registrationId, setRegistrationId] = useState<string | null>(null);
   const [showRoomForm, setShowRoomForm] = useState(false);
   const [roomCode, setRoomCode] = useState('');
   const [roomPassword, setRoomPassword] = useState('');
   const [saving, setSaving] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => { fetchData(); }, []);
 
@@ -36,7 +39,7 @@ export default function TournamentDetails() {
 
       const { data: reg } = await supabase
         .from('registrations')
-        .select('status')
+        .select('id, status')
         .eq('tournament_id', id)
         .eq('player_id', userData.user.id)
         .order('created_at', { ascending: false })
@@ -46,6 +49,7 @@ export default function TournamentDetails() {
       if (reg) {
         setIsRegistered(true);
         setIsConfirmed(reg.status === 'confirmed');
+        setRegistrationId(reg.id);
       }
     }
 
@@ -136,6 +140,36 @@ export default function TournamentDetails() {
     }
   };
 
+  function confirmCancelRegistration() {
+    Alert.alert(
+      'Cancel Registration?',
+      'Your team and squad details will be removed, and your slot will be freed.',
+      [
+        { text: 'Keep Registration', style: 'cancel' },
+        { text: 'Cancel Registration', style: 'destructive', onPress: handleCancelRegistration },
+      ]
+    );
+  }
+
+  async function handleCancelRegistration() {
+    if (!registrationId) return;
+
+    setCancelling(true);
+    const { error } = await supabase.rpc('cancel_registration', {
+      p_registration_id: registrationId,
+    });
+    setCancelling(false);
+
+    if (error) {
+      Alert.alert('Error', error.message);
+    } else {
+      setIsRegistered(false);
+      setIsConfirmed(false);
+      setRegistrationId(null);
+      Alert.alert('Cancelled', 'Your registration has been cancelled.');
+    }
+  }
+
   const getGameColor = (game: string) => {
     const g = game?.toLowerCase() ?? '';
     if (g.includes('free fire') || g.includes('freefire')) return '#FF6B35';
@@ -152,6 +186,32 @@ export default function TournamentDetails() {
       day: 'numeric', month: 'short', year: 'numeric',
       hour: '2-digit', minute: '2-digit', hour12: true,
     });
+  };
+
+  const getDeepLink = () => `tournamentapp://tournament-details?id=${tournament.id}`;
+
+  const handleShare = async () => {
+    try {
+      const message =
+        `🏆 ${tournament.title}\n\n` +
+        `🎮 ${tournament.game}\n` +
+        `💰 Prize Pool: ₹${tournament.prize_pool}\n` +
+        `🎯 Entry Fee: ₹${tournament.entry_fee}\n\n` +
+        `Join on Fragify 👉 ${getDeepLink()}`;
+
+      await Share.share({ message, title: tournament.title });
+    } catch (err) {
+      console.log('Share error:', err);
+    }
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await Clipboard.setStringAsync(getDeepLink());
+      Alert.alert('Copied! 🔗', 'Tournament link copied to clipboard.');
+    } catch (err) {
+      Alert.alert('Error', 'Failed to copy link.');
+    }
   };
 
   if (loading) {
@@ -175,11 +235,22 @@ export default function TournamentDetails() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
 
-      {/* Game Tag */}
-      <View style={[styles.gameTag, { backgroundColor: gameColor + '22' }]}>
-        <Text style={[styles.gameTagText, { color: gameColor }]}>
-          {tournament.game.toUpperCase()}
-        </Text>
+      {/* Game Tag + Share Row */}
+      <View style={styles.topRow}>
+        <View style={[styles.gameTag, { backgroundColor: gameColor + '22', marginBottom: 0 }]}>
+          <Text style={[styles.gameTagText, { color: gameColor }]}>
+            {tournament.game.toUpperCase()}
+          </Text>
+        </View>
+
+        <View style={styles.shareRow}>
+          <TouchableOpacity style={styles.iconBtn} onPress={handleCopyLink}>
+            <Text style={styles.iconBtnText}>🔗</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconBtn} onPress={handleShare}>
+            <Text style={styles.iconBtnText}>📤</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Title */}
@@ -219,22 +290,40 @@ export default function TournamentDetails() {
 
       <View style={styles.divider} />
       {/* Description */}
-      {tournament.description && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>ABOUT</Text>
-          <Text style={styles.descriptionText}>{tournament.description}</Text>
-        </View>
+{(tournament.description || role === 'host') && (
+  <View style={styles.section}>
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>ABOUT</Text>
+      {role === 'host' && (
+        <TouchableOpacity onPress={() => router.push(`/edit-tournament?id=${tournament.id}`)}>
+          <Text style={styles.editBtn}>Edit ✏️</Text>
+        </TouchableOpacity>
       )}
+    </View>
+    <Text style={styles.descriptionText}>
+      {tournament.description ?? 'No description added yet.'}
+    </Text>
+  </View>
+)}
 
-      {/* Rules */}
-      {tournament.rules && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>RULES</Text>
-          <View style={styles.rulesBox}>
-            <Text style={styles.rulesText}>{tournament.rules}</Text>
-          </View>
-        </View>
+{/* Rules */}
+{(tournament.rules || role === 'host') && (
+  <View style={styles.section}>
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>RULES</Text>
+      {role === 'host' && (
+        <TouchableOpacity onPress={() => router.push(`/edit-tournament?id=${tournament.id}`)}>
+          <Text style={styles.editBtn}>Edit ✏️</Text>
+        </TouchableOpacity>
       )}
+    </View>
+    <View style={styles.rulesBox}>
+      <Text style={styles.rulesText}>
+        {tournament.rules ?? 'No rules added yet.'}
+      </Text>
+    </View>
+  </View>
+)}
       {/* Room Code Section — Host */}
       {role === 'host' && (
         <View style={styles.section}>
@@ -362,13 +451,28 @@ export default function TournamentDetails() {
           <Text style={styles.actionButtonText}>View Registrations →</Text>
         </TouchableOpacity>
       ) : isRegistered ? (
-        <View style={styles.alreadyRegistered}>
-          <Text style={styles.alreadyRegisteredText}>
-            {isConfirmed
-              ? '✅ You are confirmed for this tournament!'
-              : '⏳ Registration pending payment confirmation.'}
-          </Text>
-        </View>
+        <>
+          <View style={styles.alreadyRegistered}>
+            <Text style={styles.alreadyRegisteredText}>
+              {isConfirmed
+                ? '✅ You are confirmed for this tournament!'
+                : '⏳ Registration pending payment confirmation.'}
+            </Text>
+          </View>
+
+          {!isConfirmed && (
+            <TouchableOpacity
+              style={styles.cancelRegBtn}
+              onPress={confirmCancelRegistration}
+              disabled={cancelling}
+            >
+              {cancelling
+                ? <ActivityIndicator color="#ff4444" size="small" />
+                : <Text style={styles.cancelRegBtnText}>Cancel Registration</Text>
+              }
+            </TouchableOpacity>
+          )}
+        </>
       ) : (
         <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: gameColor }]}
@@ -383,12 +487,30 @@ export default function TournamentDetails() {
 }
 
 const styles = StyleSheet.create({
+  topRow: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', marginBottom: 16,
+  },
+  shareRow: { flexDirection: 'row', gap: 8 },
+  iconBtn: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  iconBtnText: { fontSize: 16 },
+
   descriptionText: { color: '#ccc', fontSize: 14, lineHeight: 22 },
   rulesBox: {
     backgroundColor: '#1a1a1a', borderRadius: 12,
     padding: 16, borderWidth: 1, borderColor: '#2a2a2a',
   },
   rulesText: { color: '#ccc', fontSize: 14, lineHeight: 24 },
+
+  sectionHeader: {
+  flexDirection: 'row', justifyContent: 'space-between',
+  alignItems: 'center', marginBottom: 12,
+},
+editBtn: { color: '#7C3AED', fontSize: 13, fontWeight: '600' },
 
   container: { flex: 1, backgroundColor: '#0a0a0a' },
   content: { padding: 24, paddingTop: 60, paddingBottom: 48 },
@@ -477,4 +599,10 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: '#1a3a1a',
   },
   alreadyRegisteredText: { color: '#00D4AA', fontSize: 14, fontWeight: '600', textAlign: 'center' },
+  cancelRegBtn: {
+    marginTop: 12, paddingVertical: 14, borderRadius: 12,
+    alignItems: 'center', backgroundColor: '#1a0a0a',
+    borderWidth: 1, borderColor: '#3a1a1a',
+  },
+  cancelRegBtnText: { color: '#ff4444', fontSize: 14, fontWeight: '700' },
 });
