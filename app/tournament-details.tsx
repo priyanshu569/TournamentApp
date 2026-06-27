@@ -23,6 +23,7 @@ export default function TournamentDetails() {
   const [roomPassword, setRoomPassword] = useState('');
   const [saving, setSaving] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [matchResults, setMatchResults] = useState<any[]>([]);
 
   useEffect(() => { fetchData(); }, []);
 
@@ -65,6 +66,15 @@ export default function TournamentDetails() {
       setRoomCode(data.room_code ?? '');
       setRoomPassword(data.room_password ?? '');
     }
+
+    const { data: results } = await supabase
+      .from('match_results')
+      .select('*, teams(name)')
+      .eq('tournament_id', id)
+      .order('placement', { ascending: true });
+
+    if (results) setMatchResults(results);
+
     setLoading(false);
   }
 
@@ -214,6 +224,13 @@ export default function TournamentDetails() {
     }
   };
 
+  function medal(placement: number) {
+    if (placement === 1) return '🥇';
+    if (placement === 2) return '🥈';
+    if (placement === 3) return '🥉';
+    return `#${placement}`;
+  }
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -324,6 +341,37 @@ export default function TournamentDetails() {
     </View>
   </View>
 )}
+
+{/* Results */}
+{(matchResults.length > 0 || role === 'host') && (
+  <View style={styles.section}>
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>RESULTS</Text>
+      {role === 'host' && (
+        <TouchableOpacity onPress={() => router.push(`/enter-results?tournament_id=${tournament.id}`)}>
+          <Text style={styles.editBtn}>
+            {matchResults.length > 0 ? 'Edit ✏️' : 'Enter Results 📊'}
+          </Text>
+        </TouchableOpacity>
+      )}
+    </View>
+
+    {matchResults.length === 0 ? (
+      <Text style={styles.descriptionText}>No results entered yet.</Text>
+    ) : (
+      <View style={styles.resultsBox}>
+        {matchResults.map((r) => (
+          <View key={r.id} style={styles.resultRow}>
+            <Text style={styles.resultMedal}>{medal(r.placement)}</Text>
+            <Text style={styles.resultTeam}>{r.teams?.name ?? 'Unknown Team'}</Text>
+            <Text style={styles.resultKills}>{r.kills} kills</Text>
+          </View>
+        ))}
+      </View>
+    )}
+  </View>
+)}
+
       {/* Room Code Section — Host */}
       {role === 'host' && (
         <View style={styles.section}>
@@ -505,6 +553,18 @@ const styles = StyleSheet.create({
     padding: 16, borderWidth: 1, borderColor: '#2a2a2a',
   },
   rulesText: { color: '#ccc', fontSize: 14, lineHeight: 24 },
+
+  resultsBox: {
+    backgroundColor: '#1a1a1a', borderRadius: 12,
+    padding: 16, borderWidth: 1, borderColor: '#2a2a2a',
+  },
+  resultRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#2a2a2a',
+  },
+  resultMedal: { width: 32, fontSize: 14, fontWeight: '800', color: '#fff' },
+  resultTeam: { flex: 1, color: '#fff', fontSize: 14, fontWeight: '600' },
+  resultKills: { color: '#7C3AED', fontSize: 13, fontWeight: '700' },
 
   sectionHeader: {
   flexDirection: 'row', justifyContent: 'space-between',
