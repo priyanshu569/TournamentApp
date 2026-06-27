@@ -10,6 +10,7 @@ import {
 export default function ProfileScreen() {
   const [username, setUsername] = useState('');
   const [freeFireUid, setFreeFireUid] = useState('');
+  const [bgmiUid, setBgmiUid] = useState('');
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
 
@@ -23,13 +24,14 @@ export default function ProfileScreen() {
 
     const { data } = await supabase
       .from('Profiles')
-      .select('username, free_fire_uid')
+      .select('username, free_fire_uid, bgmi_uid')
       .eq('id', userData.user.id)
       .single();
 
     if (data) {
       setUsername(data.username || '');
       setFreeFireUid(data.free_fire_uid || '');
+      setBgmiUid(data.bgmi_uid || '');
     }
     setFetching(false);
   }
@@ -55,6 +57,7 @@ export default function ProfileScreen() {
         phone: userData.user.phone,
         username: username.trim(),
         free_fire_uid: freeFireUid.trim() || null,
+        bgmi_uid: bgmiUid.trim() || null,
       });
 
     setLoading(false);
@@ -118,6 +121,20 @@ export default function ProfileScreen() {
             placeholderTextColor="#444"
             value={freeFireUid}
             onChangeText={setFreeFireUid}
+            keyboardType="number-pad"
+          />
+          <Text style={styles.hint}>Optional — add this so hosts can verify your identity</Text>
+        </View>
+
+        {/* BGMI UID */}
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>BGMI UID</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter your BGMI in-game ID"
+            placeholderTextColor="#444"
+            value={bgmiUid}
+            onChangeText={setBgmiUid}
             keyboardType="number-pad"
           />
           <Text style={styles.hint}>Optional — add this so hosts can verify your identity</Text>
