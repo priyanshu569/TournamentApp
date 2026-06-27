@@ -93,7 +93,12 @@ export default function HomeScreen() {
             <Text style={styles.appTagline}>ESPORTS · COMPETE · WIN</Text>
           </View>
         </View>
-        <NotificationBell />
+        <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.leaderboardBtn} onPress={() => router.push('/leaderboard')}>
+            <Text style={styles.leaderboardIcon}>🏆</Text>
+          </TouchableOpacity>
+          <NotificationBell />
+        </View>
       </View>
 
       {/* Welcome */}
@@ -200,6 +205,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', padding: 24, paddingTop: 60, paddingBottom: 12,
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   logo: {
     width: 40, height: 40, borderRadius: 10,
     backgroundColor: '#7C3AED', justifyContent: 'center', alignItems: 'center',
@@ -207,6 +213,8 @@ const styles = StyleSheet.create({
   logoText: { color: '#fff', fontSize: 20, fontWeight: '800' },
   appName: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 2 },
   appTagline: { color: '#555', fontSize: 9, letterSpacing: 1.5, marginTop: 1 },
+  leaderboardBtn: { padding: 8 },
+  leaderboardIcon: { fontSize: 20 },
   welcomeBox: { paddingHorizontal: 24, marginBottom: 16 },
   welcomeText: { color: '#fff', fontSize: 20, fontWeight: '700' },
   welcomeSub: { color: '#aaa', fontSize: 13, marginTop: 2 },
