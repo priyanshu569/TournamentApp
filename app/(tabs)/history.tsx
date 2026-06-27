@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
-  FlatList, ScrollView
+  FlatList, Alert, TouchableOpacity
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
 
@@ -9,6 +9,7 @@ export default function HistoryScreen() {
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any[]>([]);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadHistory();
@@ -28,7 +29,6 @@ export default function HistoryScreen() {
     setRole(profile.role);
 
     if (profile.role === 'player') {
-      // Fetch player registrations
       const { data: regs } = await supabase
         .from('registrations')
         .select('*, teams(name), tournaments(title, game, entry_fee)')
@@ -37,7 +37,6 @@ export default function HistoryScreen() {
 
       if (regs) setData(regs);
     } else {
-      // Fetch host tournaments
       const { data: tournaments } = await supabase
         .from('tournaments')
         .select('*, registrations(count)')
@@ -48,6 +47,34 @@ export default function HistoryScreen() {
     }
 
     setLoading(false);
+  }
+
+  function confirmCancel(registrationId: string, tournamentTitle: string) {
+    Alert.alert(
+      'Cancel Registration?',
+      `Your team's registration for "${tournamentTitle}" will be removed and your slot freed.`,
+      [
+        { text: 'Keep Registration', style: 'cancel' },
+        { text: 'Cancel Registration', style: 'destructive', onPress: () => doCancel(registrationId) },
+      ]
+    );
+  }
+
+  async function doCancel(registrationId: string) {
+    setCancellingId(registrationId);
+
+    const { error } = await supabase.rpc('cancel_registration', {
+      p_registration_id: registrationId,
+    });
+
+    setCancellingId(null);
+
+    if (error) {
+      Alert.alert('Error', error.message);
+    } else {
+      setData((prev) => prev.filter((item) => item.id !== registrationId));
+      Alert.alert('Cancelled', 'Your registration has been cancelled.');
+    }
   }
 
   if (loading) {
@@ -92,6 +119,19 @@ export default function HistoryScreen() {
                 <Text style={styles.cardSub}>
                   💰 Entry Fee: ₹{item.tournaments?.entry_fee ?? 0}
                 </Text>
+
+                {item.status === 'pending' && (
+                  <TouchableOpacity
+                    style={styles.cancelBtn}
+                    onPress={() => confirmCancel(item.id, item.tournaments?.title ?? 'this tournament')}
+                    disabled={cancellingId === item.id}
+                  >
+                    {cancellingId === item.id
+                      ? <ActivityIndicator color="#ff4444" size="small" />
+                      : <Text style={styles.cancelBtnText}>Cancel Registration</Text>
+                    }
+                  </TouchableOpacity>
+                )}
               </View>
             )}
           />
@@ -155,4 +195,10 @@ const styles = StyleSheet.create({
   badgePending: { backgroundColor: '#3a2a00' },
   badgeConfirmed: { backgroundColor: '#0a3a0a' },
   badgeText: { fontSize: 11, fontWeight: '700', color: '#fff' },
+  cancelBtn: {
+    marginTop: 10, paddingVertical: 10, borderRadius: 10,
+    alignItems: 'center', backgroundColor: '#1a0a0a',
+    borderWidth: 1, borderColor: '#3a1a1a',
+  },
+  cancelBtnText: { color: '#ff4444', fontSize: 13, fontWeight: '700' },
 });
