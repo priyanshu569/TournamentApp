@@ -38,33 +38,66 @@ export default function LoginScreen() {
   setGoogleLoading(true);
 
   const redirectUrl = AuthSession.makeRedirectUri({
-  scheme: 'tournamentapp',
-  path: 'select-role',
-    });
+    scheme: 'tournamentapp',
+    path: 'select-role',
+  });
 
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: redirectUrl,
+  console.log('Redirect URL:', redirectUrl);
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: redirectUrl,
+      queryParams: {
+        prompt: 'select_account',
       },
-    });
+    },
+  });
 
-    if (error) {
-      setGoogleLoading(false);
-      Alert.alert('Error', error.message);
-      return;
-    }
-
-    if (data?.url) {
-      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
-
-    if (result.type === 'success') {
-  router.replace('/select-role');
-    }
-    }
-
+  if (error) {
     setGoogleLoading(false);
+    Alert.alert('Error', error.message);
+    return;
   }
+
+  if (data?.url) {
+    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+    console.log('Auth result:', result.type);
+
+    if (result.type === 'success' && result.url) {
+      // Extract tokens from the URL and set session manually
+      const url = result.url;
+      console.log('Result URL:', url);
+
+      try {
+        // Parse the hash fragment for tokens
+        const params = new URLSearchParams(url.split('#')[1] || url.split('?')[1] || '');
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+
+        if (accessToken && refreshToken) {
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+
+          if (sessionError) {
+            console.log('Session error:', sessionError.message);
+            Alert.alert('Error', sessionError.message);
+          }
+          // onAuthStateChange in _layout.tsx will handle routing
+        } else {
+          // Try exchangeCodeForSession if no tokens in URL
+          await supabase.auth.exchangeCodeForSession(url);
+        }
+      } catch (err) {
+        console.log('Token parse error:', err);
+      }
+    }
+  }
+
+  setGoogleLoading(false);
+}
 
   return (
     <View style={styles.container}>

@@ -27,6 +27,35 @@ export default function TournamentDetails() {
 
   useEffect(() => { fetchData(); }, []);
 
+  // Realtime subscription — keeps the Results section live for everyone viewing this tournament
+  useEffect(() => {
+    const channel = supabase
+      .channel(`match_results_${id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'match_results', filter: `tournament_id=eq.${id}` },
+        () => {
+          fetchMatchResults();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id]);
+
+  async function fetchMatchResults() {
+    const { data: results } = await supabase
+      .from('match_results')
+      .select('*, teams(name)')
+      .eq('tournament_id', id)
+      .order('placement', { ascending: true })
+      .order('kills', { ascending: false });
+
+    if (results) setMatchResults(results);
+  }
+
   async function fetchData() {
     const { data: userData } = await supabase.auth.getUser();
 
@@ -67,14 +96,7 @@ export default function TournamentDetails() {
       setRoomPassword(data.room_password ?? '');
     }
 
-    const { data: results } = await supabase
-      .from('match_results')
-      .select('*, teams(name)')
-      .eq('tournament_id', id)
-      .order('placement', { ascending: true });
-
-    if (results) setMatchResults(results);
-
+    await fetchMatchResults();
     setLoading(false);
   }
 
@@ -224,7 +246,8 @@ export default function TournamentDetails() {
     }
   };
 
-  function medal(placement: number) {
+  function medal(placement: number | null) {
+    if (!placement) return '🔴';
     if (placement === 1) return '🥇';
     if (placement === 2) return '🥈';
     if (placement === 3) return '🥉';
@@ -248,6 +271,7 @@ export default function TournamentDetails() {
   }
 
   const gameColor = getGameColor(tournament.game);
+  const hasLiveResults = matchResults.some((r) => !r.placement);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -342,17 +366,33 @@ export default function TournamentDetails() {
   </View>
 )}
 
-{/* Results */}
+{/* Results — live or final */}
 {(matchResults.length > 0 || role === 'host') && (
   <View style={styles.section}>
     <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>RESULTS</Text>
+      <View style={styles.resultsTitleRow}>
+        <Text style={styles.sectionTitle}>RESULTS</Text>
+        {hasLiveResults && (
+          <View style={styles.liveBadge}>
+            <View style={styles.liveDot} />
+            <Text style={styles.liveBadgeText}>LIVE</Text>
+          </View>
+        )}
+      </View>
+
       {role === 'host' && (
-        <TouchableOpacity onPress={() => router.push(`/enter-results?tournament_id=${tournament.id}`)}>
-          <Text style={styles.editBtn}>
-            {matchResults.length > 0 ? 'Edit ✏️' : 'Enter Results 📊'}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.resultsActions}>
+          {tournament.status === 'ongoing' && (
+            <TouchableOpacity onPress={() => router.push(`/live-scoreboard?tournament_id=${tournament.id}`)}>
+              <Text style={styles.liveScoreBtn}>🔴 Update Live</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={() => router.push(`/enter-results?tournament_id=${tournament.id}`)}>
+            <Text style={styles.editBtn}>
+              {matchResults.length > 0 ? 'Edit ✏️' : 'Enter Results 📊'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       )}
     </View>
 
@@ -565,6 +605,17 @@ const styles = StyleSheet.create({
   resultMedal: { width: 32, fontSize: 14, fontWeight: '800', color: '#fff' },
   resultTeam: { flex: 1, color: '#fff', fontSize: 14, fontWeight: '600' },
   resultKills: { color: '#7C3AED', fontSize: 13, fontWeight: '700' },
+
+  resultsTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  liveBadge: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#3a0a0a', paddingHorizontal: 8,
+    paddingVertical: 2, borderRadius: 20, gap: 4,
+  },
+  liveDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#ff4444' },
+  liveBadgeText: { color: '#ff4444', fontSize: 10, fontWeight: '800' },
+  resultsActions: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  liveScoreBtn: { color: '#ff4444', fontSize: 13, fontWeight: '700' },
 
   sectionHeader: {
   flexDirection: 'row', justifyContent: 'space-between',

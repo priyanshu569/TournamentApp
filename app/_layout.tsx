@@ -3,16 +3,89 @@ import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
+import * as Notifications from 'expo-notifications';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { supabase } from '@/lib/supabase';
+import { registerForPushNotificationsAsync } from '@/lib/notifications';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   useEffect(() => {
-    setTimeout(() => {
-      router.replace('/login');
-    }, 0);
+    // Check existing session on mount
+    async function checkSession() {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        router.replace('/login');
+        return;
+      }
+
+      // Session exists — check if profile is set up
+      const { data: profile } = await supabase
+        .from('Profiles')
+        .select('role, username')
+        .eq('id', session.user.id)
+        .single();
+
+      if (!profile || !profile.role) {
+        router.replace('/select-role');
+      } else if (!profile.username) {
+        router.replace('/profile');
+      } else {
+        router.replace('/(tabs)');
+      }
+    }
+
+    checkSession();
+  }, []);
+
+  // Listen for auth state changes (handles Google OAuth callback)
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth event:', event);
+
+        if (event === 'SIGNED_IN' && session) {
+          await registerForPushNotificationsAsync(session.user.id);
+
+          // Check profile
+          const { data: profile } = await supabase
+            .from('Profiles')
+            .select('role, username')
+            .eq('id', session.user.id)
+            .single();
+
+          if (!profile || !profile.role) {
+            router.replace('/select-role');
+          } else if (!profile.username) {
+            router.replace('/profile');
+          } else {
+            router.replace('/(tabs)');
+          }
+        }
+
+        if (event === 'SIGNED_OUT') {
+          router.replace('/login');
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Handle tapping a notification
+  useEffect(() => {
+    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data;
+      console.log('Notification tapped:', data);
+      if (data?.tournament_id) {
+        router.push(`/tournament-details?id=${data.tournament_id}`);
+      }
+    });
+
+    return () => subscription.remove();
   }, []);
 
   return (
@@ -22,8 +95,12 @@ export default function RootLayout() {
         <Stack.Screen name="verify-otp" options={{ headerShown: false }} />
         <Stack.Screen name="select-role" options={{ headerShown: false }} />
         <Stack.Screen name="profile" options={{ headerShown: false }} />
+        <Stack.Screen name="create-tournament" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+        <Stack.Screen name="notifications" options={{ headerShown: false }} />
+        <Stack.Screen name="edit-tournament" options={{ headerShown: false }} />
+        <Stack.Screen name="admin-broadcast" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

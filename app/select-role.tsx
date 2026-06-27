@@ -18,8 +18,10 @@ export default function SelectRoleScreen() {
 
     const { error } = await supabase
       .from('Profiles')
-      .update({ role })
-      .eq('id', userData.user.id);
+      .upsert({
+        id: userData.user.id,
+        role,
+      });
 
     setLoading(false);
 
