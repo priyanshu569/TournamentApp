@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
+import NotificationBell from '@/components/NotificationBell';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -81,9 +82,7 @@ export default function ProfileScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Profile</Text>
-        <TouchableOpacity style={styles.notifBtn}>
-          <Text style={styles.notifIcon}>🔔</Text>
-        </TouchableOpacity>
+        <NotificationBell />
       </View>
 
       {/* Profile Card */}
