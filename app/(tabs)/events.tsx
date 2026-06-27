@@ -6,6 +6,7 @@ import {
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import VerifiedBadge from '@/components/VerifiedBadge';
+import NotificationBell from '@/components/NotificationBell';
 
 const GAMES = ['All', 'Free Fire', 'BGMI', 'COD Mobile', 'Valorant'];
 
@@ -17,26 +18,21 @@ export default function EventsScreen() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchTournaments();
-  }, []);
+  useEffect(() => { fetchTournaments(); }, []);
 
   useEffect(() => {
     let results = tournaments;
-
     if (selectedGame !== 'All') {
       results = results.filter(t =>
         t.game.toLowerCase().includes(selectedGame.toLowerCase())
       );
     }
-
     if (search.trim()) {
       results = results.filter(t =>
         t.title.toLowerCase().includes(search.toLowerCase()) ||
         t.game.toLowerCase().includes(search.toLowerCase())
       );
     }
-
     setFiltered(results);
   }, [selectedGame, search, tournaments]);
 
@@ -86,9 +82,12 @@ export default function EventsScreen() {
           <Text style={styles.headerTitle}>Tournaments</Text>
           <Text style={styles.headerSub}>{filtered.length} events found</Text>
         </View>
-        <TouchableOpacity style={styles.notifBtn}>
-          <Text style={styles.notifIcon}>🔔</Text>
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.leaderboardBtn} onPress={() => router.push('/leaderboard')}>
+            <Text style={styles.leaderboardIcon}>🏆</Text>
+          </TouchableOpacity>
+          <NotificationBell />
+        </View>
       </View>
 
       {/* Search Bar */}
@@ -109,28 +108,25 @@ export default function EventsScreen() {
       </View>
 
       {/* Game Filter */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterScroll}
-        contentContainerStyle={styles.filterContainer}
-      >
-        {GAMES.map((game) => (
-          <TouchableOpacity
-            key={game}
-            style={[
-              styles.filterChip,
-              selectedGame === game && styles.filterChipActive
-            ]}
-            onPress={() => setSelectedGame(game)}
-          >
-            <Text style={[
-              styles.filterChipText,
-              selectedGame === game && styles.filterChipTextActive
-            ]}>{game}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <View style={styles.filterWrapper}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterContainer}
+        >
+          {GAMES.map((game) => (
+            <TouchableOpacity
+              key={game}
+              style={[styles.filterChip, selectedGame === game && styles.filterChipActive]}
+              onPress={() => setSelectedGame(game)}
+            >
+              <Text style={[styles.filterChipText, selectedGame === game && styles.filterChipTextActive]}>
+                {game}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       {/* Tournament List */}
       <FlatList
@@ -204,8 +200,9 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 26, fontWeight: '800', color: '#fff' },
   headerSub: { fontSize: 13, color: '#aaa', marginTop: 2 },
-  notifBtn: { padding: 8 },
-  notifIcon: { fontSize: 22 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  leaderboardBtn: { padding: 8 },
+  leaderboardIcon: { fontSize: 20 },
   searchContainer: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#1a1a1a', marginHorizontal: 24,
@@ -213,22 +210,19 @@ const styles = StyleSheet.create({
     marginBottom: 14, borderWidth: 1, borderColor: '#2a2a2a',
   },
   searchIcon: { fontSize: 16, marginRight: 8 },
-  searchInput: {
-    flex: 1, color: '#fff', fontSize: 15,
-    paddingVertical: 12,
-  },
+  searchInput: { flex: 1, color: '#fff', fontSize: 15, paddingVertical: 12 },
   clearBtn: { color: '#555', fontSize: 16, padding: 4 },
-  filterScroll: { maxHeight: 50 },
-  filterContainer: { paddingHorizontal: 24, gap: 8 },
+  filterWrapper: { marginBottom: 8 },
+  filterContainer: { paddingHorizontal: 24, gap: 8, paddingVertical: 8 },
   filterChip: {
-    paddingHorizontal: 16, paddingVertical: 8,
+    paddingHorizontal: 16, paddingVertical: 10,
     borderRadius: 20, backgroundColor: '#1a1a1a',
     borderWidth: 1, borderColor: '#2a2a2a',
   },
   filterChipActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
   filterChipText: { color: '#aaa', fontSize: 13, fontWeight: '600' },
   filterChipTextActive: { color: '#fff' },
-  listContent: { padding: 24, paddingTop: 16 },
+  listContent: { padding: 24, paddingTop: 4 },
   emptyContainer: { alignItems: 'center', marginTop: 60 },
   emptyIcon: { fontSize: 40, marginBottom: 12 },
   emptyText: { color: '#fff', fontSize: 16, fontWeight: '700', marginBottom: 4 },
@@ -246,10 +240,7 @@ const styles = StyleSheet.create({
   },
   statusUpcoming: { backgroundColor: '#1a1a3a' },
   statusLive: { backgroundColor: '#1a3a1a' },
-  liveDot: {
-    width: 6, height: 6, borderRadius: 3,
-    backgroundColor: '#00D4AA',
-  },
+  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#00D4AA' },
   statusText: { fontSize: 11, fontWeight: '700', color: '#fff' },
   cardTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 4 },
   hostRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
