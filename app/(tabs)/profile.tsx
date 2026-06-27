@@ -97,7 +97,10 @@ export default function ProfileScreen() {
             <Text style={styles.roleText}>{profile?.role?.toUpperCase() ?? 'PLAYER'}</Text>
           </View>
           {profile?.free_fire_uid ? (
-            <Text style={styles.uidText}>🎮 UID: {profile.free_fire_uid}</Text>
+            <Text style={styles.uidText}>🎮 Free Fire UID: {profile.free_fire_uid}</Text>
+          ) : null}
+          {profile?.bgmi_uid ? (
+            <Text style={styles.uidText}>🎯 BGMI UID: {profile.bgmi_uid}</Text>
           ) : null}
         </View>
       </View>
@@ -184,7 +187,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', padding: 24, paddingTop: 60,
   },
 
-  uidText: { color: '#aaa', fontSize: 12, marginTop: 6, fontWeight: '600' },
+  uidText: { color: '#aaa', fontSize: 12, marginTop: 4, fontWeight: '600' },
 
   headerTitle: { fontSize: 26, fontWeight: '800', color: '#fff' },
   notifBtn: { padding: 8 },
@@ -206,6 +209,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start', backgroundColor: '#7C3AED22',
     paddingHorizontal: 10, paddingVertical: 3,
     borderRadius: 20, borderWidth: 1, borderColor: '#7C3AED',
+    marginBottom: 4,
   },
   roleText: { color: '#7C3AED', fontSize: 11, fontWeight: '700' },
   statsRow: {
