@@ -53,6 +53,18 @@ export default function CreateTeam() {
       return;
     }
 
+    const { data: tournamentData } = await supabase
+  .from('tournaments')
+  .select('status')
+  .eq('id', tournament_id)
+  .single();
+
+if (tournamentData?.status !== 'upcoming') {
+  Alert.alert('Registration Closed', 'This tournament is no longer accepting registrations.');
+  setLoading(false);
+  return;
+}
+
     const { data: team, error: teamError } = await supabase
       .from('teams')
       .insert({

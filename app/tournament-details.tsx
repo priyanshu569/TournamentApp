@@ -331,86 +331,86 @@ export default function TournamentDetails() {
 
       <View style={styles.divider} />
       {/* Description */}
-{(tournament.description || role === 'host') && (
-  <View style={styles.section}>
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>ABOUT</Text>
-      {role === 'host' && (
-        <TouchableOpacity onPress={() => router.push(`/edit-tournament?id=${tournament.id}`)}>
-          <Text style={styles.editBtn}>Edit ✏️</Text>
-        </TouchableOpacity>
-      )}
-    </View>
-    <Text style={styles.descriptionText}>
-      {tournament.description ?? 'No description added yet.'}
-    </Text>
-  </View>
-)}
-
-{/* Rules */}
-{(tournament.rules || role === 'host') && (
-  <View style={styles.section}>
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>RULES</Text>
-      {role === 'host' && (
-        <TouchableOpacity onPress={() => router.push(`/edit-tournament?id=${tournament.id}`)}>
-          <Text style={styles.editBtn}>Edit ✏️</Text>
-        </TouchableOpacity>
-      )}
-    </View>
-    <View style={styles.rulesBox}>
-      <Text style={styles.rulesText}>
-        {tournament.rules ?? 'No rules added yet.'}
-      </Text>
-    </View>
-  </View>
-)}
-
-{/* Results — live or final */}
-{(matchResults.length > 0 || role === 'host') && (
-  <View style={styles.section}>
-    <View style={styles.sectionHeader}>
-      <View style={styles.resultsTitleRow}>
-        <Text style={styles.sectionTitle}>RESULTS</Text>
-        {hasLiveResults && (
-          <View style={styles.liveBadge}>
-            <View style={styles.liveDot} />
-            <Text style={styles.liveBadgeText}>LIVE</Text>
+      {(tournament.description || role === 'host') && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>ABOUT</Text>
+            {role === 'host' && (
+              <TouchableOpacity onPress={() => router.push(`/edit-tournament?id=${tournament.id}`)}>
+                <Text style={styles.editBtn}>Edit ✏️</Text>
+              </TouchableOpacity>
+            )}
           </View>
-        )}
-      </View>
-
-      {role === 'host' && (
-        <View style={styles.resultsActions}>
-          {tournament.status === 'ongoing' && (
-            <TouchableOpacity onPress={() => router.push(`/live-scoreboard?tournament_id=${tournament.id}`)}>
-              <Text style={styles.liveScoreBtn}>🔴 Update Live</Text>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity onPress={() => router.push(`/enter-results?tournament_id=${tournament.id}`)}>
-            <Text style={styles.editBtn}>
-              {matchResults.length > 0 ? 'Edit ✏️' : 'Enter Results 📊'}
-            </Text>
-          </TouchableOpacity>
+          <Text style={styles.descriptionText}>
+            {tournament.description ?? 'No description added yet.'}
+          </Text>
         </View>
       )}
-    </View>
 
-    {matchResults.length === 0 ? (
-      <Text style={styles.descriptionText}>No results entered yet.</Text>
-    ) : (
-      <View style={styles.resultsBox}>
-        {matchResults.map((r) => (
-          <View key={r.id} style={styles.resultRow}>
-            <Text style={styles.resultMedal}>{medal(r.placement)}</Text>
-            <Text style={styles.resultTeam}>{r.teams?.name ?? 'Unknown Team'}</Text>
-            <Text style={styles.resultKills}>{r.kills} kills</Text>
+      {/* Rules */}
+      {(tournament.rules || role === 'host') && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>RULES</Text>
+            {role === 'host' && (
+              <TouchableOpacity onPress={() => router.push(`/edit-tournament?id=${tournament.id}`)}>
+                <Text style={styles.editBtn}>Edit ✏️</Text>
+              </TouchableOpacity>
+            )}
           </View>
-        ))}
-      </View>
-    )}
-  </View>
-)}
+          <View style={styles.rulesBox}>
+            <Text style={styles.rulesText}>
+              {tournament.rules ?? 'No rules added yet.'}
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* Results — live or final */}
+      {(matchResults.length > 0 || role === 'host') && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.resultsTitleRow}>
+              <Text style={styles.sectionTitle}>RESULTS</Text>
+              {hasLiveResults && (
+                <View style={styles.liveBadge}>
+                  <View style={styles.liveDot} />
+                  <Text style={styles.liveBadgeText}>LIVE</Text>
+                </View>
+              )}
+            </View>
+
+            {role === 'host' && (
+              <View style={styles.resultsActions}>
+                {tournament.status === 'ongoing' && (
+                  <TouchableOpacity onPress={() => router.push(`/live-scoreboard?tournament_id=${tournament.id}`)}>
+                    <Text style={styles.liveScoreBtn}>🔴 Update Live</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity onPress={() => router.push(`/enter-results?tournament_id=${tournament.id}`)}>
+                  <Text style={styles.editBtn}>
+                    {matchResults.length > 0 ? 'Edit ✏️' : 'Enter Results 📊'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+
+          {matchResults.length === 0 ? (
+            <Text style={styles.descriptionText}>No results entered yet.</Text>
+          ) : (
+            <View style={styles.resultsBox}>
+              {matchResults.map((r) => (
+                <View key={r.id} style={styles.resultRow}>
+                  <Text style={styles.resultMedal}>{medal(r.placement)}</Text>
+                  <Text style={styles.resultTeam}>{r.teams?.name ?? 'Unknown Team'}</Text>
+                  <Text style={styles.resultKills}>{r.kills} kills</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      )}
 
       {/* Room Code Section — Host */}
       {role === 'host' && (
@@ -561,13 +561,19 @@ export default function TournamentDetails() {
             </TouchableOpacity>
           )}
         </>
-      ) : (
+      ) : tournament.status === 'upcoming' ? (
         <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: gameColor }]}
           onPress={() => router.push(`/create-team?tournament_id=${tournament.id}&entry_fee=${tournament.entry_fee}`)}
         >
           <Text style={styles.actionButtonText}>Register Team →</Text>
         </TouchableOpacity>
+      ) : (
+        <View style={[styles.actionButton, { backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a' }]}>
+          <Text style={{ color: '#555', fontSize: 15, fontWeight: '700' }}>
+            {tournament.status === 'ongoing' ? '🔒 Tournament In Progress' : '🏁 Tournament Ended'}
+          </Text>
+        </View>
       )}
 
     </ScrollView>
@@ -618,10 +624,10 @@ const styles = StyleSheet.create({
   liveScoreBtn: { color: '#ff4444', fontSize: 13, fontWeight: '700' },
 
   sectionHeader: {
-  flexDirection: 'row', justifyContent: 'space-between',
-  alignItems: 'center', marginBottom: 12,
-},
-editBtn: { color: '#7C3AED', fontSize: 13, fontWeight: '600' },
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', marginBottom: 12,
+  },
+  editBtn: { color: '#7C3AED', fontSize: 13, fontWeight: '600' },
 
   container: { flex: 1, backgroundColor: '#0a0a0a' },
   content: { padding: 24, paddingTop: 60, paddingBottom: 48 },
