@@ -154,9 +154,13 @@ export default function EventsScreen() {
               </View>
               <View style={[
                 styles.statusBadge,
-                item.status === 'ongoing' ? styles.statusLive : styles.statusUpcoming
+                item.status === 'ongoing' ? styles.statusLive :
+                  item.status === 'completed' ? styles.statusCompleted :
+                    styles.statusUpcoming
               ]}>
-                {item.status === 'ongoing' && <View style={styles.liveDot} />}
+                {(item.status === 'ongoing' || item.status === 'upcoming') && <View style={[styles.liveDot, {
+                  backgroundColor: item.status === 'upcoming' ? '#00D4AA' : '#FFB800'
+                }]} />}
                 <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
               </View>
             </View>
@@ -238,9 +242,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, gap: 4,
   },
-  statusUpcoming: { backgroundColor: '#1a1a3a' },
-  statusLive: { backgroundColor: '#1a3a1a' },
-  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#00D4AA' },
+  statusUpcoming: { backgroundColor: '#0a2a2a' },
+  statusLive: { backgroundColor: '#FFB80022' },
+  statusCompleted: { backgroundColor: '#FF444422' },
+  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#FFB800' },
   statusText: { fontSize: 11, fontWeight: '700', color: '#fff' },
   cardTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 4 },
   hostRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
