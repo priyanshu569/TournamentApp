@@ -137,7 +137,7 @@ export default function ProfileScreen() {
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => router.push('/profile')}
+          onPress={() => router.push('/edit-profile')}
         >
           <Text style={styles.menuIcon}>✏️</Text>
           <Text style={styles.menuText}>Edit Profile</Text>
@@ -155,13 +155,13 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         )}
 
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/settings')}>
           <Text style={styles.menuIcon}>⚙️</Text>
           <Text style={styles.menuText}>Settings</Text>
           <Text style={styles.menuArrow}>→</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/support')}>
           <Text style={styles.menuIcon}>❓</Text>
           <Text style={styles.menuText}>Support</Text>
           <Text style={styles.menuArrow}>→</Text>
