@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 import * as Notifications from 'expo-notifications';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { supabase } from '@/lib/supabase';
@@ -89,20 +90,26 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="login" options={{ headerShown: false }} />
-        <Stack.Screen name="verify-otp" options={{ headerShown: false }} />
-        <Stack.Screen name="select-role" options={{ headerShown: false }} />
-        <Stack.Screen name="profile" options={{ headerShown: false }} />
-        <Stack.Screen name="create-tournament" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-        <Stack.Screen name="notifications" options={{ headerShown: false }} />
-        <Stack.Screen name="edit-tournament" options={{ headerShown: false }} />
-        <Stack.Screen name="admin-broadcast" options={{ headerShown: false }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack
+
+          screenOptions={{
+            contentStyle: { backgroundColor: '#0a0a0a' },
+          }}>
+          <Stack.Screen name="login" options={{ headerShown: false }} />
+          <Stack.Screen name="verify-otp" options={{ headerShown: false }} />
+          <Stack.Screen name="select-role" options={{ headerShown: false }} />
+          <Stack.Screen name="profile" options={{ headerShown: false }} />
+          <Stack.Screen name="create-tournament" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+          <Stack.Screen name="notifications" options={{ headerShown: false }} />
+          <Stack.Screen name="edit-tournament" options={{ headerShown: false }} />
+          <Stack.Screen name="admin-broadcast" options={{ headerShown: false }} />
+        </Stack>
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
