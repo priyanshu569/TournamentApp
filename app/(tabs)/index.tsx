@@ -7,6 +7,7 @@ import {
 import { useRouter } from 'expo-router';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import NotificationBell from '@/components/NotificationBell';
+import FragifyLogo from '@/components/FragifyLogo';
 
 const GAMES = ['All', 'Free Fire', 'BGMI', 'COD Mobile', 'Valorant'];
 
@@ -85,9 +86,7 @@ export default function HomeScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <View style={styles.logo}>
-            <Text style={styles.logoText}>F</Text>
-          </View>
+          <FragifyLogo size={40} />
           <View>
             <Text style={styles.appName}>FRAGIFY</Text>
             <Text style={styles.appTagline}>ESPORTS · COMPETE · WIN</Text>
@@ -164,7 +163,10 @@ export default function HomeScreen() {
                   {item.game.toUpperCase()}
                 </Text>
               </View>
-              <View style={styles.statusBadge}>
+              <View style={[styles.statusBadge, {
+                backgroundColor: item.status === 'upcoming' ? '#00D4AA22' :
+                  item.status === 'ongoing' ? '#FFB80022' : '#FF444422'
+              }]}>
                 <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
               </View>
             </View>
@@ -243,8 +245,8 @@ const styles = StyleSheet.create({
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   gameTag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
   gameTagText: { fontSize: 11, fontWeight: '800' },
-  statusBadge: { backgroundColor: '#1a1a3a', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
-  statusText: { fontSize: 11, fontWeight: '700', color: '#7C3AED' },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
+  statusText: { fontSize: 11, fontWeight: '700', color: '#fff' },
   cardTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 4 },
   hostRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
   hostName: { fontSize: 12, color: '#888', fontWeight: '600' },
