@@ -270,6 +270,13 @@ export default function TournamentDetails() {
     );
   }
 
+  const getStatusColor = (status: string) => {
+    if (status === 'upcoming') return '#00D4AA';
+    if (status === 'ongoing') return '#FFB800';
+    if (status === 'completed') return '#FF4444';
+    return '#888';
+  };
+
   const gameColor = getGameColor(tournament.game);
   const hasLiveResults = matchResults.some((r) => !r.placement);
 
@@ -305,8 +312,8 @@ export default function TournamentDetails() {
 
       {/* Status + Date Row */}
       <View style={styles.statusRow}>
-        <View style={[styles.statusBadge, { borderColor: gameColor }]}>
-          <Text style={[styles.statusText, { color: gameColor }]}>
+        <View style={[styles.statusBadge, { borderColor: getStatusColor(tournament.status) }]}>
+          <Text style={[styles.statusText, { color: getStatusColor(tournament.status) }]}>
             {tournament.status.toUpperCase()}
           </Text>
         </View>
