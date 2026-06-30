@@ -1,7 +1,8 @@
 import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import FragifyLogo from '@/components/FragifyLogo';
 
 export default function SelectRoleScreen() {
   const [loading, setLoading] = useState(false);
@@ -28,12 +29,17 @@ export default function SelectRoleScreen() {
     if (error) {
       Alert.alert('Error', error.message);
     } else {
-      router.replace('/profile');
+      router.replace('/edit-profile');
     }
   }
 
   return (
     <View style={styles.container}>
+      <View style={styles.logoBox}>
+        <FragifyLogo size={56} />
+        <Text style={styles.appName}>FRAGIFY</Text>
+      </View>
+
       <Text style={styles.title}>How do you want to use the app?</Text>
       <Text style={styles.subtitle}>You can always switch later in settings</Text>
 
@@ -48,16 +54,25 @@ export default function SelectRoleScreen() {
         <Text style={styles.cardTitle}>I'm a Host</Text>
         <Text style={styles.cardDesc}>Create and manage tournaments</Text>
       </TouchableOpacity>
+
+      {loading && (
+        <ActivityIndicator size="large" color="#7C3AED" style={{ marginTop: 20 }} />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#fff' },
-  title: { fontSize: 24, fontWeight: '600', marginBottom: 8, textAlign: 'center' },
-  subtitle: { fontSize: 14, color: '#666', marginBottom: 32, textAlign: 'center' },
-  card: { borderWidth: 1.5, borderColor: '#ddd', borderRadius: 14, padding: 24, alignItems: 'center', marginBottom: 16 },
+  container: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#0a0a0a' },
+  logoBox: { alignItems: 'center', marginBottom: 32 },
+  appName: { color: '#fff', fontSize: 18, fontWeight: '800', letterSpacing: 3, marginTop: 8 },
+  title: { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 8, textAlign: 'center' },
+  subtitle: { fontSize: 13, color: '#aaa', marginBottom: 32, textAlign: 'center' },
+  card: {
+    backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a',
+    borderRadius: 14, padding: 24, alignItems: 'center', marginBottom: 16,
+  },
   cardEmoji: { fontSize: 40, marginBottom: 10 },
-  cardTitle: { fontSize: 18, fontWeight: '600', marginBottom: 4 },
-  cardDesc: { fontSize: 13, color: '#666', textAlign: 'center' },
+  cardTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 4 },
+  cardDesc: { fontSize: 13, color: '#aaa', textAlign: 'center' },
 });
