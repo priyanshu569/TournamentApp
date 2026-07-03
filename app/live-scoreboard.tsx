@@ -6,18 +6,24 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 
-type Row = {
-  team_id: string;
-  player_id: string;
-  team_name: string;
+type Member = {
+  team_member_id: string;
+  in_game_name: string;
+  player_uid: string;
   kills: number;
+};
+
+type TeamGroup = {
+  team_id: string;
+  team_name: string;
+  members: Member[];
 };
 
 export default function LiveScoreboard() {
   const { tournament_id } = useLocalSearchParams();
   const router = useRouter();
   const [tournament, setTournament] = useState<any>(null);
-  const [rows, setRows] = useState<Row[]>([]);
+  const [teams, setTeams] = useState<TeamGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
@@ -33,54 +39,108 @@ export default function LiveScoreboard() {
 
     const { data: regs } = await supabase
       .from('registrations')
-      .select('team_id, player_id, teams(name)')
+      .select('team_id, teams(name)')
       .eq('tournament_id', tournament_id)
       .eq('status', 'confirmed');
 
+    const teamIds = [...new Set((regs ?? []).map((r: any) => r.team_id))];
+
+    if (teamIds.length === 0) {
+      setTeams([]);
+      setLoading(false);
+      return;
+    }
+
+    const { data: members } = await supabase
+      .from('team_members')
+      .select('id, team_id, in_game_name, player_uid')
+      .in('team_id', teamIds);
+
     const { data: existing } = await supabase
-      .from('match_results')
-      .select('team_id, kills')
+      .from('player_match_results')
+      .select('team_member_id, kills')
       .eq('tournament_id', tournament_id);
 
-    const killsMap = new Map((existing ?? []).map((r) => [r.team_id, r.kills]));
+    const killsMap = new Map((existing ?? []).map((r) => [r.team_member_id, r.kills]));
 
-    const built: Row[] = (regs ?? []).map((r: any) => ({
+    const built: TeamGroup[] = (regs ?? []).map((r: any) => ({
       team_id: r.team_id,
-      player_id: r.player_id,
       team_name: r.teams?.name ?? 'Unknown Team',
-      kills: killsMap.get(r.team_id) ?? 0,
+      members: (members ?? [])
+        .filter((m: any) => m.team_id === r.team_id)
+        .map((m: any) => ({
+          team_member_id: m.id,
+          in_game_name: m.in_game_name,
+          player_uid: m.player_uid,
+          kills: killsMap.get(m.id) ?? 0,
+        })),
     }));
 
-    setRows(built);
+    setTeams(built);
     setLoading(false);
   }
 
-  async function updateKills(row: Row, delta: number) {
-    const newKills = Math.max(0, row.kills + delta);
+  function teamTotalKills(team: TeamGroup) {
+    return team.members.reduce((sum, m) => sum + m.kills, 0);
+  }
 
-    setRows((prev) =>
-      prev.map((r) => (r.team_id === row.team_id ? { ...r, kills: newKills } : r))
+  async function updateMemberKills(teamId: string, member: Member, delta: number) {
+    const newKills = Math.max(0, member.kills + delta);
+
+    setTeams((prev) =>
+      prev.map((t) =>
+        t.team_id === teamId
+          ? {
+              ...t,
+              members: t.members.map((m) =>
+                m.team_member_id === member.team_member_id ? { ...m, kills: newKills } : m
+              ),
+            }
+          : t
+      )
     );
-    setUpdatingId(row.team_id);
+    setUpdatingId(member.team_member_id);
 
-    const { error } = await supabase
-      .from('match_results')
+    const { error: playerError } = await supabase
+      .from('player_match_results')
       .upsert(
         {
           tournament_id: tournament_id,
-          team_id: row.team_id,
-          player_id: row.player_id,
+          team_id: teamId,
+          team_member_id: member.team_member_id,
           kills: newKills,
         },
-        { onConflict: 'tournament_id,team_id' }
+        { onConflict: 'tournament_id,team_member_id' }
       );
 
-    setUpdatingId(null);
-
-    if (error) {
-      Alert.alert('Error', error.message);
+    if (playerError) {
+      setUpdatingId(null);
+      Alert.alert('Error', playerError.message);
       loadData();
+      return;
     }
+
+    // Keep match_results.kills in sync as the team total
+    const team = teams.find((t) => t.team_id === teamId);
+    if (team) {
+      const updatedMembers = team.members.map((m) =>
+        m.team_member_id === member.team_member_id ? { ...m, kills: newKills } : m
+      );
+      const total = updatedMembers.reduce((sum, m) => sum + m.kills, 0);
+
+      const { error: teamError } = await supabase
+        .from('match_results')
+        .upsert(
+          { tournament_id: tournament_id, team_id: teamId, kills: total },
+          { onConflict: 'tournament_id,team_id' }
+        );
+
+      if (teamError) {
+        Alert.alert('Error', teamError.message);
+      }
+    }
+
+    setUpdatingId(null);
   }
 
   if (loading) {
@@ -104,35 +164,49 @@ export default function LiveScoreboard() {
       </View>
 
       <Text style={styles.heading}>{tournament?.title}</Text>
-      <Text style={styles.sub}>Tap +/- to update kill counts in real time</Text>
+      <Text style={styles.sub}>Tap +/- to update each player's kills in real time</Text>
 
       <ScrollView contentContainerStyle={styles.list}>
-        {rows.length === 0 ? (
+        {teams.length === 0 ? (
           <Text style={styles.emptyText}>No confirmed teams yet.</Text>
         ) : (
-          rows
+          teams
             .slice()
-            .sort((a, b) => b.kills - a.kills)
-            .map((row) => (
-              <View key={row.team_id} style={styles.row}>
-                <Text style={styles.teamName}>{row.team_name}</Text>
-                <View style={styles.controls}>
-                  <TouchableOpacity
-                    style={styles.stepBtn}
-                    onPress={() => updateKills(row, -1)}
-                    disabled={updatingId === row.team_id}
-                  >
-                    <Text style={styles.stepBtnText}>−</Text>
-                  </TouchableOpacity>
-                  <Text style={styles.killCount}>{row.kills}</Text>
-                  <TouchableOpacity
-                    style={[styles.stepBtn, styles.stepBtnPlus]}
-                    onPress={() => updateKills(row, 1)}
-                    disabled={updatingId === row.team_id}
-                  >
-                    <Text style={styles.stepBtnText}>+</Text>
-                  </TouchableOpacity>
+            .sort((a, b) => teamTotalKills(b) - teamTotalKills(a))
+            .map((team) => (
+              <View key={team.team_id} style={styles.teamCard}>
+                <View style={styles.teamHeader}>
+                  <Text style={styles.teamName}>{team.team_name}</Text>
+                  <View style={styles.totalKillsBadge}>
+                    <Text style={styles.totalKillsText}>{teamTotalKills(team)}</Text>
+                  </View>
                 </View>
+
+                {team.members.map((member) => (
+                  <View key={member.team_member_id} style={styles.memberRow}>
+                    <View style={styles.memberInfo}>
+                      <Text style={styles.memberName}>{member.in_game_name}</Text>
+                      <Text style={styles.memberUid}>UID: {member.player_uid}</Text>
+                    </View>
+                    <View style={styles.controls}>
+                      <TouchableOpacity
+                        style={styles.stepBtn}
+                        onPress={() => updateMemberKills(team.team_id, member, -1)}
+                        disabled={updatingId === member.team_member_id}
+                      >
+                        <Text style={styles.stepBtnText}>−</Text>
+                      </TouchableOpacity>
+                      <Text style={styles.killCount}>{member.kills}</Text>
+                      <TouchableOpacity
+                        style={[styles.stepBtn, styles.stepBtnPlus]}
+                        onPress={() => updateMemberKills(team.team_id, member, 1)}
+                        disabled={updatingId === member.team_member_id}
+                      >
+                        <Text style={styles.stepBtnText}>+</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
               </View>
             ))
         )}
@@ -167,20 +241,35 @@ const styles = StyleSheet.create({
   sub: { fontSize: 13, color: '#aaa', paddingHorizontal: 24, marginTop: 4, marginBottom: 16 },
   list: { paddingHorizontal: 24, paddingBottom: 16 },
   emptyText: { color: '#555', textAlign: 'center', marginTop: 40 },
-  row: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+  teamCard: {
     backgroundColor: '#1a1a1a', borderRadius: 12, padding: 16,
-    marginBottom: 10, borderWidth: 1, borderColor: '#2a2a2a',
+    marginBottom: 12, borderWidth: 1, borderColor: '#2a2a2a',
   },
-  teamName: { color: '#fff', fontSize: 15, fontWeight: '700', flex: 1 },
-  controls: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  teamHeader: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', marginBottom: 12,
+  },
+  teamName: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  totalKillsBadge: {
+    backgroundColor: '#7C3AED22', paddingHorizontal: 10,
+    paddingVertical: 4, borderRadius: 20, borderWidth: 1, borderColor: '#7C3AED',
+  },
+  totalKillsText: { color: '#7C3AED', fontSize: 13, fontWeight: '800' },
+  memberRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: 8, borderTopWidth: 1, borderTopColor: '#2a2a2a',
+  },
+  memberInfo: { flex: 1, marginRight: 12 },
+  memberName: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  memberUid: { color: '#555', fontSize: 11, marginTop: 1 },
+  controls: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   stepBtn: {
-    width: 34, height: 34, borderRadius: 17,
+    width: 30, height: 30, borderRadius: 15,
     backgroundColor: '#2a2a2a', justifyContent: 'center', alignItems: 'center',
   },
   stepBtnPlus: { backgroundColor: '#7C3AED' },
-  stepBtnText: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  killCount: { color: '#fff', fontSize: 18, fontWeight: '800', minWidth: 28, textAlign: 'center' },
+  stepBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  killCount: { color: '#fff', fontSize: 16, fontWeight: '800', minWidth: 24, textAlign: 'center' },
   finishBtn: {
     backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a',
     paddingVertical: 16, borderRadius: 12, alignItems: 'center',
