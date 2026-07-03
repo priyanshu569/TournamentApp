@@ -25,7 +25,7 @@ export default function TournamentDetails() {
   const [cancelling, setCancelling] = useState(false);
   const [matchResults, setMatchResults] = useState<any[]>([]);
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [id]);
 
   // Realtime subscription — keeps the Results section live for everyone viewing this tournament
   useEffect(() => {
@@ -287,7 +287,7 @@ export default function TournamentDetails() {
       <View style={styles.topRow}>
         <View style={[styles.gameTag, { backgroundColor: gameColor + '22', marginBottom: 0 }]}>
           <Text style={[styles.gameTagText, { color: gameColor }]}>
-            {tournament.game.toUpperCase()}
+            {(tournament.game ?? '').toUpperCase()}
           </Text>
         </View>
 
