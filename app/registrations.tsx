@@ -14,7 +14,9 @@ export default function Registrations() {
   const [tournament, setTournament] = useState<any>(null);
 
   useEffect(() => {
-    fetchRegistrations();
+    useEffect(() => {
+      fetchRegistrations();
+    }, [tournament_id]);
   }, []);
 
   async function fetchRegistrations() {
@@ -110,7 +112,7 @@ export default function Registrations() {
                 styles.badge,
                 item.status === 'confirmed' ? styles.badgeConfirmed : styles.badgePending
               ]}>
-                <Text style={styles.badgeText}>{item.status.toUpperCase()}</Text>
+                <Text style={styles.badgeText}>{(item.status ?? 'pending').toUpperCase()}</Text>
               </View>
             </View>
 
