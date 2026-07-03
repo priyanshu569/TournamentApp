@@ -48,7 +48,7 @@ export default function Leaderboard() {
 
       <FlatList
         data={data}
-        keyExtractor={(item) => item.player_id}
+        keyExtractor={(item) => item.player_uid}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <Text style={styles.emptyText}>No results recorded yet.</Text>
