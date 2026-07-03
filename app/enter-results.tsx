@@ -6,23 +6,30 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 
-type RowData = {
+type MemberRow = {
+  team_member_id: string;
+  in_game_name: string;
+  player_uid: string;
+  kills: string;
+};
+
+type TeamRow = {
   team_id: string;
-  player_id: string;
   team_name: string;
   placement: string;
-  kills: string;
+  members: MemberRow[];
 };
 
 export default function EnterResults() {
   const { tournament_id } = useLocalSearchParams();
   const router = useRouter();
   const [tournament, setTournament] = useState<any>(null);
-  const [rows, setRows] = useState<RowData[]>([]);
+  const [teams, setTeams] = useState<TeamRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => { loadData(); }, [tournament_id]);
+
   async function loadData() {
     const { data: t } = await supabase
       .from('tournaments')
@@ -33,65 +40,126 @@ export default function EnterResults() {
 
     const { data: regs } = await supabase
       .from('registrations')
-      .select('team_id, player_id, teams(name)')
+      .select('team_id, teams(name)')
       .eq('tournament_id', tournament_id)
       .eq('status', 'confirmed');
 
-    const { data: existing } = await supabase
+    const teamIds = [...new Set((regs ?? []).map((r: any) => r.team_id))];
+
+    if (teamIds.length === 0) {
+      setTeams([]);
+      setLoading(false);
+      return;
+    }
+
+    const { data: members } = await supabase
+      .from('team_members')
+      .select('id, team_id, in_game_name, player_uid')
+      .in('team_id', teamIds);
+
+    const { data: existingPlacements } = await supabase
       .from('match_results')
-      .select('team_id, placement, kills')
+      .select('team_id, placement')
       .eq('tournament_id', tournament_id);
 
-    const existingMap = new Map(
-      (existing ?? []).map((r) => [r.team_id, r])
-    );
+    const { data: existingKills } = await supabase
+      .from('player_match_results')
+      .select('team_member_id, kills')
+      .eq('tournament_id', tournament_id);
 
-    const built: RowData[] = (regs ?? []).map((r: any) => {
-      const prev = existingMap.get(r.team_id);
+    const placementMap = new Map((existingPlacements ?? []).map((r) => [r.team_id, r.placement]));
+    const killsMap = new Map((existingKills ?? []).map((r) => [r.team_member_id, r.kills]));
+
+    const built: TeamRow[] = (regs ?? []).map((r: any) => {
+      const teamMembers = (members ?? [])
+        .filter((m: any) => m.team_id === r.team_id)
+        .map((m: any) => ({
+          team_member_id: m.id,
+          in_game_name: m.in_game_name,
+          player_uid: m.player_uid,
+          kills: killsMap.has(m.id) ? String(killsMap.get(m.id)) : '',
+        }));
+
       return {
         team_id: r.team_id,
-        player_id: r.player_id,
         team_name: r.teams?.name ?? 'Unknown Team',
-        placement: prev ? String(prev.placement) : '',
-        kills: prev ? String(prev.kills) : '',
+        placement: placementMap.has(r.team_id) ? String(placementMap.get(r.team_id)) : '',
+        members: teamMembers,
       };
     });
 
-    setRows(built);
+    setTeams(built);
     setLoading(false);
   }
 
-  function updateRow(teamId: string, field: 'placement' | 'kills', value: string) {
-    setRows((prev) =>
-      prev.map((r) => (r.team_id === teamId ? { ...r, [field]: value } : r))
+  function updatePlacement(teamId: string, value: string) {
+    setTeams((prev) =>
+      prev.map((t) => (t.team_id === teamId ? { ...t, placement: value } : t))
     );
   }
 
+  function updateMemberKills(teamId: string, memberId: string, value: string) {
+    setTeams((prev) =>
+      prev.map((t) =>
+        t.team_id === teamId
+          ? {
+              ...t,
+              members: t.members.map((m) =>
+                m.team_member_id === memberId ? { ...m, kills: value } : m
+              ),
+            }
+          : t
+      )
+    );
+  }
+
+  function teamTotalKills(team: TeamRow) {
+    return team.members.reduce((sum, m) => sum + (parseInt(m.kills, 10) || 0), 0);
+  }
+
   async function handleSave() {
-    const incomplete = rows.some((r) => !r.placement.trim());
-    if (incomplete) {
+    const missingPlacement = teams.some((t) => !t.placement.trim());
+    if (missingPlacement) {
       Alert.alert('Missing Field', 'Please enter a placement for every team.');
       return;
     }
 
     setSaving(true);
 
-    const payload = rows.map((r) => ({
+    const playerPayload = teams.flatMap((t) =>
+      t.members.map((m) => ({
+        tournament_id: tournament_id,
+        team_id: t.team_id,
+        team_member_id: m.team_member_id,
+        kills: parseInt(m.kills, 10) || 0,
+      }))
+    );
+
+    const teamPayload = teams.map((t) => ({
       tournament_id: tournament_id,
-      team_id: r.team_id,
-      player_id: r.player_id,
-      placement: parseInt(r.placement, 10) || 0,
-      kills: parseInt(r.kills, 10) || 0,
+      team_id: t.team_id,
+      placement: parseInt(t.placement, 10) || 0,
+      kills: teamTotalKills(t),
     }));
 
-    const { error } = await supabase
+    const { error: playerError } = await supabase
+      .from('player_match_results')
+      .upsert(playerPayload, { onConflict: 'tournament_id,team_member_id' });
+
+    if (playerError) {
+      setSaving(false);
+      Alert.alert('Error', playerError.message);
+      return;
+    }
+
+    const { error: teamError } = await supabase
       .from('match_results')
-      .upsert(payload, { onConflict: 'tournament_id,team_id' });
+      .upsert(teamPayload, { onConflict: 'tournament_id,team_id' });
 
     setSaving(false);
 
-    if (error) {
-      Alert.alert('Error', error.message);
+    if (teamError) {
+      Alert.alert('Error', teamError.message);
     } else {
       Alert.alert('Saved 🎉', 'Results have been recorded.', [
         { text: 'OK', onPress: () => router.back() }
@@ -112,41 +180,56 @@ export default function EnterResults() {
       <Text style={styles.heading}>Enter Results</Text>
       <Text style={styles.sub}>{tournament?.title}</Text>
 
-      {rows.length === 0 ? (
+      {teams.length === 0 ? (
         <Text style={styles.emptyText}>No confirmed teams to enter results for.</Text>
       ) : (
-        rows.map((row) => (
-          <View key={row.team_id} style={styles.row}>
-            <Text style={styles.teamName}>{row.team_name}</Text>
-            <View style={styles.inputsRow}>
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Placement</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. 1"
-                  placeholderTextColor="#444"
-                  keyboardType="number-pad"
-                  value={row.placement}
-                  onChangeText={(v) => updateRow(row.team_id, 'placement', v)}
-                />
-              </View>
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Kills</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. 12"
-                  placeholderTextColor="#444"
-                  keyboardType="number-pad"
-                  value={row.kills}
-                  onChangeText={(v) => updateRow(row.team_id, 'kills', v)}
-                />
+        teams.map((team) => (
+          <View key={team.team_id} style={styles.teamCard}>
+            <View style={styles.teamHeader}>
+              <Text style={styles.teamName}>{team.team_name}</Text>
+              <View style={styles.totalKillsBadge}>
+                <Text style={styles.totalKillsText}>{teamTotalKills(team)} kills</Text>
               </View>
             </View>
+
+            <View style={styles.placementGroup}>
+              <Text style={styles.inputLabel}>Placement</Text>
+              <TextInput
+                style={styles.placementInput}
+                placeholder="e.g. 1"
+                placeholderTextColor="#444"
+                keyboardType="number-pad"
+                value={team.placement}
+                onChangeText={(v) => updatePlacement(team.team_id, v)}
+              />
+            </View>
+
+            <View style={styles.divider} />
+
+            {team.members.map((member) => (
+              <View key={member.team_member_id} style={styles.memberRow}>
+                <View style={styles.memberInfo}>
+                  <Text style={styles.memberName}>{member.in_game_name}</Text>
+                  <Text style={styles.memberUid}>UID: {member.player_uid}</Text>
+                </View>
+                <View style={styles.killsGroup}>
+                  <Text style={styles.inputLabel}>Kills</Text>
+                  <TextInput
+                    style={styles.killsInput}
+                    placeholder="0"
+                    placeholderTextColor="#444"
+                    keyboardType="number-pad"
+                    value={member.kills}
+                    onChangeText={(v) => updateMemberKills(team.team_id, member.team_member_id, v)}
+                  />
+                </View>
+              </View>
+            ))}
           </View>
         ))
       )}
 
-      {rows.length > 0 && (
+      {teams.length > 0 && (
         <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
           {saving
             ? <ActivityIndicator color="#fff" />
@@ -165,18 +248,40 @@ const styles = StyleSheet.create({
   heading: { fontSize: 26, fontWeight: '900', color: '#fff', marginBottom: 4 },
   sub: { fontSize: 14, color: '#aaa', marginBottom: 24 },
   emptyText: { color: '#555', textAlign: 'center', marginTop: 40 },
-  row: {
+  teamCard: {
     backgroundColor: '#1a1a1a', borderRadius: 12, padding: 16,
-    marginBottom: 12, borderWidth: 1, borderColor: '#2a2a2a',
+    marginBottom: 16, borderWidth: 1, borderColor: '#2a2a2a',
   },
-  teamName: { color: '#fff', fontSize: 16, fontWeight: '700', marginBottom: 12 },
-  inputsRow: { flexDirection: 'row', gap: 12 },
-  inputGroup: { flex: 1 },
+  teamHeader: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', marginBottom: 12,
+  },
+  teamName: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  totalKillsBadge: {
+    backgroundColor: '#7C3AED22', paddingHorizontal: 10,
+    paddingVertical: 4, borderRadius: 20, borderWidth: 1, borderColor: '#7C3AED',
+  },
+  totalKillsText: { color: '#7C3AED', fontSize: 12, fontWeight: '800' },
+  placementGroup: { marginBottom: 12 },
   inputLabel: { color: '#aaa', fontSize: 12, marginBottom: 6, fontWeight: '600' },
-  input: {
+  placementInput: {
     backgroundColor: '#0a0a0a', color: '#fff', borderRadius: 8,
     paddingHorizontal: 12, paddingVertical: 10, fontSize: 15,
-    borderWidth: 1, borderColor: '#2a2a2a',
+    borderWidth: 1, borderColor: '#2a2a2a', width: 100,
+  },
+  divider: { height: 1, backgroundColor: '#2a2a2a', marginBottom: 12 },
+  memberRow: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', marginBottom: 10,
+  },
+  memberInfo: { flex: 1, marginRight: 12 },
+  memberName: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  memberUid: { color: '#555', fontSize: 11, marginTop: 1 },
+  killsGroup: { width: 80 },
+  killsInput: {
+    backgroundColor: '#0a0a0a', color: '#fff', borderRadius: 8,
+    paddingHorizontal: 12, paddingVertical: 10, fontSize: 15,
+    borderWidth: 1, borderColor: '#2a2a2a', textAlign: 'center',
   },
   saveBtn: {
     backgroundColor: '#7C3AED', paddingVertical: 16,
