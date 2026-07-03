@@ -21,7 +21,7 @@ export default function LiveScoreboard() {
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [tournament_id]);
 
   async function loadData() {
     const { data: t } = await supabase
