@@ -14,10 +14,8 @@ export default function Registrations() {
   const [tournament, setTournament] = useState<any>(null);
 
   useEffect(() => {
-    useEffect(() => {
-      fetchRegistrations();
-    }, [tournament_id]);
-  }, []);
+  fetchRegistrations();
+}, [tournament_id]);
 
   async function fetchRegistrations() {
     const { data: t } = await supabase
