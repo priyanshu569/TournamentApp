@@ -22,8 +22,7 @@ export default function EnterResults() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { loadData(); }, []);
-
+  useEffect(() => { loadData(); }, [tournament_id]);
   async function loadData() {
     const { data: t } = await supabase
       .from('tournaments')
