@@ -1,0 +1,30 @@
+-- get_leaderboard() was dropped and recreated this session to aggregate by
+-- team_members.player_uid instead of the old registering player_id, fixing
+-- duplicate leaderboard entries for players who captain multiple teams.
+--
+-- IMPORTANT: I don't have the exact function body you wrote against your
+-- live schema (aggregation logic, return columns, filters, etc.), so I'm
+-- deliberately NOT guessing at it here — pasting a plausible-but-wrong
+-- version into a migration could overwrite your real, working function.
+--
+-- To capture the *actual* current definition correctly, run this from the
+-- Supabase SQL editor against your live project and paste the output into
+-- this file before committing:
+--
+--   select pg_get_functiondef('public.get_leaderboard'::regclass);
+--
+-- (If that errors because of function overloading/args, use instead:
+--   select prosrc from pg_proc where proname = 'get_leaderboard';
+--  to get the raw body, then wrap it in a `create or replace function` block
+--  matching the current signature.)
+--
+-- Once pasted in below, this file becomes the versioned source of truth for
+-- get_leaderboard() going forward — any future change to it should be a new
+-- migration rather than a live edit in the SQL editor.
+
+-- create or replace function public.get_leaderboard(...)
+-- returns table (...)
+-- language sql
+-- as $$
+--   -- paste actual function body here
+-- $$;
