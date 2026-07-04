@@ -3,10 +3,11 @@ import {
   View, Text, StyleSheet, ActivityIndicator,
   FlatList, Alert, TouchableOpacity
 } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 
 export default function HistoryScreen() {
+  const router = useRouter();
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any[]>([]);
@@ -19,28 +20,24 @@ export default function HistoryScreen() {
   );
 
   async function loadHistory() {
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    console.log('Auth user:', userData?.user?.id, 'Error:', userError);
-
+    const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) { setLoading(false); return; }
 
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile } = await supabase
       .from('Profiles')
       .select('role')
       .eq('id', userData.user.id)
       .single();
-    console.log('Profile:', profile, 'Error:', profileError);
 
     if (!profile) { setLoading(false); return; }
     setRole(profile.role);
 
     if (profile.role === 'player') {
-      const { data: regs, error: regsError } = await supabase
+      const { data: regs } = await supabase
         .from('registrations')
         .select('*, teams(name), tournaments(title, game, entry_fee)')
         .eq('player_id', userData.user.id)
         .order('created_at', { ascending: false });
-      console.log('Registrations:', regs, 'Error:', regsError);
 
       if (regs) setData(regs);
     } else {
@@ -105,7 +102,10 @@ export default function HistoryScreen() {
             data={data}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-              <View style={styles.card}>
+              <TouchableOpacity
+                style={styles.card}
+                onPress={() => router.push(`/tournament-details?id=${item.tournament_id}`)}
+              >
                 <View style={styles.cardHeader}>
                   <Text style={styles.tournamentName}>
                     {item.tournaments?.title ?? 'Unknown Tournament'}
@@ -130,7 +130,10 @@ export default function HistoryScreen() {
                 {item.status === 'pending' && (
                   <TouchableOpacity
                     style={styles.cancelBtn}
-                    onPress={() => confirmCancel(item.id, item.tournaments?.title ?? 'this tournament')}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      confirmCancel(item.id, item.tournaments?.title ?? 'this tournament');
+                    }}
                     disabled={cancellingId === item.id}
                   >
                     {cancellingId === item.id
@@ -139,7 +142,7 @@ export default function HistoryScreen() {
                     }
                   </TouchableOpacity>
                 )}
-              </View>
+              </TouchableOpacity>
             )}
           />
         )}
@@ -159,7 +162,10 @@ export default function HistoryScreen() {
           data={data}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <View style={styles.card}>
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() => router.push(`/tournament-details?id=${item.id}`)}
+            >
               <View style={styles.cardHeader}>
                 <Text style={styles.tournamentName}>{item.title}</Text>
                 <View style={[
@@ -174,7 +180,7 @@ export default function HistoryScreen() {
               <Text style={styles.cardSub}>
                 👥 {item.registrations?.[0]?.count ?? 0} / {item.max_teams} teams
               </Text>
-            </View>
+            </TouchableOpacity>
           )}
         />
       )}
