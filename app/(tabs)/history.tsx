@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
   FlatList, Alert, TouchableOpacity
 } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 
 export default function HistoryScreen() {
@@ -11,29 +12,35 @@ export default function HistoryScreen() {
   const [data, setData] = useState<any[]>([]);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadHistory();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadHistory();
+    }, [])
+  );
 
   async function loadHistory() {
-    const { data: userData } = await supabase.auth.getUser();
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    console.log('Auth user:', userData?.user?.id, 'Error:', userError);
+
     if (!userData.user) { setLoading(false); return; }
 
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('Profiles')
       .select('role')
       .eq('id', userData.user.id)
       .single();
+    console.log('Profile:', profile, 'Error:', profileError);
 
     if (!profile) { setLoading(false); return; }
     setRole(profile.role);
 
     if (profile.role === 'player') {
-      const { data: regs } = await supabase
+      const { data: regs, error: regsError } = await supabase
         .from('registrations')
         .select('*, teams(name), tournaments(title, game, entry_fee)')
         .eq('player_id', userData.user.id)
         .order('created_at', { ascending: false });
+      console.log('Registrations:', regs, 'Error:', regsError);
 
       if (regs) setData(regs);
     } else {
