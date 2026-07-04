@@ -21,16 +21,16 @@ type SortOption =
   | 'slots_high'
   | 'slots_low';
 
-const SORT_OPTIONS: { value: SortOption; label: string; icon: string }[] = [
-  { value: 'newest', label: 'Newest First', icon: '🆕' },
-  { value: 'prize_high', label: 'Prize Pool: High to Low', icon: '🏆' },
-  { value: 'prize_low', label: 'Prize Pool: Low to High', icon: '🏆' },
-  { value: 'entry_low', label: 'Entry Fee: Low to High', icon: '💰' },
-  { value: 'entry_high', label: 'Entry Fee: High to Low', icon: '💰' },
-  { value: 'date_soonest', label: 'Start Date: Soonest First', icon: '🗓' },
-  { value: 'date_latest', label: 'Start Date: Latest First', icon: '🗓' },
-  { value: 'slots_low', label: 'Slots Left: Fewest First', icon: '🔥' },
-  { value: 'slots_high', label: 'Slots Left: Most First', icon: '🔥' },
+const SORT_OPTIONS: { value: SortOption; label: string; shortLabel: string; icon: string }[] = [
+  { value: 'newest', label: 'Newest First', shortLabel: 'Newest', icon: '🆕' },
+  { value: 'prize_high', label: 'Prize Pool: High to Low', shortLabel: 'Prize ↓', icon: '🏆' },
+  { value: 'prize_low', label: 'Prize Pool: Low to High', shortLabel: 'Prize ↑', icon: '🏆' },
+  { value: 'entry_low', label: 'Entry Fee: Low to High', shortLabel: 'Entry ↑', icon: '💰' },
+  { value: 'entry_high', label: 'Entry Fee: High to Low', shortLabel: 'Entry ↓', icon: '💰' },
+  { value: 'date_soonest', label: 'Start Date: Soonest First', shortLabel: 'Soonest', icon: '🗓' },
+  { value: 'date_latest', label: 'Start Date: Latest First', shortLabel: 'Latest', icon: '🗓' },
+  { value: 'slots_low', label: 'Slots Left: Fewest First', shortLabel: 'Filling Up', icon: '🔥' },
+  { value: 'slots_high', label: 'Slots Left: Most First', shortLabel: 'Most Slots', icon: '🔥' },
 ];
 
 export default function EventsScreen() {
@@ -116,7 +116,7 @@ export default function EventsScreen() {
     });
   };
 
-  const activeSortLabel = SORT_OPTIONS.find(o => o.value === sortOption)?.label ?? 'Sort';
+  const activeSortOption = SORT_OPTIONS.find(o => o.value === sortOption);
   const isSortActive = sortOption !== 'newest';
 
   if (loading) {
@@ -166,7 +166,9 @@ export default function EventsScreen() {
           onPress={() => setSortModalVisible(true)}
         >
           <Text style={styles.sortBtnIcon}>⇅</Text>
-          {isSortActive && <View style={styles.sortDot} />}
+          <Text style={[styles.sortBtnText, isSortActive && styles.sortBtnTextActive]}>
+            {isSortActive ? activeSortOption?.shortLabel : 'Sort'}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -190,16 +192,6 @@ export default function EventsScreen() {
           ))}
         </ScrollView>
       </View>
-
-      {/* Active sort indicator */}
-      {isSortActive && (
-        <View style={styles.activeSortRow}>
-          <Text style={styles.activeSortText}>Sorted by: {activeSortLabel}</Text>
-          <TouchableOpacity onPress={() => setSortOption('newest')}>
-            <Text style={styles.activeSortClear}>Reset</Text>
-          </TouchableOpacity>
-        </View>
-      )}
 
       {/* Tournament List */}
       <FlatList
@@ -279,7 +271,14 @@ export default function EventsScreen() {
         >
           <View style={styles.sortSheet}>
             <View style={styles.sheetHandle} />
-            <Text style={styles.sheetTitle}>Sort By</Text>
+            <View style={styles.sheetTitleRow}>
+              <Text style={styles.sheetTitle}>Sort By</Text>
+              {isSortActive && (
+                <TouchableOpacity onPress={() => { setSortOption('newest'); setSortModalVisible(false); }}>
+                  <Text style={styles.sheetReset}>Reset</Text>
+                </TouchableOpacity>
+              )}
+            </View>
             <ScrollView showsVerticalScrollIndicator={false}>
               {SORT_OPTIONS.map((opt) => (
                 <TouchableOpacity
@@ -339,16 +338,14 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, color: '#fff', fontSize: 15, paddingVertical: 12 },
   clearBtn: { color: '#555', fontSize: 16, padding: 4 },
   sortBtn: {
-    width: 46, height: 46, borderRadius: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 14, height: 46, borderRadius: 12,
     backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a',
-    alignItems: 'center', justifyContent: 'center',
   },
   sortBtnActive: { backgroundColor: '#7C3AED22', borderColor: '#7C3AED' },
-  sortBtnIcon: { fontSize: 18, color: '#fff' },
-  sortDot: {
-    position: 'absolute', top: 6, right: 6,
-    width: 8, height: 8, borderRadius: 4, backgroundColor: '#7C3AED',
-  },
+  sortBtnIcon: { fontSize: 14, color: '#aaa' },
+  sortBtnText: { color: '#aaa', fontSize: 13, fontWeight: '600' },
+  sortBtnTextActive: { color: '#7C3AED', fontWeight: '700' },
   filterWrapper: { marginBottom: 4 },
   filterContainer: { paddingHorizontal: 24, gap: 8, paddingVertical: 8 },
   filterChip: {
@@ -359,12 +356,6 @@ const styles = StyleSheet.create({
   filterChipActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
   filterChipText: { color: '#aaa', fontSize: 13, fontWeight: '600' },
   filterChipTextActive: { color: '#fff' },
-  activeSortRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    marginHorizontal: 24, marginBottom: 8, marginTop: 4,
-  },
-  activeSortText: { color: '#888', fontSize: 12, fontWeight: '600' },
-  activeSortClear: { color: '#7C3AED', fontSize: 12, fontWeight: '700' },
   listContent: { padding: 24, paddingTop: 4 },
   emptyContainer: { alignItems: 'center', marginTop: 60 },
   emptyIcon: { fontSize: 40, marginBottom: 12 },
@@ -407,7 +398,12 @@ const styles = StyleSheet.create({
     width: 40, height: 4, borderRadius: 2, backgroundColor: '#333',
     alignSelf: 'center', marginBottom: 16,
   },
-  sheetTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 12 },
+  sheetTitleRow: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', marginBottom: 12,
+  },
+  sheetTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
+  sheetReset: { color: '#7C3AED', fontSize: 13, fontWeight: '700' },
   sortOptionRow: {
     flexDirection: 'row', alignItems: 'center',
     paddingVertical: 14, paddingHorizontal: 12,
