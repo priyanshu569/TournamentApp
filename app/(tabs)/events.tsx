@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList,
   TouchableOpacity, ActivityIndicator, ScrollView, TextInput, Modal
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import NotificationBell from '@/components/NotificationBell';
@@ -43,7 +43,11 @@ export default function EventsScreen() {
   const [sortOption, setSortOption] = useState<SortOption>('newest');
   const [sortModalVisible, setSortModalVisible] = useState(false);
 
-  useEffect(() => { fetchTournaments(); }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchTournaments();
+    }, [])
+  );
 
   useEffect(() => {
     let results = tournaments;
