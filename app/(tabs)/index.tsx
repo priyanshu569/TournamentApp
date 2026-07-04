@@ -1,10 +1,10 @@
 import { supabase } from '@/lib/supabase';
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator, FlatList, ScrollView, StyleSheet,
   Text, TouchableOpacity, View
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import NotificationBell from '@/components/NotificationBell';
 import FragifyLogo from '@/components/FragifyLogo';
@@ -20,9 +20,13 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => { loadData(); }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [])
+  );
 
-  useEffect(() => {
+  useState(() => {
     if (selectedGame === 'All') {
       setFiltered(tournaments);
     } else {
@@ -30,7 +34,7 @@ export default function HomeScreen() {
         t.game.toLowerCase().includes(selectedGame.toLowerCase())
       ));
     }
-  }, [selectedGame, tournaments]);
+  });
 
   async function loadData() {
     const { data: userData } = await supabase.auth.getUser();
@@ -58,10 +62,27 @@ export default function HomeScreen() {
     const { data: tournamentData } = await query;
     if (tournamentData) {
       setTournaments(tournamentData);
-      setFiltered(tournamentData);
+      setFiltered(
+        selectedGame === 'All'
+          ? tournamentData
+          : tournamentData.filter((t: any) =>
+              t.game.toLowerCase().includes(selectedGame.toLowerCase())
+            )
+      );
     }
 
     setLoading(false);
+  }
+
+  function handleGameSelect(game: string) {
+    setSelectedGame(game);
+    if (game === 'All') {
+      setFiltered(tournaments);
+    } else {
+      setFiltered(tournaments.filter(t =>
+        t.game.toLowerCase().includes(game.toLowerCase())
+      ));
+    }
   }
 
   const getGameColor = (game: string) => {
@@ -131,7 +152,7 @@ export default function HomeScreen() {
             <TouchableOpacity
               key={game}
               style={[styles.filterChip, selectedGame === game && styles.filterChipActive]}
-              onPress={() => setSelectedGame(game)}
+              onPress={() => handleGameSelect(game)}
             >
               <Text style={[styles.filterChipText, selectedGame === game && styles.filterChipTextActive]}>
                 {game}
