@@ -6,7 +6,10 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
 import { supabase } from '@/lib/supabase';
+WebBrowser.maybeCompleteAuthSession();
 
 const NOTIF_PREF_KEY = 'fragify_notifications_enabled';
 
@@ -17,6 +20,8 @@ export default function SettingsScreen() {
   const [username, setUsername] = useState('');
   const [role, setRole] = useState('');
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [googleLinked, setGoogleLinked] = useState(false);
+  const [linkingGoogle, setLinkingGoogle] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -37,12 +42,49 @@ export default function SettingsScreen() {
         setUsername(profile.username || '');
         setRole(profile.role || '');
       }
+
+      const { data: identitiesData } = await supabase.auth.getUserIdentities();
+      setGoogleLinked(!!identitiesData?.identities?.some((i) => i.provider === 'google'));
     }
 
     const storedPref = await AsyncStorage.getItem(NOTIF_PREF_KEY);
     setNotificationsEnabled(storedPref !== 'false');
 
     setLoading(false);
+  }
+
+  async function handleLinkGoogle() {
+    setLinkingGoogle(true);
+
+    const redirectUrl = AuthSession.makeRedirectUri({
+      scheme: 'tournamentapp',
+      path: 'settings',
+    });
+
+    const { data, error } = await supabase.auth.linkIdentity({
+      provider: 'google',
+      options: {
+        redirectTo: redirectUrl,
+        queryParams: { prompt: 'select_account' },
+      },
+    });
+
+    if (error) {
+      setLinkingGoogle(false);
+      Alert.alert('Error', error.message);
+      return;
+    }
+
+    if (data?.url) {
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+
+      if (result.type === 'success') {
+        Alert.alert('Linked! ✅', 'You can now sign in with Google too.');
+        await loadSettings();
+      }
+    }
+
+    setLinkingGoogle(false);
   }
 
   async function toggleNotifications(value: boolean) {
@@ -94,6 +136,21 @@ export default function SettingsScreen() {
           <Text style={styles.rowLabel}>Role</Text>
           <Text style={styles.rowValue}>{role ? role.charAt(0).toUpperCase() + role.slice(1) : '—'}</Text>
         </View>
+        <View style={styles.divider} />
+        {googleLinked ? (
+          <View style={styles.row}>
+            <Text style={styles.rowLabel}>Google Account</Text>
+            <Text style={[styles.rowValue, { color: '#00D4AA' }]}>✓ Linked</Text>
+          </View>
+        ) : (
+          <TouchableOpacity style={styles.row} onPress={handleLinkGoogle} disabled={linkingGoogle}>
+            <Text style={styles.rowLabel}>Link Google Account</Text>
+            {linkingGoogle
+              ? <ActivityIndicator size="small" color="#7C3AED" />
+              : <Ionicons name="chevron-forward" size={18} color="#555" />
+            }
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Notifications */}
