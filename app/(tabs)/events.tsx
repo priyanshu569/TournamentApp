@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, FlatList,
   TouchableOpacity, ActivityIndicator, ScrollView, TextInput, Modal
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import VerifiedBadge from '@/components/VerifiedBadge';
@@ -256,46 +257,51 @@ export default function EventsScreen() {
             style={[styles.card, { borderLeftColor: getGameColor(item.game), borderLeftWidth: 4 }]}
             onPress={() => router.push(`/tournament-details?id=${item.id}`)}
           >
-            <View style={styles.cardTop}>
-              <View style={[styles.gameTag, { backgroundColor: getGameColor(item.game) + '22' }]}>
-                <Text style={[styles.gameTagText, { color: getGameColor(item.game) }]}>
-                  {item.game.toUpperCase()}
-                </Text>
+            {item.banner_url && (
+              <Image source={{ uri: item.banner_url }} style={styles.cardBanner} contentFit="cover" />
+            )}
+            <View style={styles.cardBody}>
+              <View style={styles.cardTop}>
+                <View style={[styles.gameTag, { backgroundColor: getGameColor(item.game) + '22' }]}>
+                  <Text style={[styles.gameTagText, { color: getGameColor(item.game) }]}>
+                    {item.game.toUpperCase()}
+                  </Text>
+                </View>
+                <View style={[
+                  styles.statusBadge,
+                  item.status === 'ongoing' ? styles.statusLive :
+                    item.status === 'completed' ? styles.statusCompleted :
+                      styles.statusUpcoming
+                ]}>
+                  {(item.status === 'ongoing' || item.status === 'upcoming') && <View style={[styles.liveDot, {
+                    backgroundColor: item.status === 'upcoming' ? '#00D4AA' : '#FFB800'
+                  }]} />}
+                  <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
+                </View>
               </View>
-              <View style={[
-                styles.statusBadge,
-                item.status === 'ongoing' ? styles.statusLive :
-                  item.status === 'completed' ? styles.statusCompleted :
-                    styles.statusUpcoming
-              ]}>
-                {(item.status === 'ongoing' || item.status === 'upcoming') && <View style={[styles.liveDot, {
-                  backgroundColor: item.status === 'upcoming' ? '#00D4AA' : '#FFB800'
-                }]} />}
-                <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
+
+              <Text style={styles.cardTitle}>{item.title}</Text>
+
+              <View style={styles.hostRow}>
+                <Text style={styles.hostName}>by {item.host?.username}</Text>
+                {item.host?.is_verified && <VerifiedBadge size={13} />}
               </View>
-            </View>
 
-            <Text style={styles.cardTitle}>{item.title}</Text>
+              <Text style={styles.cardDate}>🗓 {formatDate(item.start_time)}</Text>
 
-            <View style={styles.hostRow}>
-              <Text style={styles.hostName}>by {item.host?.username}</Text>
-              {item.host?.is_verified && <VerifiedBadge size={13} />}
-            </View>
-
-            <Text style={styles.cardDate}>🗓 {formatDate(item.start_time)}</Text>
-
-            <View style={styles.cardStats}>
-              <View style={styles.stat}>
-                <Text style={styles.statValue}>₹{item.prize_pool}</Text>
-                <Text style={styles.statLabel}>PRIZE</Text>
-              </View>
-              <View style={styles.stat}>
-                <Text style={styles.statValue}>₹{item.entry_fee}</Text>
-                <Text style={styles.statLabel}>ENTRY</Text>
-              </View>
-              <View style={styles.stat}>
-                <Text style={styles.statValue}>{item.max_teams}</Text>
-                <Text style={styles.statLabel}>SLOTS</Text>
+              <View style={styles.cardStats}>
+                <View style={styles.stat}>
+                  <Text style={styles.statValue}>₹{item.prize_pool}</Text>
+                  <Text style={styles.statLabel}>PRIZE</Text>
+                </View>
+                <View style={styles.stat}>
+                  <Text style={styles.statValue}>₹{item.entry_fee}</Text>
+                  <Text style={styles.statLabel}>ENTRY</Text>
+                </View>
+                <View style={styles.stat}>
+                  <Text style={styles.statValue}>{item.max_teams}</Text>
+                  <Text style={styles.statLabel}>SLOTS</Text>
+                </View>
               </View>
             </View>
           </TouchableOpacity>
@@ -429,8 +435,10 @@ const styles = StyleSheet.create({
   emptySubText: { color: '#555', fontSize: 13 },
   card: {
     backgroundColor: '#1a1a1a', borderRadius: 12,
-    padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#2a2a2a',
+    marginBottom: 12, borderWidth: 1, borderColor: '#2a2a2a', overflow: 'hidden',
   },
+  cardBanner: { width: '100%', height: 120 },
+  cardBody: { padding: 16 },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   gameTag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
   gameTagText: { fontSize: 11, fontWeight: '800' },

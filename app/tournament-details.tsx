@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, ActivityIndicator,
   TouchableOpacity, Alert, ScrollView, TextInput, Share
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import VerifiedBadge from '@/components/VerifiedBadge';
@@ -296,6 +297,11 @@ export default function TournamentDetails() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+
+      {/* Banner Image */}
+      {tournament.banner_url && (
+        <Image source={{ uri: tournament.banner_url }} style={styles.banner} contentFit="cover" />
+      )}
 
       {/* Game Tag + Share Row */}
       <View style={styles.topRow}>
@@ -609,6 +615,9 @@ export default function TournamentDetails() {
 }
 
 const styles = StyleSheet.create({
+  banner: {
+    width: '100%', height: 180, borderRadius: 12, marginBottom: 16,
+  },
   topRow: {
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', marginBottom: 16,
