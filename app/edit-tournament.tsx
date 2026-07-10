@@ -8,12 +8,31 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 
+const CATEGORIES: { value: 'tournament' | 'scrim'; label: string }[] = [
+  { value: 'tournament', label: 'Tournament' },
+  { value: 'scrim', label: 'Scrim' },
+];
+const LOBBY_TYPES: { value: 'mini' | 'mega'; label: string; defaultMatchCount: number }[] = [
+  { value: 'mini', label: 'Mini Lobby', defaultMatchCount: 3 },
+  { value: 'mega', label: 'Mega Lobby', defaultMatchCount: 5 },
+];
+const DEFAULT_PLACEMENT_POINTS = [12, 9, 8, 7, 6, 5, 4, 3, 2, 1];
+const DEFAULT_KILL_POINT = 1;
+
 export default function EditTournament() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
+  const [category, setCategory] = useState<'tournament' | 'scrim'>('tournament');
+  const [lobbyType, setLobbyType] = useState<'mini' | 'mega'>('mini');
+  const [matchCount, setMatchCount] = useState('1');
+  const [customizePoints, setCustomizePoints] = useState(false);
+  const [placementPoints, setPlacementPoints] = useState<string[]>(
+    DEFAULT_PLACEMENT_POINTS.map(String)
+  );
+  const [killPoint, setKillPoint] = useState(String(DEFAULT_KILL_POINT));
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -25,6 +44,30 @@ export default function EditTournament() {
   const [startTime, setStartTime] = useState<Date | null>(null);
 
   useEffect(() => { fetchTournament(); }, []);
+
+  const selectCategory = (value: 'tournament' | 'scrim') => {
+    setCategory(value);
+    if (value === 'tournament') {
+      setMatchCount('1');
+    } else {
+      const lobby = LOBBY_TYPES.find((l) => l.value === lobbyType) ?? LOBBY_TYPES[0];
+      setMatchCount(String(lobby.defaultMatchCount));
+    }
+  };
+
+  const selectLobbyType = (value: 'mini' | 'mega') => {
+    setLobbyType(value);
+    const lobby = LOBBY_TYPES.find((l) => l.value === value)!;
+    setMatchCount(String(lobby.defaultMatchCount));
+  };
+
+  const updatePlacementPoint = (rankIndex: number, value: string) => {
+    setPlacementPoints((prev) => {
+      const next = [...prev];
+      next[rankIndex] = value;
+      return next;
+    });
+  };
 
   async function fetchTournament() {
     const { data, error } = await supabase
@@ -48,6 +91,19 @@ export default function EditTournament() {
       max_teams: String(data.max_teams ?? 12),
     });
 
+    setCategory(data.category === 'scrim' ? 'scrim' : 'tournament');
+    setLobbyType(data.lobby_type === 'mega' ? 'mega' : 'mini');
+    setMatchCount(String(data.match_count ?? 1));
+
+    const rules = data.point_rules ?? {};
+    const placement = Array.isArray(rules.placement) ? rules.placement : DEFAULT_PLACEMENT_POINTS;
+    setPlacementPoints(placement.map(String));
+    setKillPoint(String(rules.kill_point ?? DEFAULT_KILL_POINT));
+    const isCustom =
+      JSON.stringify(placement) !== JSON.stringify(DEFAULT_PLACEMENT_POINTS) ||
+      (rules.kill_point ?? DEFAULT_KILL_POINT) !== DEFAULT_KILL_POINT;
+    setCustomizePoints(isCustom);
+
     if (data.start_time) setStartTime(new Date(data.start_time));
     setLoading(false);
   }
@@ -57,6 +113,17 @@ export default function EditTournament() {
       Alert.alert('Missing', 'Title is required.');
       return;
     }
+
+    const parsedMatchCount = parseInt(matchCount, 10);
+    if (!parsedMatchCount || parsedMatchCount < 1) {
+      Alert.alert('Missing', 'Match count must be at least 1.');
+      return;
+    }
+
+    const pointRules = {
+      placement: placementPoints.map((p) => parseInt(p, 10) || 0),
+      kill_point: parseFloat(killPoint) || 0,
+    };
 
     setSaving(true);
     const { error } = await supabase
@@ -69,6 +136,10 @@ export default function EditTournament() {
         prize_pool: parseFloat(form.prize_pool) || 0,
         max_teams: parseInt(form.max_teams) || 12,
         start_time: startTime ? startTime.toISOString() : null,
+        category: category,
+        lobby_type: category === 'scrim' ? lobbyType : null,
+        match_count: parsedMatchCount,
+        point_rules: pointRules,
       })
       .eq('id', id);
 
@@ -112,6 +183,96 @@ export default function EditTournament() {
       >
         <Text style={styles.heading}>Edit Tournament</Text>
         <Text style={styles.sub}>Update your tournament details.</Text>
+
+        <Text style={styles.label}>Event Type *</Text>
+        <View style={styles.chipRow}>
+          {CATEGORIES.map((c) => (
+            <TouchableOpacity
+              key={c.value}
+              style={[styles.chip, category === c.value && styles.chipActive]}
+              onPress={() => selectCategory(c.value)}
+            >
+              <Text style={[styles.chipText, category === c.value && styles.chipTextActive]}>
+                {c.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {category === 'scrim' && (
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>Lobby Type *</Text>
+            <View style={styles.chipRow}>
+              {LOBBY_TYPES.map((l) => (
+                <TouchableOpacity
+                  key={l.value}
+                  style={[styles.chip, lobbyType === l.value && styles.chipActive]}
+                  onPress={() => selectLobbyType(l.value)}
+                >
+                  <Text style={[styles.chipText, lobbyType === l.value && styles.chipTextActive]}>
+                    {l.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>
+            Number of Matches *{category === 'scrim' ? ' (default set by lobby type, editable)' : ''}
+          </Text>
+          <TextInput
+            style={styles.input}
+            placeholder="1"
+            placeholderTextColor="#444"
+            keyboardType="numeric"
+            value={matchCount}
+            onChangeText={setMatchCount}
+          />
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <View style={styles.scoringHeaderRow}>
+            <Text style={styles.label}>Scoring</Text>
+            <TouchableOpacity onPress={() => setCustomizePoints((v) => !v)}>
+              <Text style={styles.customizeLink}>
+                {customizePoints ? 'Use Default ↺' : '⚙ Customize Points'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {!customizePoints ? (
+            <Text style={styles.scoringDefaultText}>
+              Default: #1=12 · #2=9 · #3=8 · #4=7 · #5=6 · #6=5 · #7=4 · #8=3 · #9=2 · #10=1 · 1 kill = 1 pt
+            </Text>
+          ) : (
+            <>
+              <View style={styles.pointsGrid}>
+                {placementPoints.map((value, i) => (
+                  <View key={i} style={styles.pointBox}>
+                    <Text style={styles.pointBoxLabel}>#{i + 1}</Text>
+                    <TextInput
+                      style={styles.pointBoxInput}
+                      keyboardType="numeric"
+                      value={value}
+                      onChangeText={(v) => updatePlacementPoint(i, v)}
+                    />
+                  </View>
+                ))}
+              </View>
+              <View style={styles.killPointRow}>
+                <Text style={styles.label}>Points per Kill</Text>
+                <TextInput
+                  style={[styles.input, { width: 100 }]}
+                  keyboardType="numeric"
+                  value={killPoint}
+                  onChangeText={setKillPoint}
+                />
+              </View>
+            </>
+          )}
+        </View>
 
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Tournament Title *</Text>
@@ -223,6 +384,36 @@ const styles = StyleSheet.create({
   sub: { fontSize: 14, color: '#aaa', marginBottom: 28 },
   label: { color: '#aaa', fontSize: 13, marginBottom: 8, fontWeight: '600' },
   fieldGroup: { marginBottom: 18 },
+  chipRow: { flexDirection: 'row', gap: 8, marginBottom: 18 },
+  chip: {
+    flex: 1, paddingVertical: 10, borderRadius: 10,
+    backgroundColor: '#1a1a1a', borderWidth: 1,
+    borderColor: '#2a2a2a', alignItems: 'center',
+  },
+  chipActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
+  chipText: { color: '#aaa', fontSize: 12, fontWeight: '600' },
+  chipTextActive: { color: '#fff' },
+  scoringHeaderRow: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', marginBottom: 8,
+  },
+  customizeLink: { color: '#7C3AED', fontSize: 12, fontWeight: '700' },
+  scoringDefaultText: {
+    color: '#666', fontSize: 12, lineHeight: 18,
+    backgroundColor: '#1a1a1a', borderRadius: 10, padding: 12,
+    borderWidth: 1, borderColor: '#2a2a2a',
+  },
+  pointsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
+  pointBox: {
+    width: '18%', backgroundColor: '#1a1a1a', borderRadius: 8,
+    borderWidth: 1, borderColor: '#2a2a2a', padding: 8, alignItems: 'center',
+  },
+  pointBoxLabel: { color: '#7C3AED', fontSize: 11, fontWeight: '700', marginBottom: 4 },
+  pointBoxInput: {
+    color: '#fff', fontSize: 14, fontWeight: '700', textAlign: 'center',
+    width: '100%', paddingVertical: 2,
+  },
+  killPointRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   input: {
     backgroundColor: '#1a1a1a', color: '#fff', borderRadius: 10,
     paddingHorizontal: 14, paddingVertical: 14, fontSize: 15,
