@@ -24,11 +24,16 @@ export default function CreateTeam() {
     { in_game_name: '', player_uid: '' },
     { in_game_name: '', player_uid: '' },
   ]);
+  const [substitute, setSubstitute] = useState<Member>({ in_game_name: '', player_uid: '' });
 
   const updateMember = (index: number, field: keyof Member, value: string) => {
     const updated = [...members];
     updated[index][field] = value;
     setMembers(updated);
+  };
+
+  const updateSubstitute = (field: keyof Member, value: string) => {
+    setSubstitute((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleCreate = async () => {
@@ -42,6 +47,13 @@ export default function CreateTeam() {
         Alert.alert('Missing Field', `Please fill in all details for Player ${i + 1}.`);
         return;
       }
+    }
+
+    const subName = substitute.in_game_name.trim();
+    const subUid = substitute.player_uid.trim();
+    if ((subName && !subUid) || (!subName && subUid)) {
+      Alert.alert('Missing Field', 'Please fill in both fields for the substitute, or leave both blank.');
+      return;
     }
 
     setLoading(true);
@@ -81,15 +93,25 @@ if (tournamentData?.status !== 'upcoming') {
       return;
     }
 
+    const memberRows = members.map((m) => ({
+      team_id: team.id,
+      in_game_name: m.in_game_name.trim(),
+      player_uid: m.player_uid.trim(),
+      is_substitute: false,
+    }));
+
+    if (subName && subUid) {
+      memberRows.push({
+        team_id: team.id,
+        in_game_name: subName,
+        player_uid: subUid,
+        is_substitute: true,
+      });
+    }
+
     const { error: membersError } = await supabase
       .from('team_members')
-      .insert(
-        members.map((m) => ({
-          team_id: team.id,
-          in_game_name: m.in_game_name.trim(),
-          player_uid: m.player_uid.trim(),
-        }))
-      );
+      .insert(memberRows);
 
     if (membersError) {
       Alert.alert('Error', membersError.message);
@@ -170,7 +192,7 @@ if (tournamentData?.status !== 'upcoming') {
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.heading}>Create Your Team</Text>
-        <Text style={styles.sub}>Fill in team name and all 4 squad members.</Text>
+        <Text style={styles.sub}>Fill in team name and all 4 squad members. A 5th substitute is optional.</Text>
 
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Team Name *</Text>
@@ -209,10 +231,35 @@ if (tournamentData?.status !== 'upcoming') {
               placeholderTextColor="#444"
               value={member.player_uid}
               onChangeText={(val) => updateMember(index, 'player_uid', val)}
-              returnKeyType={index === 3 ? 'done' : 'next'}
+              returnKeyType="next"
             />
           </View>
         ))}
+
+        <View style={[styles.memberBox, styles.subBox]}>
+          <View style={styles.memberHeader}>
+            <View style={[styles.memberIndex, styles.subIndex]}>
+              <Text style={styles.memberIndexText}>5</Text>
+            </View>
+            <Text style={styles.memberTitle}>Substitute (optional)</Text>
+          </View>
+          <TextInput
+            style={styles.input}
+            placeholder="In-Game Name"
+            placeholderTextColor="#444"
+            value={substitute.in_game_name}
+            onChangeText={(val) => updateSubstitute('in_game_name', val)}
+            returnKeyType="next"
+          />
+          <TextInput
+            style={[styles.input, { marginBottom: 0 }]}
+            placeholder="UID / Player ID"
+            placeholderTextColor="#444"
+            value={substitute.player_uid}
+            onChangeText={(val) => updateSubstitute('player_uid', val)}
+            returnKeyType="done"
+          />
+        </View>
 
         {Number(entry_fee) > 0 && (
           <View style={styles.feeNote}>
@@ -263,6 +310,8 @@ const styles = StyleSheet.create({
   },
   memberIndexText: { color: '#fff', fontSize: 12, fontWeight: '800' },
   memberTitle: { color: '#7C3AED', fontSize: 13, fontWeight: '700' },
+  subBox: { borderColor: '#FFB800', borderStyle: 'dashed' },
+  subIndex: { backgroundColor: '#FFB800' },
   feeNote: {
     backgroundColor: '#1a1a00', borderRadius: 10, padding: 14,
     marginBottom: 20, borderWidth: 1, borderColor: '#3a3a00',
