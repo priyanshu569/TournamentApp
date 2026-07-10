@@ -3,8 +3,10 @@ import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, ScrollView, Alert, ActivityIndicator
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { supabase } from '../lib/supabase';
+import { pickAndUploadBanner } from '@/lib/bannerUpload';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 
 const GAMES = ['Free Fire', 'BGMI', 'COD Mobile', 'Valorant'];
@@ -33,6 +35,8 @@ export default function CreateTournament() {
     DEFAULT_PLACEMENT_POINTS.map(String)
   );
   const [killPoint, setKillPoint] = useState(String(DEFAULT_KILL_POINT));
+  const [bannerUrl, setBannerUrl] = useState<string | null>(null);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [showPicker, setShowPicker] = useState(false);
   const [form, setForm] = useState({
@@ -58,6 +62,24 @@ export default function CreateTournament() {
     setLobbyType(value);
     const lobby = LOBBY_TYPES.find((l) => l.value === value)!;
     setMatchCount(String(lobby.defaultMatchCount));
+  };
+
+  const handlePickBanner = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      Alert.alert('Error', 'Not logged in.');
+      return;
+    }
+
+    setUploadingBanner(true);
+    try {
+      const url = await pickAndUploadBanner(user.id);
+      if (url) setBannerUrl(url);
+    } catch (err: any) {
+      Alert.alert('Error', err.message ?? 'Failed to upload banner.');
+    } finally {
+      setUploadingBanner(false);
+    }
   };
 
   const updatePlacementPoint = (rankIndex: number, value: string) => {
@@ -109,6 +131,7 @@ export default function CreateTournament() {
       lobby_type: category === 'scrim' ? lobbyType : null,
       match_count: parsedMatchCount,
       point_rules: pointRules,
+      banner_url: bannerUrl,
     });
 
     setLoading(false);
@@ -134,6 +157,29 @@ export default function CreateTournament() {
 
       <Text style={styles.heading}>Create Tournament</Text>
       <Text style={styles.sub}>Fill in the details to go live.</Text>
+
+      {/* Banner Image */}
+      <View style={styles.fieldGroup}>
+        <Text style={styles.label}>Banner Image</Text>
+        <TouchableOpacity
+          style={styles.bannerBox}
+          onPress={handlePickBanner}
+          disabled={uploadingBanner}
+        >
+          {uploadingBanner ? (
+            <ActivityIndicator color="#7C3AED" />
+          ) : bannerUrl ? (
+            <Image source={{ uri: bannerUrl }} style={styles.bannerImage} contentFit="cover" />
+          ) : (
+            <Text style={styles.bannerBoxText}>🖼 Tap to add a banner image</Text>
+          )}
+        </TouchableOpacity>
+        {bannerUrl && !uploadingBanner && (
+          <TouchableOpacity onPress={handlePickBanner}>
+            <Text style={styles.customizeLink}>Change Banner</Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
       {/* Game Selection */}
       <Text style={styles.label}>Select Game *</Text>
@@ -413,6 +459,13 @@ const styles = StyleSheet.create({
     width: '100%', paddingVertical: 2,
   },
   killPointRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  bannerBox: {
+    height: 140, borderRadius: 12, backgroundColor: '#1a1a1a',
+    borderWidth: 1, borderColor: '#2a2a2a', borderStyle: 'dashed',
+    justifyContent: 'center', alignItems: 'center', overflow: 'hidden',
+  },
+  bannerImage: { width: '100%', height: '100%' },
+  bannerBoxText: { color: '#666', fontSize: 13, fontWeight: '600' },
   input: {
     backgroundColor: '#1a1a1a', color: '#fff', borderRadius: 10,
     paddingHorizontal: 14, paddingVertical: 14, fontSize: 15,
