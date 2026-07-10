@@ -126,14 +126,23 @@ export default function ProfileScreen() {
 
       {/* Menu Items */}
       <View style={styles.menu}>
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => router.push('/select-role')}
-        >
-          <Text style={styles.menuIcon}>🔄</Text>
-          <Text style={styles.menuText}>Switch Role</Text>
-          <Text style={styles.menuArrow}>→</Text>
-        </TouchableOpacity>
+        {profile?.role !== 'host' && profile?.host_status !== 'pending' && (
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => router.push('/request-host-access')}
+          >
+            <Text style={styles.menuIcon}>🏆</Text>
+            <Text style={styles.menuText}>Become a Host</Text>
+            <Text style={styles.menuArrow}>→</Text>
+          </TouchableOpacity>
+        )}
+
+        {profile?.host_status === 'pending' && (
+          <View style={[styles.menuItem, styles.pendingItem]}>
+            <Text style={styles.menuIcon}>⏳</Text>
+            <Text style={styles.pendingText}>Host Request Pending</Text>
+          </View>
+        )}
 
         <TouchableOpacity
           style={styles.menuItem}
@@ -151,6 +160,17 @@ export default function ProfileScreen() {
           >
             <Text style={styles.menuIcon}>📢</Text>
             <Text style={styles.adminText}>Admin Broadcast</Text>
+            <Text style={styles.menuArrow}>→</Text>
+          </TouchableOpacity>
+        )}
+
+        {profile?.is_admin && (
+          <TouchableOpacity
+            style={[styles.menuItem, styles.adminItem]}
+            onPress={() => router.push('/admin-host-requests')}
+          >
+            <Text style={styles.menuIcon}>🏆</Text>
+            <Text style={styles.adminText}>Host Requests</Text>
             <Text style={styles.menuArrow}>→</Text>
           </TouchableOpacity>
         )}
@@ -232,6 +252,8 @@ const styles = StyleSheet.create({
   menuArrow: { color: '#555', fontSize: 16 },
   adminItem: { borderColor: '#7C3AED' },
   adminText: { flex: 1, color: '#7C3AED', fontSize: 15, fontWeight: '700' },
+  pendingItem: { borderColor: '#3a3a00', backgroundColor: '#1a1a00' },
+  pendingText: { flex: 1, color: '#FFB800', fontSize: 15, fontWeight: '600' },
   logoutItem: { borderColor: '#3a1a1a' },
   logoutText: { flex: 1, color: '#ff4444', fontSize: 15, fontWeight: '600' },
 });

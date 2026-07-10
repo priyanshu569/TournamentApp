@@ -107,6 +107,8 @@ export default function RootLayout() {
           <Stack.Screen name="notifications" options={{ headerShown: false }} />
           <Stack.Screen name="edit-tournament" options={{ headerShown: false }} />
           <Stack.Screen name="admin-broadcast" options={{ headerShown: false }} />
+          <Stack.Screen name="request-host-access" options={{ headerShown: false }} />
+          <Stack.Screen name="admin-host-requests" options={{ headerShown: false }} />
           <Stack.Screen name="settings" options={{ headerShown: false }} />
           <Stack.Screen name="support" options={{ headerShown: false }} />
         </Stack>

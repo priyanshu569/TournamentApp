@@ -7,7 +7,7 @@ import FragifyLogo from '@/components/FragifyLogo';
 export default function SelectRoleScreen() {
   const [loading, setLoading] = useState(false);
 
-  async function chooseRole(role: 'player' | 'host') {
+  async function continueAsPlayer() {
     setLoading(true);
 
     const { data: userData } = await supabase.auth.getUser();
@@ -21,7 +21,7 @@ export default function SelectRoleScreen() {
       .from('Profiles')
       .upsert({
         id: userData.user.id,
-        role,
+        role: 'player',
       });
 
     setLoading(false);
@@ -40,24 +40,26 @@ export default function SelectRoleScreen() {
         <Text style={styles.appName}>FRAGIFY</Text>
       </View>
 
-      <Text style={styles.title}>How do you want to use the app?</Text>
-      <Text style={styles.subtitle}>You can always switch later in settings</Text>
+      <Text style={styles.title}>Ready to compete?</Text>
+      <Text style={styles.subtitle}>Join teams and battle it out in tournaments</Text>
 
-      <TouchableOpacity style={styles.card} onPress={() => chooseRole('player')} disabled={loading}>
+      <TouchableOpacity style={styles.card} onPress={continueAsPlayer} disabled={loading}>
         <Text style={styles.cardEmoji}>🎮</Text>
-        <Text style={styles.cardTitle}>I'm a Player</Text>
+        <Text style={styles.cardTitle}>Continue as Player</Text>
         <Text style={styles.cardDesc}>Join teams and compete in tournaments</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.card} onPress={() => chooseRole('host')} disabled={loading}>
-        <Text style={styles.cardEmoji}>🏆</Text>
-        <Text style={styles.cardTitle}>I'm a Host</Text>
-        <Text style={styles.cardDesc}>Create and manage tournaments</Text>
       </TouchableOpacity>
 
       {loading && (
         <ActivityIndicator size="large" color="#7C3AED" style={{ marginTop: 20 }} />
       )}
+
+      <TouchableOpacity
+        style={styles.hostLink}
+        onPress={() => router.push('/request-host-access')}
+        disabled={loading}
+      >
+        <Text style={styles.hostLinkText}>I'm a host/organiser — Request Access</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -75,4 +77,6 @@ const styles = StyleSheet.create({
   cardEmoji: { fontSize: 40, marginBottom: 10 },
   cardTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 4 },
   cardDesc: { fontSize: 13, color: '#aaa', textAlign: 'center' },
+  hostLink: { marginTop: 24, alignItems: 'center' },
+  hostLinkText: { color: '#7C3AED', fontSize: 13, fontWeight: '600' },
 });
