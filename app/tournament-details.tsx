@@ -24,6 +24,7 @@ export default function TournamentDetails() {
   const [saving, setSaving] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [matchResults, setMatchResults] = useState<any[]>([]);
+  const [standings, setStandings] = useState<any[]>([]);
 
   useEffect(() => { fetchData(); }, [id]);
 
@@ -36,6 +37,7 @@ export default function TournamentDetails() {
         { event: '*', schema: 'public', table: 'match_results', filter: `tournament_id=eq.${id}` },
         () => {
           fetchMatchResults();
+          fetchStandings();
         }
       )
       .subscribe();
@@ -54,6 +56,18 @@ export default function TournamentDetails() {
       .order('kills', { ascending: false });
 
     if (results) setMatchResults(results);
+  }
+
+  async function fetchStandings() {
+    const { data, error } = await supabase.rpc('get_tournament_standings', {
+      target_tournament_id: id,
+    });
+
+    if (error) {
+      console.log('Standings error:', error.message);
+      return;
+    }
+    if (data) setStandings(data);
   }
 
   async function fetchData() {
@@ -96,7 +110,7 @@ export default function TournamentDetails() {
       setRoomPassword(data.room_password ?? '');
     }
 
-    await fetchMatchResults();
+    await Promise.all([fetchMatchResults(), fetchStandings()]);
     setLoading(false);
   }
 
@@ -373,12 +387,14 @@ export default function TournamentDetails() {
         </View>
       )}
 
-      {/* Results — live or final */}
-      {(matchResults.length > 0 || role === 'host') && (
+      {/* Results — cumulative standings across every match entered so far */}
+      {(standings.length > 0 || role === 'host') && (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View style={styles.resultsTitleRow}>
-              <Text style={styles.sectionTitle}>RESULTS</Text>
+              <Text style={styles.sectionTitle}>
+                STANDINGS{tournament.match_count > 1 ? ` (${tournament.match_count} MATCHES)` : ''}
+              </Text>
               {hasLiveResults && (
                 <View style={styles.liveBadge}>
                   <View style={styles.liveDot} />
@@ -396,22 +412,27 @@ export default function TournamentDetails() {
                 )}
                 <TouchableOpacity onPress={() => router.push(`/enter-results?tournament_id=${tournament.id}`)}>
                   <Text style={styles.editBtn}>
-                    {matchResults.length > 0 ? 'Edit ✏️' : 'Enter Results 📊'}
+                    {standings.length > 0 ? 'Edit ✏️' : 'Enter Results 📊'}
                   </Text>
                 </TouchableOpacity>
               </View>
             )}
           </View>
 
-          {matchResults.length === 0 ? (
+          {standings.length === 0 ? (
             <Text style={styles.descriptionText}>No results entered yet.</Text>
           ) : (
             <View style={styles.resultsBox}>
-              {matchResults.map((r) => (
-                <View key={r.id} style={styles.resultRow}>
-                  <Text style={styles.resultMedal}>{medal(r.placement)}</Text>
-                  <Text style={styles.resultTeam}>{r.teams?.name ?? 'Unknown Team'}</Text>
-                  <Text style={styles.resultKills}>{r.kills} kills</Text>
+              {standings.map((s, i) => (
+                <View key={s.team_id} style={styles.resultRow}>
+                  <Text style={styles.resultMedal}>{medal(i + 1)}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.resultTeam}>{s.team_name ?? 'Unknown Team'}</Text>
+                    <Text style={styles.resultSub}>
+                      {s.matches_played} match{s.matches_played === 1 ? '' : 'es'} played · {s.total_kills} kills
+                    </Text>
+                  </View>
+                  <Text style={styles.resultPoints}>{s.total_points} pts</Text>
                 </View>
               ))}
             </View>
@@ -616,8 +637,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#2a2a2a',
   },
   resultMedal: { width: 32, fontSize: 14, fontWeight: '800', color: '#fff' },
-  resultTeam: { flex: 1, color: '#fff', fontSize: 14, fontWeight: '600' },
+  resultTeam: { color: '#fff', fontSize: 14, fontWeight: '600' },
   resultKills: { color: '#7C3AED', fontSize: 13, fontWeight: '700' },
+  resultSub: { color: '#555', fontSize: 11, marginTop: 2 },
+  resultPoints: { color: '#FFB800', fontSize: 14, fontWeight: '800' },
 
   resultsTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   liveBadge: {
