@@ -98,7 +98,6 @@ export default function RootLayout() {
             contentStyle: { backgroundColor: '#0a0a0a' },
           }}>
           <Stack.Screen name="login" options={{ headerShown: false }} />
-          <Stack.Screen name="verify-otp" options={{ headerShown: false }} />
           <Stack.Screen name="select-role" options={{ headerShown: false }} />
           <Stack.Screen name="edit-profile" options={{ headerShown: false }} />
           <Stack.Screen name="create-tournament" options={{ headerShown: false }} />
