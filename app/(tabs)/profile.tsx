@@ -55,6 +55,31 @@ export default function ProfileScreen() {
     setLoading(false);
   }
 
+  async function handleSwitchRole() {
+    Alert.alert('Switch Role', 'Preview the app as a different role.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Player', onPress: () => switchRole('player') },
+      { text: 'Host', onPress: () => switchRole('host') },
+    ]);
+  }
+
+  async function switchRole(newRole: 'player' | 'host') {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return;
+
+    const { error } = await supabase
+      .from('Profiles')
+      .update({ role: newRole })
+      .eq('id', userData.user.id);
+
+    if (error) {
+      Alert.alert('Error', error.message);
+      return;
+    }
+
+    loadProfile();
+  }
+
   const handleLogout = async () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
       { text: 'Cancel', style: 'cancel' },
@@ -93,7 +118,9 @@ export default function ProfileScreen() {
         <View style={styles.profileInfo}>
           <Text style={styles.username}>{profile?.username ?? 'Unknown'}</Text>
           <View style={styles.roleBadge}>
-            <Text style={styles.roleText}>{profile?.role?.toUpperCase() ?? 'PLAYER'}</Text>
+            <Text style={styles.roleText}>
+              {profile?.is_admin ? 'ADMIN' : (profile?.role?.toUpperCase() ?? 'PLAYER')}
+            </Text>
           </View>
           {profile?.free_fire_uid ? (
             <Text style={styles.uidText}>🎮 Free Fire UID: {profile.free_fire_uid}</Text>
@@ -171,6 +198,17 @@ export default function ProfileScreen() {
           >
             <Text style={styles.menuIcon}>🏆</Text>
             <Text style={styles.adminText}>Host Requests</Text>
+            <Text style={styles.menuArrow}>→</Text>
+          </TouchableOpacity>
+        )}
+
+        {profile?.is_admin && (
+          <TouchableOpacity
+            style={[styles.menuItem, styles.adminItem]}
+            onPress={handleSwitchRole}
+          >
+            <Text style={styles.menuIcon}>🔄</Text>
+            <Text style={styles.adminText}>Switch Role</Text>
             <Text style={styles.menuArrow}>→</Text>
           </TouchableOpacity>
         )}
