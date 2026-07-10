@@ -71,6 +71,10 @@ export default function Leaderboard() {
               <Text style={styles.statValue}>{item.total_kills}</Text>
               <Text style={styles.statLabel}>KILLS</Text>
             </View>
+            <View style={styles.statCol}>
+              <Text style={[styles.statValue, styles.pointsValue]}>{item.total_points}</Text>
+              <Text style={styles.statLabel}>PTS</Text>
+            </View>
           </View>
         )}
       />
@@ -102,4 +106,5 @@ const styles = StyleSheet.create({
   statCol: { alignItems: 'center', marginLeft: 16, minWidth: 44 },
   statValue: { color: '#7C3AED', fontSize: 16, fontWeight: '800' },
   statLabel: { color: '#555', fontSize: 9, fontWeight: '700', marginTop: 2 },
+  pointsValue: { color: '#FFB800' },
 });
