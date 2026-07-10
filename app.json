@@ -40,7 +40,13 @@
         }
       ],
       "expo-web-browser",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Fragify uses your photos to let you set a tournament banner image."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
