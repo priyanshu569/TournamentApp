@@ -42,6 +42,8 @@ export default function EventsScreen() {
   const [loading, setLoading] = useState(true);
   const [sortOption, setSortOption] = useState<SortOption>('newest');
   const [sortModalVisible, setSortModalVisible] = useState(false);
+  const [eventTab, setEventTab] = useState<'tournament' | 'scrim'>('tournament');
+  const [lobbyFilter, setLobbyFilter] = useState<'all' | 'mini' | 'mega'>('all');
 
   useFocusEffect(
     useCallback(() => {
@@ -50,7 +52,10 @@ export default function EventsScreen() {
   );
 
   useEffect(() => {
-    let results = tournaments;
+    let results = tournaments.filter(t => (t.category ?? 'tournament') === eventTab);
+    if (eventTab === 'scrim' && lobbyFilter !== 'all') {
+      results = results.filter(t => t.lobby_type === lobbyFilter);
+    }
     if (selectedGame !== 'All') {
       results = results.filter(t =>
         t.game.toLowerCase().includes(selectedGame.toLowerCase())
@@ -88,7 +93,7 @@ export default function EventsScreen() {
     });
 
     setFiltered(results);
-  }, [selectedGame, search, tournaments, sortOption]);
+  }, [selectedGame, search, tournaments, sortOption, eventTab, lobbyFilter]);
 
   async function fetchTournaments() {
     const { data } = await supabase
@@ -146,6 +151,42 @@ export default function EventsScreen() {
           <NotificationBell />
         </View>
       </View>
+
+      {/* Tournaments / Scrims tabs */}
+      <View style={styles.eventTabRow}>
+        <TouchableOpacity
+          style={[styles.eventTabBtn, eventTab === 'tournament' && styles.eventTabBtnActive]}
+          onPress={() => setEventTab('tournament')}
+        >
+          <Text style={[styles.eventTabText, eventTab === 'tournament' && styles.eventTabTextActive]}>
+            Tournaments
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.eventTabBtn, eventTab === 'scrim' && styles.eventTabBtnActive]}
+          onPress={() => setEventTab('scrim')}
+        >
+          <Text style={[styles.eventTabText, eventTab === 'scrim' && styles.eventTabTextActive]}>
+            Scrims
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {eventTab === 'scrim' && (
+        <View style={styles.lobbyFilterRow}>
+          {(['all', 'mini', 'mega'] as const).map((lobby) => (
+            <TouchableOpacity
+              key={lobby}
+              style={[styles.lobbyChip, lobbyFilter === lobby && styles.lobbyChipActive]}
+              onPress={() => setLobbyFilter(lobby)}
+            >
+              <Text style={[styles.lobbyChipText, lobbyFilter === lobby && styles.lobbyChipTextActive]}>
+                {lobby === 'all' ? 'All Lobbies' : lobby === 'mini' ? 'Mini Lobby' : 'Mega Lobby'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
       {/* Search Bar + Sort Button */}
       <View style={styles.searchRow}>
@@ -328,6 +369,27 @@ const styles = StyleSheet.create({
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   leaderboardBtn: { padding: 8 },
   leaderboardIcon: { fontSize: 20 },
+  eventTabRow: {
+    flexDirection: 'row', marginHorizontal: 24, marginBottom: 12,
+    backgroundColor: '#1a1a1a', borderRadius: 12, padding: 4,
+    borderWidth: 1, borderColor: '#2a2a2a',
+  },
+  eventTabBtn: {
+    flex: 1, paddingVertical: 10, borderRadius: 9, alignItems: 'center',
+  },
+  eventTabBtnActive: { backgroundColor: '#7C3AED' },
+  eventTabText: { color: '#aaa', fontSize: 14, fontWeight: '700' },
+  eventTabTextActive: { color: '#fff' },
+  lobbyFilterRow: {
+    flexDirection: 'row', gap: 8, marginHorizontal: 24, marginBottom: 14,
+  },
+  lobbyChip: {
+    flex: 1, paddingVertical: 8, borderRadius: 20, alignItems: 'center',
+    backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a',
+  },
+  lobbyChipActive: { backgroundColor: '#FFB80022', borderColor: '#FFB800' },
+  lobbyChipText: { color: '#aaa', fontSize: 12, fontWeight: '600' },
+  lobbyChipTextActive: { color: '#FFB800', fontWeight: '700' },
   searchRow: {
     flexDirection: 'row', alignItems: 'center',
     marginHorizontal: 24, marginBottom: 14, gap: 10,
