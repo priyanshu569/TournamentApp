@@ -7,12 +7,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import HomeScreen from './index';
 import EventsScreen from './events';
 import HistoryScreen from './history';
+import ChatScreen from '../chat';
 import ProfileScreen from './profile';
 
 const TABS = [
   { key: 'index', label: 'Home', icon: 'home' as const },
   { key: 'events', label: 'Events', icon: 'trophy' as const },
   { key: 'history', label: 'History', icon: 'time' as const },
+  { key: 'chat', label: 'Chats', icon: 'chatbubbles' as const },
   { key: 'profile', label: 'Profile', icon: 'person' as const },
 ];
 
@@ -37,7 +39,7 @@ export default function TabLayout() {
         style={styles.flex}
         initialPage={0}
         onPageSelected={handlePageSelected}
-        offscreenPageLimit={3}
+        offscreenPageLimit={4}
       >
         <View key="index" style={styles.page}>
           <HomeScreen />
@@ -47,6 +49,9 @@ export default function TabLayout() {
         </View>
         <View key="history" style={styles.page}>
           <HistoryScreen />
+        </View>
+        <View key="chat" style={styles.page}>
+          <ChatScreen />
         </View>
         <View key="profile" style={styles.page}>
           <ProfileScreen />

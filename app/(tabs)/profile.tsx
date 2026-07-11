@@ -119,12 +119,7 @@ export default function ProfileScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Profile</Text>
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.chatBtn} onPress={() => router.push('/chat')}>
-            <Text style={styles.chatIcon}>💬</Text>
-          </TouchableOpacity>
-          <NotificationBell />
-        </View>
+        <NotificationBell />
       </View>
 
       {/* Profile Card */}
@@ -287,9 +282,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', padding: 24, paddingTop: 60,
   },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  chatBtn: { padding: 8 },
-  chatIcon: { fontSize: 20 },
 
   uidText: { color: '#aaa', fontSize: 12, marginTop: 4, fontWeight: '600' },
 
