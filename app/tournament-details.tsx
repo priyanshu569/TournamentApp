@@ -100,7 +100,7 @@ export default function TournamentDetails() {
 
     const { data, error } = await supabase
       .from('tournaments')
-      .select('*, host:Profiles!host_id(username, is_verified)')
+      .select('*, host:public_profiles!host_id(id, username, is_verified)')
       .eq('id', id)
       .single();
 
@@ -325,10 +325,13 @@ export default function TournamentDetails() {
       <Text style={styles.title}>{tournament.title}</Text>
 
       {/* Host Row */}
-      <View style={styles.hostRow}>
+      <TouchableOpacity
+        style={styles.hostRow}
+        onPress={() => tournament.host?.id && router.push(`/user-profile?id=${tournament.host.id}`)}
+      >
         <Text style={styles.hostedBy}>Hosted by {tournament.host?.username}</Text>
         {tournament.host?.is_verified && <VerifiedBadge size={15} />}
-      </View>
+      </TouchableOpacity>
 
       {/* Status + Date Row */}
       <View style={styles.statusRow}>

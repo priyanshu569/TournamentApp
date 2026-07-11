@@ -126,9 +126,12 @@ export default function Registrations() {
                   <Text style={styles.memberUid}>UID: {member.player_uid}</Text>
                 </View>
                 {i === 0 && (
-                  <View style={styles.captainBadge}>
+                  <TouchableOpacity
+                    style={styles.captainBadge}
+                    onPress={() => item.player_id && router.push(`/user-profile?id=${item.player_id}`)}
+                  >
                     <Text style={styles.captainText}>CAPTAIN</Text>
-                  </View>
+                  </TouchableOpacity>
                 )}
               </View>
             ))}

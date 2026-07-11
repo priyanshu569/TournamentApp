@@ -1,0 +1,118 @@
+import { useState } from 'react';
+import {
+  View, Text, TextInput, TouchableOpacity,
+  StyleSheet, Alert, ActivityIndicator, ScrollView
+} from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { supabase } from '@/lib/supabase';
+
+const REASONS = ['Spam', 'Harassment', 'Inappropriate content', 'Impersonation', 'Other'];
+
+export default function ReportUserScreen() {
+  const { target_user_id, target_message_id } = useLocalSearchParams<{
+    target_user_id?: string;
+    target_message_id?: string;
+  }>();
+  const router = useRouter();
+  const [reason, setReason] = useState('');
+  const [details, setDetails] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit() {
+    if (!reason) {
+      Alert.alert('Missing', 'Please select a reason.');
+      return;
+    }
+
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      setLoading(false);
+      Alert.alert('Error', 'Not logged in.');
+      return;
+    }
+
+    const { error } = await supabase.from('reports').insert({
+      reporter_id: user.id,
+      reported_user_id: target_user_id ?? null,
+      reported_message_id: target_message_id ?? null,
+      reason: details.trim() ? `${reason}: ${details.trim()}` : reason,
+    });
+
+    setLoading(false);
+
+    if (error) {
+      Alert.alert('Error', error.message);
+    } else {
+      Alert.alert('Report Submitted', "Thanks — we'll review this.", [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
+    }
+  }
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <Text style={styles.heading}>Report</Text>
+      <Text style={styles.sub}>Help us understand what happened.</Text>
+
+      <Text style={styles.label}>Reason</Text>
+      <View style={styles.reasonGrid}>
+        {REASONS.map((r) => (
+          <TouchableOpacity
+            key={r}
+            style={[styles.reasonChip, reason === r && styles.reasonChipActive]}
+            onPress={() => setReason(r)}
+          >
+            <Text style={[styles.reasonChipText, reason === r && styles.reasonChipTextActive]}>{r}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <Text style={styles.label}>Additional details (optional)</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Anything else we should know?"
+        placeholderTextColor="#444"
+        multiline
+        numberOfLines={4}
+        value={details}
+        onChangeText={setDetails}
+      />
+
+      <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={loading}>
+        {loading
+          ? <ActivityIndicator color="#fff" />
+          : <Text style={styles.buttonText}>Submit Report</Text>
+        }
+      </TouchableOpacity>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#0a0a0a' },
+  content: { padding: 24, paddingTop: 60, paddingBottom: 48 },
+  heading: { fontSize: 26, fontWeight: '900', color: '#fff', marginBottom: 4 },
+  sub: { fontSize: 14, color: '#aaa', marginBottom: 24 },
+  label: { color: '#aaa', fontSize: 13, marginBottom: 10, fontWeight: '600' },
+  reasonGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 },
+  reasonChip: {
+    paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20,
+    backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a',
+  },
+  reasonChipActive: { backgroundColor: '#ff444422', borderColor: '#ff4444' },
+  reasonChipText: { color: '#aaa', fontSize: 13, fontWeight: '600' },
+  reasonChipTextActive: { color: '#ff4444', fontWeight: '700' },
+  input: {
+    backgroundColor: '#1a1a1a', color: '#fff', borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 14, fontSize: 15,
+    borderWidth: 1, borderColor: '#2a2a2a', height: 100, textAlignVertical: 'top',
+    marginBottom: 24,
+  },
+  button: {
+    backgroundColor: '#ff4444', paddingVertical: 16,
+    borderRadius: 12, alignItems: 'center',
+  },
+  buttonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+});

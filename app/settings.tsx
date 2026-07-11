@@ -23,6 +23,7 @@ export default function SettingsScreen() {
   const [googleLinked, setGoogleLinked] = useState(false);
   const [linkingGoogle, setLinkingGoogle] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [followListPrivate, setFollowListPrivate] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -35,13 +36,14 @@ export default function SettingsScreen() {
 
       const { data: profile } = await supabase
         .from('Profiles')
-        .select('username, role')
+        .select('username, role, follow_list_private')
         .eq('id', userData.user.id)
         .single();
 
       if (profile) {
         setUsername(profile.username || '');
         setRole(profile.role || '');
+        setFollowListPrivate(!!profile.follow_list_private);
       }
 
       const { data: identitiesData } = await supabase.auth.getUserIdentities();
@@ -91,6 +93,23 @@ export default function SettingsScreen() {
   async function toggleNotifications(value: boolean) {
     setNotificationsEnabled(value);
     await AsyncStorage.setItem(NOTIF_PREF_KEY, value ? 'true' : 'false');
+  }
+
+  async function toggleFollowListPrivate(value: boolean) {
+    setFollowListPrivate(value);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('Profiles')
+      .update({ follow_list_private: value })
+      .eq('id', user.id);
+
+    if (error) {
+      setFollowListPrivate(!value);
+      Alert.alert('Error', error.message);
+    }
   }
 
   function handleDeleteAccount() {
@@ -183,6 +202,23 @@ export default function SettingsScreen() {
           <Switch
             value={notificationsEnabled}
             onValueChange={toggleNotifications}
+            trackColor={{ false: '#2a2a2a', true: '#7C3AED' }}
+            thumbColor="#fff"
+          />
+        </View>
+      </View>
+
+      {/* Privacy */}
+      <Text style={styles.sectionLabel}>PRIVACY</Text>
+      <View style={styles.card}>
+        <View style={styles.row}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.rowLabel}>Private Follower/Following List</Text>
+            <Text style={styles.rowSubLabel}>Only you (and admins) can see who follows you or who you follow</Text>
+          </View>
+          <Switch
+            value={followListPrivate}
+            onValueChange={toggleFollowListPrivate}
             trackColor={{ false: '#2a2a2a', true: '#7C3AED' }}
             thumbColor="#fff"
           />
