@@ -136,6 +136,12 @@ if (tournamentData?.status !== 'upcoming') {
       return;
     }
 
+    try {
+      await supabase.rpc('create_team_conversation', { p_team_id: team.id });
+    } catch (err) {
+      console.log('Team conversation creation error:', err);
+    }
+
     const fee = Number(entry_fee) || 0;
 
     if (fee > 0) {
