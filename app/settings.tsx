@@ -22,6 +22,7 @@ export default function SettingsScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [googleLinked, setGoogleLinked] = useState(false);
   const [linkingGoogle, setLinkingGoogle] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -95,9 +96,27 @@ export default function SettingsScreen() {
   function handleDeleteAccount() {
     Alert.alert(
       'Delete Account',
-      'This feature is coming soon. If you need your account deleted in the meantime, please contact support.',
-      [{ text: 'OK' }]
+      'This permanently deletes your account and personal info. Your tournament history stays on record (anonymized) so other players\' results aren\'t affected. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete Account', style: 'destructive', onPress: confirmDeleteAccount },
+      ]
     );
+  }
+
+  async function confirmDeleteAccount() {
+    setDeleting(true);
+
+    const { error } = await supabase.rpc('delete_own_account');
+
+    if (error) {
+      setDeleting(false);
+      Alert.alert('Error', error.message);
+      return;
+    }
+
+    await supabase.auth.signOut();
+    router.replace('/login');
   }
 
   if (loading) {
@@ -196,9 +215,12 @@ export default function SettingsScreen() {
           <Ionicons name="chevron-forward" size={18} color="#555" />
         </TouchableOpacity>
         <View style={styles.divider} />
-        <TouchableOpacity style={styles.row} onPress={handleDeleteAccount}>
+        <TouchableOpacity style={styles.row} onPress={handleDeleteAccount} disabled={deleting}>
           <Text style={[styles.rowLabel, { color: '#ff4444' }]}>Delete Account</Text>
-          <Ionicons name="chevron-forward" size={18} color="#555" />
+          {deleting
+            ? <ActivityIndicator size="small" color="#ff4444" />
+            : <Ionicons name="chevron-forward" size={18} color="#555" />
+          }
         </TouchableOpacity>
       </View>
     </ScrollView>
