@@ -209,7 +209,7 @@ export default function SettingsScreen() {
       <View style={styles.card}>
         <TouchableOpacity
           style={styles.row}
-          onPress={() => Alert.alert('Privacy Policy', 'Privacy policy page coming soon.')}
+          onPress={() => router.push('/privacy-policy')}
         >
           <Text style={styles.rowLabel}>Privacy Policy</Text>
           <Ionicons name="chevron-forward" size={18} color="#555" />
