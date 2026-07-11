@@ -7,11 +7,14 @@ import {
   Platform, ScrollView
 } from 'react-native';
 import FragifyLogo from '@/components/FragifyLogo';
+import Avatar from '@/components/Avatar';
+import { AVATAR_PRESETS } from '@/lib/avatars';
 
 export default function ProfileScreen() {
   const [username, setUsername] = useState('');
   const [freeFireUid, setFreeFireUid] = useState('');
   const [bgmiUid, setBgmiUid] = useState('');
+  const [avatarId, setAvatarId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
 
@@ -25,7 +28,7 @@ export default function ProfileScreen() {
 
     const { data } = await supabase
       .from('Profiles')
-      .select('username, free_fire_uid, bgmi_uid')
+      .select('username, free_fire_uid, bgmi_uid, avatar_id')
       .eq('id', userData.user.id)
       .single();
 
@@ -33,6 +36,7 @@ export default function ProfileScreen() {
       setUsername(data.username || '');
       setFreeFireUid(data.free_fire_uid || '');
       setBgmiUid(data.bgmi_uid || '');
+      setAvatarId(data.avatar_id || null);
     }
     setFetching(false);
   }
@@ -59,6 +63,7 @@ export default function ProfileScreen() {
         username: username.trim(),
         free_fire_uid: freeFireUid.trim() || null,
         bgmi_uid: bgmiUid.trim() || null,
+        avatar_id: avatarId,
       });
 
     setLoading(false);
@@ -98,6 +103,23 @@ export default function ProfileScreen() {
 
         <Text style={styles.title}>Set Up Your Profile</Text>
         <Text style={styles.subtitle}>Your gamertag and UID will be visible to hosts</Text>
+
+        {/* Avatar */}
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Avatar</Text>
+          <View style={styles.avatarGrid}>
+            {AVATAR_PRESETS.map((preset) => (
+              <TouchableOpacity
+                key={preset.id}
+                style={[styles.avatarOption, avatarId === preset.id && styles.avatarOptionActive]}
+                onPress={() => setAvatarId(avatarId === preset.id ? null : preset.id)}
+              >
+                <Avatar avatarId={preset.id} size={52} />
+              </TouchableOpacity>
+            ))}
+          </View>
+          <Text style={styles.hint}>Tap an avatar to select it, or tap it again to use your initials instead.</Text>
+        </View>
 
         {/* Username */}
         <View style={styles.fieldGroup}>
@@ -167,6 +189,11 @@ const styles = StyleSheet.create({
   fieldGroup: { marginBottom: 20 },
   label: { color: '#aaa', fontSize: 13, marginBottom: 8, fontWeight: '600' },
   hint: { color: '#555', fontSize: 12, marginTop: 6 },
+  avatarGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  avatarOption: {
+    padding: 4, borderRadius: 32, borderWidth: 2, borderColor: 'transparent',
+  },
+  avatarOptionActive: { borderColor: '#7C3AED' },
   input: {
     backgroundColor: '#1a1a1a', color: '#fff', borderRadius: 10,
     paddingHorizontal: 14, paddingVertical: 14, fontSize: 15,
