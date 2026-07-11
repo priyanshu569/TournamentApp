@@ -6,11 +6,13 @@ import {
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import NotificationBell from '@/components/NotificationBell';
+import Avatar from '@/components/Avatar';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const [profile, setProfile] = useState<any>(null);
   const [stats, setStats] = useState({ tournaments: 0, confirmed: 0 });
+  const [followCounts, setFollowCounts] = useState({ followers: 0, following: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,6 +30,18 @@ export default function ProfileScreen() {
       .single();
 
     if (p) setProfile(p);
+
+    const { count: followers } = await supabase
+      .from('follows')
+      .select('*', { count: 'exact', head: true })
+      .eq('following_id', userData.user.id);
+
+    const { count: following } = await supabase
+      .from('follows')
+      .select('*', { count: 'exact', head: true })
+      .eq('follower_id', userData.user.id);
+
+    setFollowCounts({ followers: followers ?? 0, following: following ?? 0 });
 
     if (p?.role === 'player') {
       const { data: regs } = await supabase
@@ -100,22 +114,23 @@ export default function ProfileScreen() {
     );
   }
 
-  const initials = profile?.username?.slice(0, 2).toUpperCase() ?? 'NA';
-
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Profile</Text>
-        <NotificationBell />
+        <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.chatBtn} onPress={() => router.push('/chat')}>
+            <Text style={styles.chatIcon}>💬</Text>
+          </TouchableOpacity>
+          <NotificationBell />
+        </View>
       </View>
 
       {/* Profile Card */}
       <View style={styles.profileCard}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{initials}</Text>
-        </View>
-        <View style={styles.profileInfo}>
+        <Avatar avatarId={profile?.avatar_id} username={profile?.username} size={64} />
+        <View style={[styles.profileInfo, { marginLeft: 16 }]}>
           <Text style={styles.username}>{profile?.username ?? 'Unknown'}</Text>
           <View style={styles.roleBadge}>
             <Text style={styles.roleText}>
@@ -129,6 +144,24 @@ export default function ProfileScreen() {
             <Text style={styles.uidText}>🎯 BGMI UID: {profile.bgmi_uid}</Text>
           ) : null}
         </View>
+      </View>
+
+      {/* Follow Stats */}
+      <View style={styles.followRow}>
+        <TouchableOpacity
+          style={styles.followStat}
+          onPress={() => profile?.id && router.push(`/follow-list?id=${profile.id}&type=followers`)}
+        >
+          <Text style={styles.followValue}>{followCounts.followers}</Text>
+          <Text style={styles.followLabel}>Followers</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.followStat}
+          onPress={() => profile?.id && router.push(`/follow-list?id=${profile.id}&type=following`)}
+        >
+          <Text style={styles.followValue}>{followCounts.following}</Text>
+          <Text style={styles.followLabel}>Following</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Stats */}
@@ -213,6 +246,17 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         )}
 
+        {profile?.is_admin && (
+          <TouchableOpacity
+            style={[styles.menuItem, styles.adminItem]}
+            onPress={() => router.push('/admin-reports')}
+          >
+            <Text style={styles.menuIcon}>⚠️</Text>
+            <Text style={styles.adminText}>Reports</Text>
+            <Text style={styles.menuArrow}>→</Text>
+          </TouchableOpacity>
+        )}
+
         <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/settings')}>
           <Text style={styles.menuIcon}>⚙️</Text>
           <Text style={styles.menuText}>Settings</Text>
@@ -243,6 +287,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', padding: 24, paddingTop: 60,
   },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  chatBtn: { padding: 8 },
+  chatIcon: { fontSize: 20 },
 
   uidText: { color: '#aaa', fontSize: 12, marginTop: 4, fontWeight: '600' },
 
@@ -254,12 +301,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a1a', margin: 24, marginTop: 0,
     borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#2a2a2a',
   },
-  avatar: {
-    width: 64, height: 64, borderRadius: 32,
-    backgroundColor: '#7C3AED', justifyContent: 'center',
-    alignItems: 'center', marginRight: 16,
-  },
-  avatarText: { fontSize: 24, fontWeight: '800', color: '#fff' },
   profileInfo: { flex: 1 },
   username: { fontSize: 20, fontWeight: '800', color: '#fff', marginBottom: 6 },
   roleBadge: {
@@ -269,6 +310,13 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   roleText: { color: '#7C3AED', fontSize: 11, fontWeight: '700' },
+  followRow: {
+    flexDirection: 'row', justifyContent: 'center', gap: 40,
+    marginBottom: 20,
+  },
+  followStat: { alignItems: 'center' },
+  followValue: { color: '#fff', fontSize: 18, fontWeight: '800' },
+  followLabel: { color: '#aaa', fontSize: 12, marginTop: 2 },
   statsRow: {
     flexDirection: 'row', marginHorizontal: 24,
     marginBottom: 24, gap: 12,

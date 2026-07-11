@@ -111,6 +111,13 @@ export default function RootLayout() {
           <Stack.Screen name="settings" options={{ headerShown: false }} />
           <Stack.Screen name="support" options={{ headerShown: false }} />
           <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
+          <Stack.Screen name="user-profile" options={{ headerShown: false }} />
+          <Stack.Screen name="follow-list" options={{ headerShown: false }} />
+          <Stack.Screen name="report-user" options={{ headerShown: false }} />
+          <Stack.Screen name="chat" options={{ headerShown: false }} />
+          <Stack.Screen name="chat-thread" options={{ headerShown: false }} />
+          <Stack.Screen name="new-group" options={{ headerShown: false }} />
+          <Stack.Screen name="admin-reports" options={{ headerShown: false }} />
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>
