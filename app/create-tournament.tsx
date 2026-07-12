@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { pickAndUploadBanner } from '@/lib/bannerUpload';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
@@ -155,6 +156,12 @@ export default function CreateTournament() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
 
+      <View style={styles.headerRow}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={20} color="#fff" />
+        </TouchableOpacity>
+      </View>
+
       <Text style={styles.heading}>Create Tournament</Text>
       <Text style={styles.sub}>Fill in the details to go live.</Text>
 
@@ -171,7 +178,10 @@ export default function CreateTournament() {
           ) : bannerUrl ? (
             <Image source={{ uri: bannerUrl }} style={styles.bannerImage} contentFit="cover" />
           ) : (
-            <Text style={styles.bannerBoxText}>🖼 Tap to add a banner image</Text>
+            <View style={styles.bannerBoxEmpty}>
+              <Ionicons name="image-outline" size={28} color="#555" />
+              <Text style={styles.bannerBoxText}>Tap to add a banner image</Text>
+            </View>
           )}
         </TouchableOpacity>
         {bannerUrl && !uploadingBanner && (
@@ -425,6 +435,11 @@ export default function CreateTournament() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0a' },
   content: { padding: 24, paddingTop: 60, paddingBottom: 48 },
+  headerRow: { marginBottom: 12 },
+  backBtn: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
+    justifyContent: 'center', alignItems: 'center',
+  },
   heading: { fontSize: 28, fontWeight: '900', color: '#fff', marginBottom: 4 },
   sub: { fontSize: 14, color: '#aaa', marginBottom: 28 },
   label: { color: '#aaa', fontSize: 13, marginBottom: 8, fontWeight: '600', letterSpacing: 0.5 },
@@ -465,6 +480,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center', overflow: 'hidden',
   },
   bannerImage: { width: '100%', height: '100%' },
+  bannerBoxEmpty: { alignItems: 'center', gap: 8 },
   bannerBoxText: { color: '#666', fontSize: 13, fontWeight: '600' },
   input: {
     backgroundColor: '#1a1a1a', color: '#fff', borderRadius: 10,
@@ -491,6 +507,8 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: '#7C3AED', paddingVertical: 16,
     borderRadius: 12, alignItems: 'center', marginTop: 8,
+    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4, shadowRadius: 10, elevation: 6,
   },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 });
