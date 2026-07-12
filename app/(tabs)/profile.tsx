@@ -7,11 +7,13 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import NotificationBell from '@/components/NotificationBell';
 import Avatar from '@/components/Avatar';
+import { useTabNavigation } from '@/lib/tabNavigation';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const tabNav = useTabNavigation();
   const [profile, setProfile] = useState<any>(null);
-  const [stats, setStats] = useState({ tournaments: 0, confirmed: 0 });
+  const [stats, setStats] = useState({ tournaments: 0 });
   const [followCounts, setFollowCounts] = useState({ followers: 0, following: 0 });
   const [loading, setLoading] = useState(true);
 
@@ -44,26 +46,19 @@ export default function ProfileScreen() {
     setFollowCounts({ followers: followers ?? 0, following: following ?? 0 });
 
     if (p?.role === 'player') {
-      const { data: regs } = await supabase
+      const { count: regCount } = await supabase
         .from('registrations')
-        .select('status')
+        .select('*', { count: 'exact', head: true })
         .eq('player_id', userData.user.id);
 
-      if (regs) {
-        setStats({
-          tournaments: regs.length,
-          confirmed: regs.filter(r => r.status === 'confirmed').length,
-        });
-      }
+      setStats({ tournaments: regCount ?? 0 });
     } else {
-      const { data: tournaments } = await supabase
+      const { count: tournamentCount } = await supabase
         .from('tournaments')
-        .select('id')
+        .select('*', { count: 'exact', head: true })
         .eq('host_id', userData.user.id);
 
-      if (tournaments) {
-        setStats({ tournaments: tournaments.length, confirmed: 0 });
-      }
+      setStats({ tournaments: tournamentCount ?? 0 });
     }
 
     setLoading(false);
@@ -165,22 +160,12 @@ export default function ProfileScreen() {
 
       {/* Stats */}
       <View style={styles.statsRow}>
-        <View style={styles.statBox}>
+        <TouchableOpacity style={styles.statBox} onPress={() => tabNav?.goToTab('history')}>
           <Text style={styles.statValue}>{stats.tournaments}</Text>
           <Text style={styles.statLabel}>
             {profile?.role === 'host' ? 'Tournaments\nCreated' : 'Tournaments\nJoined'}
           </Text>
-        </View>
-        <View style={styles.statBox}>
-          <Text style={styles.statValue}>{stats.confirmed}</Text>
-          <Text style={styles.statLabel}>
-            {profile?.role === 'host' ? 'Total\nEarnings' : 'Confirmed\nSlots'}
-          </Text>
-        </View>
-        <View style={styles.statBox}>
-          <Text style={styles.statValue}>—</Text>
-          <Text style={styles.statLabel}>Win{'\n'}Rate</Text>
-        </View>
+        </TouchableOpacity>
       </View>
 
       {/* Menu Items */}

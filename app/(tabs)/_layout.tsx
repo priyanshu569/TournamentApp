@@ -9,6 +9,7 @@ import EventsScreen from './events';
 import HistoryScreen from './history';
 import ChatScreen from '../chat';
 import ProfileScreen from './profile';
+import { TabNavigationContext } from '@/lib/tabNavigation';
 
 const TABS = [
   { key: 'index', label: 'Home', icon: 'home' as const },
@@ -32,31 +33,41 @@ export default function TabLayout() {
     setActiveIndex(e.nativeEvent.position);
   }, []);
 
+  const goToTab = useCallback((key: string) => {
+    const index = TABS.findIndex((t) => t.key === key);
+    if (index !== -1) {
+      pagerRef.current?.setPage(index);
+      setActiveIndex(index);
+    }
+  }, []);
+
   return (
     <View style={styles.flex}>
-      <PagerView
-        ref={pagerRef}
-        style={styles.flex}
-        initialPage={0}
-        onPageSelected={handlePageSelected}
-        offscreenPageLimit={4}
-      >
-        <View key="index" style={styles.page}>
-          <HomeScreen />
-        </View>
-        <View key="events" style={styles.page}>
-          <EventsScreen />
-        </View>
-        <View key="history" style={styles.page}>
-          <HistoryScreen />
-        </View>
-        <View key="chat" style={styles.page}>
-          <ChatScreen />
-        </View>
-        <View key="profile" style={styles.page}>
-          <ProfileScreen />
-        </View>
-      </PagerView>
+      <TabNavigationContext.Provider value={{ goToTab }}>
+        <PagerView
+          ref={pagerRef}
+          style={styles.flex}
+          initialPage={0}
+          onPageSelected={handlePageSelected}
+          offscreenPageLimit={4}
+        >
+          <View key="index" style={styles.page}>
+            <HomeScreen />
+          </View>
+          <View key="events" style={styles.page}>
+            <EventsScreen />
+          </View>
+          <View key="history" style={styles.page}>
+            <HistoryScreen />
+          </View>
+          <View key="chat" style={styles.page}>
+            <ChatScreen />
+          </View>
+          <View key="profile" style={styles.page}>
+            <ProfileScreen />
+          </View>
+        </PagerView>
+      </TabNavigationContext.Provider>
 
       {/* Custom Bottom Tab Bar */}
       <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
