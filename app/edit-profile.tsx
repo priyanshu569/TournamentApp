@@ -6,6 +6,7 @@ import {
   TextInput, TouchableOpacity, View, KeyboardAvoidingView,
   Platform, ScrollView
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import FragifyLogo from '@/components/FragifyLogo';
 import Avatar from '@/components/Avatar';
 import { AVATAR_PRESETS } from '@/lib/avatars';
@@ -96,6 +97,12 @@ export default function ProfileScreen() {
         keyboardShouldPersistTaps="handled"
       >
         {/* Header */}
+        {router.canGoBack() && (
+          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={20} color="#fff" />
+          </TouchableOpacity>
+        )}
+
         <View style={styles.logoBox}>
           <FragifyLogo size={56} />
           <Text style={styles.appName}>FRAGIFY</Text>
@@ -176,6 +183,10 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0a' },
   content: { padding: 24, paddingTop: 80, paddingBottom: 48 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' },
+  backBtn: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
+    justifyContent: 'center', alignItems: 'center', marginBottom: 12,
+  },
   logoBox: { alignItems: 'center', marginBottom: 32 },
   logo: {
     width: 56, height: 56, borderRadius: 14,
@@ -193,7 +204,11 @@ const styles = StyleSheet.create({
   avatarOption: {
     padding: 4, borderRadius: 32, borderWidth: 2, borderColor: 'transparent',
   },
-  avatarOptionActive: { borderColor: '#7C3AED' },
+  avatarOptionActive: {
+    borderColor: '#7C3AED',
+    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6, shadowRadius: 8, elevation: 4,
+  },
   input: {
     backgroundColor: '#1a1a1a', color: '#fff', borderRadius: 10,
     paddingHorizontal: 14, paddingVertical: 14, fontSize: 15,
@@ -202,6 +217,8 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: '#7C3AED', paddingVertical: 16,
     borderRadius: 12, alignItems: 'center', marginTop: 8,
+    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4, shadowRadius: 10, elevation: 6,
   },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 });
