@@ -4,6 +4,7 @@ import {
   FlatList, TouchableOpacity
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 
 export default function Registrations() {
@@ -61,7 +62,7 @@ export default function Registrations() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backText}>← Back</Text>
+          <Ionicons name="chevron-back" size={20} color="#fff" />
         </TouchableOpacity>
       </View>
 
@@ -146,8 +147,10 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0a' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' },
   header: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 8 },
-  backBtn: { alignSelf: 'flex-start' },
-  backText: { color: '#7C3AED', fontSize: 15, fontWeight: '600' },
+  backBtn: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
+    justifyContent: 'center', alignItems: 'center', alignSelf: 'flex-start',
+  },
   tournamentInfo: { paddingHorizontal: 24, paddingBottom: 16 },
   gameTag: {
     alignSelf: 'flex-start', paddingHorizontal: 10,
@@ -164,8 +167,10 @@ const styles = StyleSheet.create({
   listContent: { padding: 24, paddingTop: 8 },
   emptyText: { color: '#555', textAlign: 'center', marginTop: 40 },
   card: {
-    backgroundColor: '#1a1a1a', borderRadius: 12,
-    padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#2a2a2a',
+    backgroundColor: '#161616', borderRadius: 14,
+    padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#262626',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
   },
   cardHeader: {
     flexDirection: 'row', justifyContent: 'space-between',

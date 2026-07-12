@@ -4,6 +4,7 @@ import {
   TouchableOpacity, Alert, ScrollView
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 
 type RosterMember = {
@@ -238,8 +239,8 @@ export default function LiveScoreboard() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backText}>← Back</Text>
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={20} color="#fff" />
         </TouchableOpacity>
         <View style={styles.liveBadge}>
           <View style={styles.liveDot} />
@@ -379,7 +380,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', paddingHorizontal: 24, paddingTop: 60, paddingBottom: 8,
   },
-  backText: { color: '#7C3AED', fontSize: 15, fontWeight: '600' },
+  backBtn: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
+    justifyContent: 'center', alignItems: 'center',
+  },
   liveBadge: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#3a0a0a', paddingHorizontal: 10,
@@ -400,8 +404,10 @@ const styles = StyleSheet.create({
   list: { paddingHorizontal: 24, paddingBottom: 16 },
   emptyText: { color: '#555', textAlign: 'center', marginTop: 40 },
   teamCard: {
-    backgroundColor: '#1a1a1a', borderRadius: 12, padding: 16,
-    marginBottom: 12, borderWidth: 1, borderColor: '#2a2a2a',
+    backgroundColor: '#161616', borderRadius: 14, padding: 16,
+    marginBottom: 12, borderWidth: 1, borderColor: '#262626',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
   },
   teamHeader: {
     flexDirection: 'row', justifyContent: 'space-between',
@@ -435,7 +441,11 @@ const styles = StyleSheet.create({
     width: 30, height: 30, borderRadius: 15,
     backgroundColor: '#2a2a2a', justifyContent: 'center', alignItems: 'center',
   },
-  stepBtnPlus: { backgroundColor: '#7C3AED' },
+  stepBtnPlus: {
+    backgroundColor: '#7C3AED',
+    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.5, shadowRadius: 6, elevation: 4,
+  },
   stepBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
   killCount: { color: '#fff', fontSize: 16, fontWeight: '800', minWidth: 24, textAlign: 'center' },
   finishBtn: {

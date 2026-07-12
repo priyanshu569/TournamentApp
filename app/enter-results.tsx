@@ -3,7 +3,8 @@ import {
   View, Text, StyleSheet, ActivityIndicator,
   TouchableOpacity, Alert, ScrollView, TextInput
 } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 
 type RosterMember = {
@@ -27,6 +28,7 @@ type MatchTeamState = {
 
 export default function EnterResults() {
   const { tournament_id } = useLocalSearchParams();
+  const router = useRouter();
   const [tournament, setTournament] = useState<any>(null);
   const [roster, setRoster] = useState<RosterTeam[]>([]);
   const [selectedMatch, setSelectedMatch] = useState(1);
@@ -172,6 +174,21 @@ export default function EnterResults() {
     setDirty(true);
   }
 
+  function handleBack() {
+    if (dirty) {
+      Alert.alert(
+        'Unsaved Changes',
+        `You have unsaved changes for Match ${selectedMatch}. Leave anyway and lose them?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Discard & Leave', style: 'destructive', onPress: () => router.back() },
+        ]
+      );
+    } else {
+      router.back();
+    }
+  }
+
   function handleMatchTabPress(num: number) {
     if (num === selectedMatch) return;
 
@@ -286,6 +303,10 @@ export default function EnterResults() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
+        <Ionicons name="chevron-back" size={20} color="#fff" />
+      </TouchableOpacity>
+
       <Text style={styles.heading}>Enter Results</Text>
       <Text style={styles.sub}>{tournament?.title}</Text>
 
@@ -413,6 +434,10 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0a' },
   content: { padding: 24, paddingTop: 60, paddingBottom: 60 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' },
+  backBtn: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
+    justifyContent: 'center', alignItems: 'center', marginBottom: 12,
+  },
   heading: { fontSize: 26, fontWeight: '900', color: '#fff', marginBottom: 4 },
   sub: { fontSize: 14, color: '#aaa', marginBottom: 16 },
   emptyText: { color: '#555', textAlign: 'center', marginTop: 40 },
@@ -425,8 +450,10 @@ const styles = StyleSheet.create({
   matchChipText: { color: '#aaa', fontSize: 13, fontWeight: '700' },
   matchChipTextActive: { color: '#fff' },
   teamCard: {
-    backgroundColor: '#1a1a1a', borderRadius: 12, padding: 16,
-    marginBottom: 16, borderWidth: 1, borderColor: '#2a2a2a',
+    backgroundColor: '#161616', borderRadius: 14, padding: 16,
+    marginBottom: 16, borderWidth: 1, borderColor: '#262626',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
   },
   teamHeader: {
     flexDirection: 'row', justifyContent: 'space-between',
@@ -473,6 +500,8 @@ const styles = StyleSheet.create({
   saveBtn: {
     backgroundColor: '#7C3AED', paddingVertical: 16,
     borderRadius: 12, alignItems: 'center', marginTop: 8,
+    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4, shadowRadius: 10, elevation: 6,
   },
   saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 });
