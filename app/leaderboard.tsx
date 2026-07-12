@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList,
+  View, Text, StyleSheet, FlatList, ScrollView,
   ActivityIndicator, TouchableOpacity
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import VerifiedBadge from '@/components/VerifiedBadge';
+import Avatar from '@/components/Avatar';
 
 const RANK_STYLES: { colors: [string, string]; icon: string; textColor: string }[] = [
   { colors: ['#FFD700', '#B8860B'], icon: '🥇', textColor: '#3a2a00' },
@@ -15,26 +16,34 @@ const RANK_STYLES: { colors: [string, string]; icon: string; textColor: string }
   { colors: ['#E8A56C', '#9a5a2a'], icon: '🥉', textColor: '#2a1a0a' },
 ];
 
+const GAMES: { label: string; value: string | null; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { label: 'All', value: null, icon: 'apps' },
+  { label: 'Free Fire', value: 'Free Fire', icon: 'flame' },
+  { label: 'BGMI', value: 'BGMI', icon: 'skull' },
+  { label: 'COD Mobile', value: 'COD Mobile', icon: 'skull' },
+  { label: 'Valorant', value: 'Valorant', icon: 'flash' },
+];
+
 export default function Leaderboard() {
   const router = useRouter();
   const [data, setData] = useState<any[]>([]);
+  const [game, setGame] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(game); }, [game]);
 
-  async function load() {
-    const { data, error } = await supabase.rpc('get_leaderboard');
+  async function load(p_game: string | null) {
+    setLoading(true);
+    const { data, error } = await supabase.rpc('get_leaderboard', { p_game });
     if (error) console.log('Leaderboard error:', error.message);
     if (data) setData(data);
     setLoading(false);
   }
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#7C3AED" />
-      </View>
-    );
+  function goToProfile(item: any) {
+    if (item.linked_profile_id) {
+      router.push(`/user-profile?id=${item.linked_profile_id}`);
+    }
   }
 
   return (
@@ -52,81 +61,108 @@ export default function Leaderboard() {
         <View style={{ width: 36 }} />
       </View>
 
-      <FlatList
-        data={data}
-        keyExtractor={(item) => item.player_uid}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <View style={styles.emptyIconCircle}>
-              <Ionicons name="trophy-outline" size={28} color="#444" />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.gameRow}>
+        {GAMES.map((g) => (
+          <TouchableOpacity
+            key={g.label}
+            style={[styles.gameChip, game === g.value && styles.gameChipActive]}
+            onPress={() => setGame(g.value)}
+          >
+            <Ionicons name={g.icon} size={13} color={game === g.value ? '#fff' : '#888'} />
+            <Text style={[styles.gameChipText, game === g.value && styles.gameChipTextActive]}>{g.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {loading ? (
+        <ActivityIndicator size="large" color="#7C3AED" style={{ marginTop: 40 }} />
+      ) : (
+        <FlatList
+          data={data}
+          keyExtractor={(item) => item.identity_key}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <View style={styles.emptyIconCircle}>
+                <Ionicons name="trophy-outline" size={28} color="#444" />
+              </View>
+              <Text style={styles.emptyText}>No results recorded yet.</Text>
             </View>
-            <Text style={styles.emptyText}>No results recorded yet.</Text>
-          </View>
-        }
-        renderItem={({ item, index }) => {
-          const podium = RANK_STYLES[index];
-          if (podium) {
+          }
+          renderItem={({ item, index }) => {
+            const podium = RANK_STYLES[index];
+            const linked = !!item.linked_profile_id;
+
+            if (podium) {
+              return (
+                <TouchableOpacity activeOpacity={linked ? 0.85 : 1} onPress={() => goToProfile(item)} disabled={!linked}>
+                  <LinearGradient
+                    colors={podium.colors}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.podiumRow}
+                  >
+                    <Text style={styles.podiumMedal}>{podium.icon}</Text>
+                    <View style={[styles.avatarWrap, !linked && styles.avatarWrapUnlinked]}>
+                      <Avatar avatarId={item.avatar_id} username={item.username} size={34} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <View style={styles.usernameRow}>
+                        <Text style={[styles.podiumUsername, { color: podium.textColor }]}>{item.username}</Text>
+                        {item.is_verified && <VerifiedBadge size={13} />}
+                      </View>
+                      <Text style={[styles.podiumSubStat, { color: podium.textColor }]}>
+                        {item.matches_played} matches played
+                      </Text>
+                    </View>
+                    <View style={styles.statCol}>
+                      <Text style={[styles.podiumStatValue, { color: podium.textColor }]}>{item.wins}</Text>
+                      <Text style={[styles.podiumStatLabel, { color: podium.textColor }]}>WINS</Text>
+                    </View>
+                    <View style={styles.statCol}>
+                      <Text style={[styles.podiumStatValue, { color: podium.textColor }]}>{item.total_kills}</Text>
+                      <Text style={[styles.podiumStatLabel, { color: podium.textColor }]}>KILLS</Text>
+                    </View>
+                    <View style={styles.statCol}>
+                      <Text style={[styles.podiumStatValue, { color: podium.textColor }]}>{item.total_points}</Text>
+                      <Text style={[styles.podiumStatLabel, { color: podium.textColor }]}>PTS</Text>
+                    </View>
+                  </LinearGradient>
+                </TouchableOpacity>
+              );
+            }
+
             return (
-              <LinearGradient
-                colors={podium.colors}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.podiumRow}
-              >
-                <Text style={styles.podiumMedal}>{podium.icon}</Text>
+              <TouchableOpacity style={styles.row} activeOpacity={linked ? 0.85 : 1} onPress={() => goToProfile(item)} disabled={!linked}>
+                <Text style={styles.rank}>#{index + 1}</Text>
+                <View style={[styles.avatarWrap, !linked && styles.avatarWrapUnlinked]}>
+                  <Avatar avatarId={item.avatar_id} username={item.username} size={34} />
+                </View>
                 <View style={{ flex: 1 }}>
                   <View style={styles.usernameRow}>
-                    <Text style={[styles.podiumUsername, { color: podium.textColor }]}>{item.username}</Text>
+                    <Text style={styles.username}>{item.username}</Text>
                     {item.is_verified && <VerifiedBadge size={13} />}
                   </View>
-                  <Text style={[styles.podiumSubStat, { color: podium.textColor }]}>
-                    {item.matches_played} matches played
-                  </Text>
+                  <Text style={styles.subStat}>{item.matches_played} matches played</Text>
                 </View>
                 <View style={styles.statCol}>
-                  <Text style={[styles.podiumStatValue, { color: podium.textColor }]}>{item.wins}</Text>
-                  <Text style={[styles.podiumStatLabel, { color: podium.textColor }]}>WINS</Text>
+                  <Text style={styles.statValue}>{item.wins}</Text>
+                  <Text style={styles.statLabel}>WINS</Text>
                 </View>
                 <View style={styles.statCol}>
-                  <Text style={[styles.podiumStatValue, { color: podium.textColor }]}>{item.total_kills}</Text>
-                  <Text style={[styles.podiumStatLabel, { color: podium.textColor }]}>KILLS</Text>
+                  <Text style={styles.statValue}>{item.total_kills}</Text>
+                  <Text style={styles.statLabel}>KILLS</Text>
                 </View>
                 <View style={styles.statCol}>
-                  <Text style={[styles.podiumStatValue, { color: podium.textColor }]}>{item.total_points}</Text>
-                  <Text style={[styles.podiumStatLabel, { color: podium.textColor }]}>PTS</Text>
+                  <Text style={[styles.statValue, styles.pointsValue]}>{item.total_points}</Text>
+                  <Text style={styles.statLabel}>PTS</Text>
                 </View>
-              </LinearGradient>
+              </TouchableOpacity>
             );
-          }
-
-          return (
-            <View style={styles.row}>
-              <Text style={styles.rank}>#{index + 1}</Text>
-              <View style={{ flex: 1 }}>
-                <View style={styles.usernameRow}>
-                  <Text style={styles.username}>{item.username}</Text>
-                  {item.is_verified && <VerifiedBadge size={13} />}
-                </View>
-                <Text style={styles.subStat}>{item.matches_played} matches played</Text>
-              </View>
-              <View style={styles.statCol}>
-                <Text style={styles.statValue}>{item.wins}</Text>
-                <Text style={styles.statLabel}>WINS</Text>
-              </View>
-              <View style={styles.statCol}>
-                <Text style={styles.statValue}>{item.total_kills}</Text>
-                <Text style={styles.statLabel}>KILLS</Text>
-              </View>
-              <View style={styles.statCol}>
-                <Text style={[styles.statValue, styles.pointsValue]}>{item.total_points}</Text>
-                <Text style={styles.statLabel}>PTS</Text>
-              </View>
-            </View>
-          );
-        }}
-      />
+          }}
+        />
+      )}
     </View>
   );
 }
@@ -137,7 +173,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', paddingHorizontal: 20,
-    paddingTop: 60, paddingBottom: 16,
+    paddingTop: 60, paddingBottom: 12,
   },
   backBtn: {
     width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
@@ -149,6 +185,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFB80018', justifyContent: 'center', alignItems: 'center',
   },
   headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
+  gameRow: { paddingHorizontal: 20, gap: 8, paddingBottom: 12 },
+  gameChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20,
+    backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a',
+  },
+  gameChipActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
+  gameChipText: { color: '#888', fontSize: 12, fontWeight: '600' },
+  gameChipTextActive: { color: '#fff' },
   listContent: { padding: 24, paddingTop: 8 },
   emptyContainer: { alignItems: 'center', marginTop: 60 },
   emptyIconCircle: {
@@ -168,12 +213,14 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3, shadowRadius: 8, elevation: 5,
   },
-  podiumMedal: { fontSize: 26, width: 40, textAlign: 'center' },
+  podiumMedal: { fontSize: 26, width: 32, textAlign: 'center' },
+  avatarWrap: { marginRight: 12 },
+  avatarWrapUnlinked: { opacity: 0.55 },
   podiumUsername: { fontSize: 16, fontWeight: '800' },
   podiumSubStat: { fontSize: 11, marginTop: 2, fontWeight: '600', opacity: 0.8 },
   podiumStatValue: { fontSize: 16, fontWeight: '900' },
   podiumStatLabel: { fontSize: 9, fontWeight: '800', marginTop: 2, opacity: 0.8 },
-  rank: { width: 36, fontSize: 15, fontWeight: '800', color: '#666', textAlign: 'center' },
+  rank: { width: 28, fontSize: 15, fontWeight: '800', color: '#666', textAlign: 'center' },
   usernameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   username: { color: '#fff', fontSize: 15, fontWeight: '700' },
   subStat: { color: '#555', fontSize: 11, marginTop: 2 },

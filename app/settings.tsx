@@ -5,13 +5,10 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
 import { supabase } from '@/lib/supabase';
 WebBrowser.maybeCompleteAuthSession();
-
-const NOTIF_PREF_KEY = 'fragify_notifications_enabled';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -36,7 +33,7 @@ export default function SettingsScreen() {
 
       const { data: profile } = await supabase
         .from('Profiles')
-        .select('username, role, follow_list_private')
+        .select('username, role, follow_list_private, push_enabled')
         .eq('id', userData.user.id)
         .single();
 
@@ -44,14 +41,12 @@ export default function SettingsScreen() {
         setUsername(profile.username || '');
         setRole(profile.role || '');
         setFollowListPrivate(!!profile.follow_list_private);
+        setNotificationsEnabled(profile.push_enabled !== false);
       }
 
       const { data: identitiesData } = await supabase.auth.getUserIdentities();
       setGoogleLinked(!!identitiesData?.identities?.some((i) => i.provider === 'google'));
     }
-
-    const storedPref = await AsyncStorage.getItem(NOTIF_PREF_KEY);
-    setNotificationsEnabled(storedPref !== 'false');
 
     setLoading(false);
   }
@@ -92,7 +87,19 @@ export default function SettingsScreen() {
 
   async function toggleNotifications(value: boolean) {
     setNotificationsEnabled(value);
-    await AsyncStorage.setItem(NOTIF_PREF_KEY, value ? 'true' : 'false');
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('Profiles')
+      .update({ push_enabled: value })
+      .eq('id', user.id);
+
+    if (error) {
+      setNotificationsEnabled(!value);
+      Alert.alert('Error', error.message);
+    }
   }
 
   async function toggleFollowListPrivate(value: boolean) {

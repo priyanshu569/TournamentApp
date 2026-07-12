@@ -151,13 +151,13 @@ export default function Payment() {
         if (userData.user) {
           const { data: profile } = await supabase
             .from('Profiles')
-            .select('push_token')
+            .select('push_token, push_enabled')
             .eq('id', userData.user.id)
             .single();
 
           await notifyAndLog(
             userData.user.id,
-            profile?.push_token,
+            profile?.push_enabled ? profile?.push_token : null,
             '✅ Registration Confirmed',
             'Payment received! Your team is confirmed for the tournament.',
             tournament_id as string

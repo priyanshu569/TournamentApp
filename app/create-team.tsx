@@ -105,11 +105,12 @@ if (tournamentData?.max_teams && (registeredCount ?? 0) >= tournamentData.max_te
       return;
     }
 
-    const memberRows = members.map((m) => ({
+    const memberRows = members.map((m, index) => ({
       team_id: team.id,
       in_game_name: m.in_game_name.trim(),
       player_uid: m.player_uid.trim(),
       is_substitute: false,
+      is_captain: index === 0,
     }));
 
     if (subName && subUid) {
@@ -118,6 +119,7 @@ if (tournamentData?.max_teams && (registeredCount ?? 0) >= tournamentData.max_te
         in_game_name: subName,
         player_uid: subUid,
         is_substitute: true,
+        is_captain: false,
       });
     }
 
@@ -175,13 +177,13 @@ if (tournamentData?.max_teams && (registeredCount ?? 0) >= tournamentData.max_te
       try {
         const { data: profile } = await supabase
           .from('Profiles')
-          .select('push_token')
+          .select('push_token, push_enabled')
           .eq('id', user.id)
           .single();
 
         await notifyAndLog(
           user.id,
-          profile?.push_token,
+          profile?.push_enabled ? profile?.push_token : null,
           '✅ Registration Confirmed',
           `${teamName} is confirmed for the tournament — no entry fee required!`,
           tournament_id as string
