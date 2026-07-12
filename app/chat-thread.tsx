@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '@/lib/supabase';
 import Avatar from '@/components/Avatar';
 
@@ -133,7 +134,9 @@ export default function ChatThreadScreen() {
             {conversation?.conversation_type === 'direct' ? (
               <Avatar avatarId={otherUser?.avatar_id} username={otherUser?.username} size={32} />
             ) : (
-              <Ionicons name="people" size={24} color="#7C3AED" />
+              <LinearGradient colors={['#7C3AED', '#4C1D95']} style={styles.groupIconSmall}>
+                <Ionicons name="people" size={16} color="#fff" />
+              </LinearGradient>
             )}
             <Text style={styles.headerTitle} numberOfLines={1}>{title}</Text>
           </TouchableOpacity>
@@ -142,7 +145,7 @@ export default function ChatThreadScreen() {
               <Ionicons name="flag-outline" size={20} color="#aaa" />
             </TouchableOpacity>
           ) : (
-            <View style={{ width: 26 }} />
+            <View style={{ width: 36 }} />
           )}
         </View>
 
@@ -228,7 +231,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingTop: 60, paddingBottom: 12,
     borderBottomWidth: 1, borderBottomColor: '#1a1a1a',
   },
-  backBtn: { padding: 4 },
+  backBtn: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  groupIconSmall: {
+    width: 32, height: 32, borderRadius: 16,
+    justifyContent: 'center', alignItems: 'center',
+  },
   reportBtn: { padding: 4, width: 26, alignItems: 'flex-end' },
   headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, justifyContent: 'center' },
   headerTitle: { color: '#fff', fontSize: 16, fontWeight: '800', flexShrink: 1 },
@@ -252,6 +262,8 @@ const styles = StyleSheet.create({
   sendBtn: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: '#7C3AED', justifyContent: 'center', alignItems: 'center',
+    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4, shadowRadius: 8, elevation: 4,
   },
   modalOverlay: { flex: 1, backgroundColor: '#000000aa', justifyContent: 'flex-end' },
   reportSheet: {

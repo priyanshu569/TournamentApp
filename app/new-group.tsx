@@ -154,7 +154,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', paddingHorizontal: 16, paddingTop: 60, paddingBottom: 16,
   },
-  backBtn: { padding: 4 },
+  backBtn: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
+    justifyContent: 'center', alignItems: 'center',
+  },
   headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
   fieldGroup: { paddingHorizontal: 24, marginBottom: 12 },
   input: {
@@ -167,13 +170,17 @@ const styles = StyleSheet.create({
   emptyText: { color: '#555', textAlign: 'center', marginTop: 40 },
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#1a1a1a', borderRadius: 12, padding: 12,
-    marginBottom: 10, borderWidth: 1, borderColor: '#2a2a2a',
+    backgroundColor: '#161616', borderRadius: 14, padding: 12,
+    marginBottom: 10, borderWidth: 1, borderColor: '#262626',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25, shadowRadius: 6, elevation: 3,
   },
   rowName: { flex: 1, color: '#fff', fontSize: 15, fontWeight: '600' },
   button: {
     backgroundColor: '#7C3AED', paddingVertical: 16,
     borderRadius: 12, alignItems: 'center', marginHorizontal: 24, marginBottom: 24,
+    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4, shadowRadius: 10, elevation: 6,
   },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 });

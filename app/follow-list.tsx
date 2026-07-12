@@ -84,14 +84,18 @@ export default function FollowListScreen() {
       {loading ? (
         <ActivityIndicator size="large" color="#7C3AED" style={{ marginTop: 40 }} />
       ) : !canView ? (
-        <Text style={styles.emptyText}>🔒 This list is private.</Text>
+        <View style={styles.emptyContainer}>
+          <Ionicons name="lock-closed" size={22} color="#555" />
+          <Text style={styles.emptyText}>This list is private.</Text>
+        </View>
       ) : (
         <FlatList
           data={people}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>
+            <Text style={[styles.emptyText, { marginTop: 40 }]}>
               {type === 'followers' ? 'No followers yet.' : 'Not following anyone yet.'}
             </Text>
           }
@@ -121,14 +125,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', paddingHorizontal: 16, paddingTop: 60, paddingBottom: 16,
   },
-  backBtn: { padding: 4 },
+  backBtn: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
+    justifyContent: 'center', alignItems: 'center',
+  },
   headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
   listContent: { padding: 24, paddingTop: 8 },
-  emptyText: { color: '#555', textAlign: 'center', marginTop: 40 },
+  emptyContainer: { alignItems: 'center', gap: 10, marginTop: 60 },
+  emptyText: { color: '#555', textAlign: 'center' },
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#1a1a1a', borderRadius: 12, padding: 12,
-    marginBottom: 10, borderWidth: 1, borderColor: '#2a2a2a',
+    backgroundColor: '#161616', borderRadius: 14, padding: 12,
+    marginBottom: 10, borderWidth: 1, borderColor: '#262626',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25, shadowRadius: 6, elevation: 3,
   },
   rowInfo: { flex: 1 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },

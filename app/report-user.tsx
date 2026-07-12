@@ -4,6 +4,7 @@ import {
   StyleSheet, Alert, ActivityIndicator, ScrollView
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 
 const REASONS = ['Spam', 'Harassment', 'Inappropriate content', 'Impersonation', 'Other'];
@@ -53,6 +54,10 @@ export default function ReportUserScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <Ionicons name="chevron-back" size={20} color="#fff" />
+      </TouchableOpacity>
+
       <Text style={styles.heading}>Report</Text>
       <Text style={styles.sub}>Help us understand what happened.</Text>
 
@@ -93,6 +98,10 @@ export default function ReportUserScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0a' },
   content: { padding: 24, paddingTop: 60, paddingBottom: 48 },
+  backBtn: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
+    justifyContent: 'center', alignItems: 'center', marginBottom: 16,
+  },
   heading: { fontSize: 26, fontWeight: '900', color: '#fff', marginBottom: 4 },
   sub: { fontSize: 14, color: '#aaa', marginBottom: 24 },
   label: { color: '#aaa', fontSize: 13, marginBottom: 10, fontWeight: '600' },
@@ -113,6 +122,8 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: '#ff4444', paddingVertical: 16,
     borderRadius: 12, alignItems: 'center',
+    shadowColor: '#ff4444', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3, shadowRadius: 10, elevation: 6,
   },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 });

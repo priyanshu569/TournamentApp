@@ -170,9 +170,9 @@ export default function UserProfileScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={26} color="#fff" />
+          <Ionicons name="chevron-back" size={20} color="#fff" />
         </TouchableOpacity>
-        <View style={{ width: 26 }} />
+        <View style={{ width: 36 }} />
       </View>
 
       <View style={styles.profileTop}>
@@ -235,14 +235,18 @@ export default function UserProfileScreen() {
       {!isOwnProfile && (
         <View style={styles.menu}>
           <TouchableOpacity style={styles.menuItem} onPress={handleBlockToggle} disabled={actionLoading}>
-            <Text style={styles.menuIcon}>🚫</Text>
+            <View style={[styles.menuIconCircle, { backgroundColor: '#ff444422' }]}>
+              <Ionicons name="ban" size={16} color="#ff4444" />
+            </View>
             <Text style={styles.menuText}>{isBlocked ? 'Unblock User' : 'Block User'}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => router.push(`/report-user?target_user_id=${id}`)}
           >
-            <Text style={styles.menuIcon}>⚠️</Text>
+            <View style={[styles.menuIconCircle, { backgroundColor: '#FFB80022' }]}>
+              <Ionicons name="warning" size={16} color="#FFB800" />
+            </View>
             <Text style={styles.menuText}>Report User</Text>
           </TouchableOpacity>
         </View>
@@ -257,7 +261,10 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' },
   errorText: { color: '#fff', fontSize: 16 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  backBtn: { padding: 4 },
+  backBtn: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
+    justifyContent: 'center', alignItems: 'center',
+  },
   profileTop: { alignItems: 'center', marginBottom: 24 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14 },
   username: { fontSize: 22, fontWeight: '900', color: '#fff' },
@@ -275,8 +282,10 @@ const styles = StyleSheet.create({
   actionBtn: {
     flex: 1, backgroundColor: '#7C3AED', paddingVertical: 14,
     borderRadius: 12, alignItems: 'center',
+    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4, shadowRadius: 10, elevation: 6,
   },
-  actionBtnActive: { backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#7C3AED' },
+  actionBtnActive: { backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#7C3AED', shadowOpacity: 0 },
   actionBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   actionBtnTextActive: { color: '#7C3AED' },
   actionBtnOutline: {
@@ -286,10 +295,13 @@ const styles = StyleSheet.create({
   actionBtnOutlineText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   menu: { gap: 8 },
   menuItem: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#1a1a1a', borderRadius: 12,
-    padding: 16, borderWidth: 1, borderColor: '#2a2a2a',
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: '#161616', borderRadius: 14,
+    padding: 14, borderWidth: 1, borderColor: '#262626',
   },
-  menuIcon: { fontSize: 18, marginRight: 12 },
+  menuIconCircle: {
+    width: 34, height: 34, borderRadius: 17,
+    justifyContent: 'center', alignItems: 'center',
+  },
   menuText: { flex: 1, color: '#fff', fontSize: 15, fontWeight: '600' },
 });
