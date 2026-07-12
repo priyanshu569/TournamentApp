@@ -3,6 +3,8 @@ import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, Alert, ActivityIndicator
 } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 
 const AUDIENCES = [
@@ -12,6 +14,7 @@ const AUDIENCES = [
 ];
 
 export default function AdminBroadcast() {
+  const router = useRouter();
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [audience, setAudience] = useState('all');
@@ -91,6 +94,10 @@ export default function AdminBroadcast() {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <Ionicons name="chevron-back" size={20} color="#fff" />
+      </TouchableOpacity>
+
       <Text style={styles.heading}>📢 Send Broadcast</Text>
       <Text style={styles.sub}>
         Send a custom push notification to your users — Swiggy/Zomato style.
@@ -143,6 +150,10 @@ export default function AdminBroadcast() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0a', padding: 24, paddingTop: 60 },
+  backBtn: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
+    justifyContent: 'center', alignItems: 'center', marginBottom: 12,
+  },
   heading: { color: '#fff', fontSize: 24, fontWeight: '800', marginBottom: 4 },
   sub: { color: '#888', fontSize: 13, marginBottom: 24 },
   label: { color: '#aaa', fontSize: 12, fontWeight: '700', marginBottom: 8, marginTop: 4, letterSpacing: 1 },
@@ -163,6 +174,8 @@ const styles = StyleSheet.create({
   sendBtn: {
     backgroundColor: '#7C3AED', paddingVertical: 16,
     borderRadius: 12, alignItems: 'center', marginTop: 8,
+    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4, shadowRadius: 10, elevation: 6,
   },
   sendBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
 });

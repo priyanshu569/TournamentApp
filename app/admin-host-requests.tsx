@@ -3,6 +3,8 @@ import {
   View, Text, StyleSheet, FlatList,
   TouchableOpacity, ActivityIndicator, Alert
 } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { notifyAndLog } from '@/lib/notifications';
 
@@ -10,6 +12,7 @@ const FILTERS = ['pending', 'approved', 'rejected'] as const;
 type Filter = typeof FILTERS[number];
 
 export default function AdminHostRequests() {
+  const router = useRouter();
   const [requests, setRequests] = useState<any[]>([]);
   const [filter, setFilter] = useState<Filter>('pending');
   const [loading, setLoading] = useState(true);
@@ -66,6 +69,10 @@ export default function AdminHostRequests() {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <Ionicons name="chevron-back" size={20} color="#fff" />
+      </TouchableOpacity>
+
       <Text style={styles.heading}>🏆 Host Requests</Text>
       <Text style={styles.sub}>Review requests to create tournaments.</Text>
 
@@ -138,6 +145,10 @@ export default function AdminHostRequests() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0a', paddingTop: 60 },
+  backBtn: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
+    justifyContent: 'center', alignItems: 'center', marginLeft: 24, marginBottom: 12,
+  },
   heading: { color: '#fff', fontSize: 24, fontWeight: '800', paddingHorizontal: 24, marginBottom: 4 },
   sub: { color: '#888', fontSize: 13, paddingHorizontal: 24, marginBottom: 20 },
   filterRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 24, marginBottom: 16 },
@@ -151,8 +162,10 @@ const styles = StyleSheet.create({
   listContent: { padding: 24, paddingTop: 0 },
   emptyText: { color: '#555', textAlign: 'center', marginTop: 40 },
   card: {
-    backgroundColor: '#1a1a1a', borderRadius: 12, padding: 16,
-    marginBottom: 12, borderWidth: 1, borderColor: '#2a2a2a',
+    backgroundColor: '#161616', borderRadius: 14, padding: 16,
+    marginBottom: 12, borderWidth: 1, borderColor: '#262626',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
   },
   name: { color: '#fff', fontSize: 16, fontWeight: '700', marginBottom: 4 },
   contact: { color: '#aaa', fontSize: 13, marginBottom: 6 },

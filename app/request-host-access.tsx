@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView, Platform
 } from 'react-native';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { notifyAndLog } from '@/lib/notifications';
 import FragifyLogo from '@/components/FragifyLogo';
@@ -99,6 +100,12 @@ export default function RequestHostAccess() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        {router.canGoBack() && (
+          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={20} color="#fff" />
+          </TouchableOpacity>
+        )}
+
         <View style={styles.logoBox}>
           <FragifyLogo size={48} />
         </View>
@@ -157,6 +164,10 @@ export default function RequestHostAccess() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0a' },
   content: { padding: 24, paddingTop: 60, paddingBottom: 80 },
+  backBtn: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
+    justifyContent: 'center', alignItems: 'center', marginBottom: 12,
+  },
   logoBox: { alignItems: 'center', marginBottom: 20 },
   heading: { fontSize: 24, fontWeight: '900', color: '#fff', marginBottom: 8, textAlign: 'center' },
   sub: { fontSize: 13, color: '#aaa', marginBottom: 28, textAlign: 'center', lineHeight: 20 },
@@ -170,6 +181,8 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: '#7C3AED', paddingVertical: 16,
     borderRadius: 12, alignItems: 'center', marginTop: 8,
+    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4, shadowRadius: 10, elevation: 6,
   },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 });

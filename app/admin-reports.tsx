@@ -4,6 +4,7 @@ import {
   TouchableOpacity, ActivityIndicator, Alert
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 
 const FILTERS = ['pending', 'reviewed', 'dismissed'] as const;
@@ -71,8 +72,8 @@ export default function AdminReportsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backText}>← Back</Text>
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={20} color="#fff" />
         </TouchableOpacity>
       </View>
 
@@ -149,7 +150,10 @@ export default function AdminReportsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0a', paddingTop: 60 },
   headerRow: { paddingHorizontal: 24, marginBottom: 8 },
-  backText: { color: '#7C3AED', fontSize: 15, fontWeight: '600' },
+  backBtn: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
+    justifyContent: 'center', alignItems: 'center',
+  },
   heading: { color: '#fff', fontSize: 24, fontWeight: '800', paddingHorizontal: 24, marginBottom: 4 },
   sub: { color: '#888', fontSize: 13, paddingHorizontal: 24, marginBottom: 20 },
   filterRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 24, marginBottom: 16 },
@@ -163,8 +167,10 @@ const styles = StyleSheet.create({
   listContent: { padding: 24, paddingTop: 0 },
   emptyText: { color: '#555', textAlign: 'center', marginTop: 40 },
   card: {
-    backgroundColor: '#1a1a1a', borderRadius: 12, padding: 16,
-    marginBottom: 12, borderWidth: 1, borderColor: '#2a2a2a',
+    backgroundColor: '#161616', borderRadius: 14, padding: 16,
+    marginBottom: 12, borderWidth: 1, borderColor: '#262626',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
   },
   reportedName: { color: '#fff', fontSize: 15, fontWeight: '700', marginBottom: 6 },
   reason: { color: '#ccc', fontSize: 13, lineHeight: 19, marginBottom: 8 },

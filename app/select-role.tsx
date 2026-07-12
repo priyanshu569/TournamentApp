@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import FragifyLogo from '@/components/FragifyLogo';
 
 export default function SelectRoleScreen() {
@@ -43,8 +44,10 @@ export default function SelectRoleScreen() {
       <Text style={styles.title}>Ready to compete?</Text>
       <Text style={styles.subtitle}>Join teams and battle it out in tournaments</Text>
 
-      <TouchableOpacity style={styles.card} onPress={continueAsPlayer} disabled={loading}>
-        <Text style={styles.cardEmoji}>🎮</Text>
+      <TouchableOpacity style={styles.card} onPress={continueAsPlayer} disabled={loading} activeOpacity={0.85}>
+        <View style={styles.cardIconCircle}>
+          <Ionicons name="game-controller" size={28} color="#7C3AED" />
+        </View>
         <Text style={styles.cardTitle}>Continue as Player</Text>
         <Text style={styles.cardDesc}>Join teams and compete in tournaments</Text>
       </TouchableOpacity>
@@ -71,10 +74,15 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: '800', color: '#fff', marginBottom: 8, textAlign: 'center' },
   subtitle: { fontSize: 13, color: '#aaa', marginBottom: 32, textAlign: 'center' },
   card: {
-    backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a',
-    borderRadius: 14, padding: 24, alignItems: 'center', marginBottom: 16,
+    backgroundColor: '#161616', borderWidth: 1, borderColor: '#262626',
+    borderRadius: 16, padding: 24, alignItems: 'center', marginBottom: 16,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3, shadowRadius: 10, elevation: 5,
   },
-  cardEmoji: { fontSize: 40, marginBottom: 10 },
+  cardIconCircle: {
+    width: 64, height: 64, borderRadius: 32, backgroundColor: '#7C3AED22',
+    justifyContent: 'center', alignItems: 'center', marginBottom: 12,
+  },
   cardTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 4 },
   cardDesc: { fontSize: 13, color: '#aaa', textAlign: 'center' },
   hostLink: { marginTop: 24, alignItems: 'center' },
