@@ -61,10 +61,10 @@ export default function PrivacyPolicyScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={26} color="#fff" />
+          <Ionicons name="chevron-back" size={20} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Privacy Policy</Text>
-        <View style={{ width: 26 }} />
+        <View style={{ width: 36 }} />
       </View>
 
       <Text style={styles.lastUpdated}>Last updated: July 2026</Text>
@@ -99,7 +99,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', marginBottom: 4,
   },
-  backBtn: { padding: 4 },
+  backBtn: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
+    justifyContent: 'center', alignItems: 'center',
+  },
   headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
   lastUpdated: { color: '#555', fontSize: 12, marginBottom: 16 },
   intro: { color: '#aaa', fontSize: 14, lineHeight: 21, marginBottom: 28 },

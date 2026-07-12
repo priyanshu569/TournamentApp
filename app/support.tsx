@@ -49,10 +49,10 @@ export default function SupportScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={26} color="#fff" />
+          <Ionicons name="chevron-back" size={20} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Support</Text>
-        <View style={{ width: 26 }} />
+        <View style={{ width: 36 }} />
       </View>
 
       {/* Contact Us */}
@@ -118,15 +118,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', paddingHorizontal: 16, paddingTop: 60, paddingBottom: 16,
   },
-  backBtn: { padding: 4 },
+  backBtn: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
+    justifyContent: 'center', alignItems: 'center',
+  },
   headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
   sectionLabel: {
     fontSize: 12, color: '#666', fontWeight: '700',
     marginHorizontal: 24, marginBottom: 8, marginTop: 16, letterSpacing: 1,
   },
   card: {
-    backgroundColor: '#1a1a1a', marginHorizontal: 24, borderRadius: 12,
-    borderWidth: 1, borderColor: '#2a2a2a', overflow: 'hidden',
+    backgroundColor: '#161616', marginHorizontal: 24, borderRadius: 14,
+    borderWidth: 1, borderColor: '#262626', overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25, shadowRadius: 6, elevation: 3,
   },
   divider: { height: 1, backgroundColor: '#2a2a2a', marginHorizontal: 16 },
   contactRow: {

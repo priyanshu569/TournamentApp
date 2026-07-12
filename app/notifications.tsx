@@ -4,6 +4,7 @@ import {
   TouchableOpacity, ActivityIndicator, RefreshControl
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 
 export default function NotificationsScreen() {
@@ -68,23 +69,26 @@ export default function NotificationsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backText}>← Back</Text>
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={20} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notifications</Text>
-        <View style={{ width: 60 }} />
+        <View style={{ width: 36 }} />
       </View>
 
       <FlatList
         data={notifications}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7C3AED" />
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>🔔</Text>
+            <View style={styles.emptyIconCircle}>
+              <Ionicons name="notifications-outline" size={28} color="#444" />
+            </View>
             <Text style={styles.emptyText}>No notifications yet.</Text>
           </View>
         }
@@ -118,15 +122,24 @@ const styles = StyleSheet.create({
     alignItems: 'center', paddingHorizontal: 24,
     paddingTop: 60, paddingBottom: 16,
   },
-  backText: { color: '#7C3AED', fontSize: 15, fontWeight: '600', width: 60 },
+  backBtn: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
+    justifyContent: 'center', alignItems: 'center',
+  },
   headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
   listContent: { padding: 24, paddingTop: 8 },
   emptyContainer: { alignItems: 'center', marginTop: 80 },
-  emptyIcon: { fontSize: 40, marginBottom: 12 },
+  emptyIconCircle: {
+    width: 64, height: 64, borderRadius: 32, backgroundColor: '#1a1a1a',
+    justifyContent: 'center', alignItems: 'center', marginBottom: 16,
+    borderWidth: 1, borderColor: '#2a2a2a',
+  },
   emptyText: { color: '#555', fontSize: 14 },
   card: {
-    flexDirection: 'row', backgroundColor: '#1a1a1a', borderRadius: 12,
-    padding: 16, marginBottom: 10, borderWidth: 1, borderColor: '#2a2a2a',
+    flexDirection: 'row', backgroundColor: '#161616', borderRadius: 14,
+    padding: 16, marginBottom: 10, borderWidth: 1, borderColor: '#262626',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25, shadowRadius: 6, elevation: 3,
   },
   cardUnread: { borderColor: '#7C3AED' },
   unreadDot: {
