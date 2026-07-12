@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, StyleSheet, ActivityIndicator, Alert, Text, TouchableOpacity } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -10,10 +10,31 @@ export default function Payment() {
   const { amount, tournament_id, team_id, registration_id } = useLocalSearchParams();
   const [loading, setLoading] = useState(true);
   const [webViewKey, setWebViewKey] = useState(0);
+  const [order, setOrder] = useState<{ order_id: string; amount: number; key_id: string } | null>(null);
+  const [orderError, setOrderError] = useState<string | null>(null);
 
-  const RAZORPAY_KEY = 'rzp_test_T4niiB2H7e9SDl';
+  useEffect(() => {
+    createOrder();
+  }, []);
 
-  const htmlContent = `
+  async function createOrder() {
+    setLoading(true);
+    setOrderError(null);
+    const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
+      body: { registration_id },
+    });
+
+    if (error || !data?.order_id) {
+      setOrderError(data?.error || error?.message || 'Could not start payment. Please try again.');
+      setLoading(false);
+      return;
+    }
+
+    setOrder(data);
+    setLoading(false);
+  }
+
+  const htmlContent = order ? `
     <!DOCTYPE html>
     <html>
     <head>
@@ -58,8 +79,9 @@ export default function Payment() {
       </div>
       <script>
         var options = {
-          key: '${RAZORPAY_KEY}',
-          amount: ${Number(amount) * 100},
+          key: '${order.key_id}',
+          order_id: '${order.order_id}',
+          amount: ${order.amount},
           currency: 'INR',
           name: 'Fragify',
           description: 'Tournament Entry Fee',
@@ -67,7 +89,9 @@ export default function Payment() {
           handler: function(response) {
             window.ReactNativeWebView.postMessage(JSON.stringify({
               success: true,
-              payment_id: response.razorpay_payment_id
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature
             }));
           },
           modal: {
@@ -90,7 +114,7 @@ export default function Payment() {
       </script>
     </body>
     </html>
-  `;
+  ` : '';
 
   const handleMessage = async (event: any) => {
     let data;
@@ -101,39 +125,49 @@ export default function Payment() {
     }
 
     if (data.success) {
-      const { error } = await supabase
-        .from('registrations')
-        .update({ status: 'confirmed' })
-        .eq('id', registration_id);
+      setLoading(true);
+      const { data: verifyResult, error } = await supabase.functions.invoke('verify-razorpay-payment', {
+        body: {
+          registration_id,
+          razorpay_order_id: data.razorpay_order_id,
+          razorpay_payment_id: data.razorpay_payment_id,
+          razorpay_signature: data.razorpay_signature,
+        },
+      });
+      setLoading(false);
 
-      if (error) {
-        Alert.alert('Error', 'Payment done but status update failed: ' + error.message);
-      } else {
-        try {
-          const { data: userData } = await supabase.auth.getUser();
-          if (userData.user) {
-            const { data: profile } = await supabase
-              .from('Profiles')
-              .select('push_token')
-              .eq('id', userData.user.id)
-              .single();
-
-            await notifyAndLog(
-              userData.user.id,
-              profile?.push_token,
-              '✅ Registration Confirmed',
-              'Payment received! Your team is confirmed for the tournament.',
-              tournament_id as string
-            );
-          }
-        } catch (err) {
-          console.log('Notify error:', err);
-        }
-
-        Alert.alert('Payment Successful! 🎉', 'Your team is confirmed for the tournament!', [
-          { text: 'OK', onPress: () => router.push('/') }
-        ]);
+      if (error || !verifyResult?.success) {
+        Alert.alert(
+          'Verification Failed',
+          verifyResult?.error || error?.message || 'We could not verify your payment. If money was deducted, contact support.',
+        );
+        return;
       }
+
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData.user) {
+          const { data: profile } = await supabase
+            .from('Profiles')
+            .select('push_token')
+            .eq('id', userData.user.id)
+            .single();
+
+          await notifyAndLog(
+            userData.user.id,
+            profile?.push_token,
+            '✅ Registration Confirmed',
+            'Payment received! Your team is confirmed for the tournament.',
+            tournament_id as string
+          );
+        }
+      } catch (err) {
+        console.log('Notify error:', err);
+      }
+
+      Alert.alert('Payment Successful! 🎉', 'Your team is confirmed for the tournament!', [
+        { text: 'OK', onPress: () => router.push('/') }
+      ]);
     } else {
       if (data.reason === 'dismissed') {
         Alert.alert(
@@ -171,21 +205,34 @@ export default function Payment() {
         <Text style={styles.amountSub}>Secured by Razorpay</Text>
       </View>
 
-      {loading && (
+      {orderError ? (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#7C3AED" />
-          <Text style={styles.loadingText}>Opening payment...</Text>
+          <Text style={styles.errorText}>{orderError}</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={createOrder}>
+            <Text style={styles.retryBtnText}>Retry</Text>
+          </TouchableOpacity>
         </View>
-      )}
+      ) : (
+        <>
+          {loading && (
+            <View style={styles.loadingOverlay}>
+              <ActivityIndicator size="large" color="#7C3AED" />
+              <Text style={styles.loadingText}>Opening payment...</Text>
+            </View>
+          )}
 
-      <WebView
-        key={webViewKey}
-        source={{ html: htmlContent }}
-        onMessage={handleMessage}
-        onLoad={() => setLoading(false)}
-        javaScriptEnabled
-        style={styles.webview}
-      />
+          {order && (
+            <WebView
+              key={webViewKey}
+              source={{ html: htmlContent }}
+              onMessage={handleMessage}
+              onLoad={() => setLoading(false)}
+              javaScriptEnabled
+              style={styles.webview}
+            />
+          )}
+        </>
+      )}
     </View>
   );
 }
@@ -216,4 +263,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   loadingText: { color: '#aaa', fontSize: 14 },
+  errorText: { color: '#FF4444', fontSize: 14, textAlign: 'center', paddingHorizontal: 32 },
+  retryBtn: {
+    backgroundColor: '#7C3AED', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 10,
+  },
+  retryBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 });

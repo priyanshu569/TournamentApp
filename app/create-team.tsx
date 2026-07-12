@@ -161,11 +161,11 @@ if (tournamentData?.max_teams && (registeredCount ?? 0) >= tournamentData.max_te
         `/payment?amount=${fee}&tournament_id=${tournament_id}&team_id=${team.id}&registration_id=${reg?.id}`
       );
     } else {
-      // Free tournament — confirm immediately
-      const { error: confirmError } = await supabase
-        .from('registrations')
-        .update({ status: 'confirmed' })
-        .eq('id', reg.id);
+      // Free tournament — confirm immediately via server-side RPC
+      // (registrations.status can no longer be set directly by clients)
+      const { error: confirmError } = await supabase.rpc('confirm_free_registration', {
+        p_registration_id: reg.id,
+      });
 
       if (confirmError) {
         console.log('Failed to auto-confirm free registration:', confirmError.message);
