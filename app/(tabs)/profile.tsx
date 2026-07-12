@@ -140,24 +140,6 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* Follow Stats */}
-      <View style={styles.followRow}>
-        <TouchableOpacity
-          style={styles.followStat}
-          onPress={() => profile?.id && router.push(`/follow-list?id=${profile.id}&type=followers`)}
-        >
-          <Text style={styles.followValue}>{followCounts.followers}</Text>
-          <Text style={styles.followLabel}>Followers</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.followStat}
-          onPress={() => profile?.id && router.push(`/follow-list?id=${profile.id}&type=following`)}
-        >
-          <Text style={styles.followValue}>{followCounts.following}</Text>
-          <Text style={styles.followLabel}>Following</Text>
-        </TouchableOpacity>
-      </View>
-
       {/* Stats */}
       <View style={styles.statsRow}>
         <TouchableOpacity style={styles.statBox} onPress={() => tabNav?.goToTab('history')}>
@@ -165,6 +147,20 @@ export default function ProfileScreen() {
           <Text style={styles.statLabel}>
             {profile?.role === 'host' ? 'Tournaments\nCreated' : 'Tournaments\nJoined'}
           </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.statBox}
+          onPress={() => profile?.id && router.push(`/follow-list?id=${profile.id}&type=followers`)}
+        >
+          <Text style={styles.statValue}>{followCounts.followers}</Text>
+          <Text style={styles.statLabel}>Followers</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.statBox}
+          onPress={() => profile?.id && router.push(`/follow-list?id=${profile.id}&type=following`)}
+        >
+          <Text style={styles.statValue}>{followCounts.following}</Text>
+          <Text style={styles.statLabel}>Following</Text>
         </TouchableOpacity>
       </View>
 
@@ -291,13 +287,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   roleText: { color: '#7C3AED', fontSize: 11, fontWeight: '700' },
-  followRow: {
-    flexDirection: 'row', justifyContent: 'center', gap: 40,
-    marginBottom: 20,
-  },
-  followStat: { alignItems: 'center' },
-  followValue: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  followLabel: { color: '#aaa', fontSize: 12, marginTop: 2 },
   statsRow: {
     flexDirection: 'row', marginHorizontal: 24,
     marginBottom: 24, gap: 12,
