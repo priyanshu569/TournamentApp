@@ -27,16 +27,6 @@ export default function HomeScreen() {
     }, [])
   );
 
-  useState(() => {
-    if (selectedGame === 'All') {
-      setFiltered(tournaments);
-    } else {
-      setFiltered(tournaments.filter(t =>
-        t.game.toLowerCase().includes(selectedGame.toLowerCase())
-      ));
-    }
-  });
-
   async function loadData() {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) { setLoading(false); return; }
