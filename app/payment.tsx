@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { View, StyleSheet, ActivityIndicator, Alert, Text, TouchableOpacity } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { notifyAndLog } from '@/lib/notifications';
 
@@ -191,19 +193,27 @@ export default function Payment() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backText}>← Back</Text>
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={20} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Payment</Text>
-        <View style={{ width: 60 }} />
+        <View style={{ width: 36 }} />
       </View>
 
       {/* Amount Display */}
-      <View style={styles.amountBox}>
+      <LinearGradient
+        colors={['#241a3a', '#150f24']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.amountBox}
+      >
         <Text style={styles.amountLabel}>ENTRY FEE</Text>
         <Text style={styles.amountValue}>₹{amount}</Text>
-        <Text style={styles.amountSub}>Secured by Razorpay</Text>
-      </View>
+        <View style={styles.amountSubRow}>
+          <Ionicons name="shield-checkmark" size={13} color="#00D4AA" />
+          <Text style={styles.amountSub}>Secured by Razorpay</Text>
+        </View>
+      </LinearGradient>
 
       {orderError ? (
         <View style={styles.loadingOverlay}>
@@ -244,15 +254,20 @@ const styles = StyleSheet.create({
     alignItems: 'center', paddingHorizontal: 24,
     paddingTop: 60, paddingBottom: 16,
   },
-  backText: { color: '#7C3AED', fontSize: 15, fontWeight: '600', width: 60 },
+  backBtn: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
+    justifyContent: 'center', alignItems: 'center',
+  },
   headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
   amountBox: {
-    alignItems: 'center', paddingVertical: 24,
-    borderBottomWidth: 1, borderBottomColor: '#1a1a1a',
+    alignItems: 'center', paddingVertical: 28,
+    marginHorizontal: 24, borderRadius: 18, marginBottom: 8,
+    borderWidth: 1, borderColor: '#2f2447',
   },
-  amountLabel: { color: '#555', fontSize: 11, fontWeight: '800', letterSpacing: 2, marginBottom: 8 },
-  amountValue: { color: '#7C3AED', fontSize: 42, fontWeight: '900', marginBottom: 4 },
-  amountSub: { color: '#333', fontSize: 12 },
+  amountLabel: { color: '#888', fontSize: 11, fontWeight: '800', letterSpacing: 2, marginBottom: 8 },
+  amountValue: { color: '#fff', fontSize: 42, fontWeight: '900', marginBottom: 8 },
+  amountSubRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  amountSub: { color: '#00D4AA', fontSize: 12, fontWeight: '600' },
   webview: { flex: 1, backgroundColor: '#0a0a0a' },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,

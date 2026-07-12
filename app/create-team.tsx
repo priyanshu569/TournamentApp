@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView, Platform
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { notifyAndLog } from '@/lib/notifications';
 
@@ -208,6 +209,12 @@ if (tournamentData?.max_teams && (registeredCount ?? 0) >= tournamentData.max_te
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        <View style={styles.headerRow}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={20} color="#fff" />
+          </TouchableOpacity>
+        </View>
+
         <Text style={styles.heading}>Create Your Team</Text>
         <Text style={styles.sub}>Fill in team name and all 4 squad members. A 5th substitute is optional.</Text>
 
@@ -302,6 +309,11 @@ if (tournamentData?.max_teams && (registeredCount ?? 0) >= tournamentData.max_te
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0a' },
   content: { padding: 24, paddingTop: 60, paddingBottom: 80 },
+  headerRow: { marginBottom: 12 },
+  backBtn: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
+    justifyContent: 'center', alignItems: 'center',
+  },
   heading: { fontSize: 28, fontWeight: '900', color: '#fff', marginBottom: 4 },
   sub: { fontSize: 14, color: '#aaa', marginBottom: 28 },
   sectionTitle: {
@@ -316,8 +328,10 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: '#2a2a2a', marginBottom: 10,
   },
   memberBox: {
-    backgroundColor: '#111', borderRadius: 12, padding: 16,
-    marginBottom: 12, borderWidth: 1, borderColor: '#2a2a2a',
+    backgroundColor: '#161616', borderRadius: 14, padding: 16,
+    marginBottom: 12, borderWidth: 1, borderColor: '#262626',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25, shadowRadius: 6, elevation: 3,
   },
   memberHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   memberIndex: {
@@ -337,6 +351,8 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: '#7C3AED', paddingVertical: 16,
     borderRadius: 12, alignItems: 'center', marginTop: 8,
+    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4, shadowRadius: 10, elevation: 6,
   },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 });
