@@ -67,12 +67,23 @@ export default function CreateTeam() {
 
     const { data: tournamentData } = await supabase
   .from('tournaments')
-  .select('status')
+  .select('status, max_teams')
   .eq('id', tournament_id)
   .single();
 
 if (tournamentData?.status !== 'upcoming') {
   Alert.alert('Registration Closed', 'This tournament is no longer accepting registrations.');
+  setLoading(false);
+  return;
+}
+
+const { count: registeredCount } = await supabase
+  .from('registrations')
+  .select('*', { count: 'exact', head: true })
+  .eq('tournament_id', tournament_id);
+
+if (tournamentData?.max_teams && (registeredCount ?? 0) >= tournamentData.max_teams) {
+  Alert.alert('Tournament Full', 'All slots for this tournament have been filled.');
   setLoading(false);
   return;
 }
