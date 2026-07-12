@@ -1,25 +1,33 @@
 import { supabase } from '@/lib/supabase';
 import { useCallback, useState } from 'react';
 import {
-  ActivityIndicator, FlatList, ScrollView, StyleSheet,
+  ActivityIndicator, ScrollView, StyleSheet,
   Text, TouchableOpacity, View
 } from 'react-native';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import NotificationBell from '@/components/NotificationBell';
 import FragifyLogo from '@/components/FragifyLogo';
+import { useTabNavigation } from '@/lib/tabNavigation';
 
-const GAMES = ['All', 'Free Fire', 'BGMI', 'COD Mobile', 'Valorant'];
+const GAME_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  'free fire': 'flame',
+  'bgmi': 'skull',
+  'cod': 'skull',
+  'valorant': 'flash',
+};
 
 export default function HomeScreen() {
   const [role, setRole] = useState<string | null>(null);
+  const [hostStatus, setHostStatus] = useState<string | null>(null);
   const [username, setUsername] = useState('');
   const [tournaments, setTournaments] = useState<any[]>([]);
-  const [filtered, setFiltered] = useState<any[]>([]);
-  const [selectedGame, setSelectedGame] = useState('All');
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const tabNav = useTabNavigation();
 
   useFocusEffect(
     useCallback(() => {
@@ -33,13 +41,14 @@ export default function HomeScreen() {
 
     const { data: profile } = await supabase
       .from('Profiles')
-      .select('role, username')
+      .select('role, username, host_status')
       .eq('id', userData.user.id)
       .single();
 
     if (profile) {
       setRole(profile.role);
       setUsername(profile.username || '');
+      setHostStatus(profile.host_status);
     }
 
     const isHost = profile?.role === 'host';
@@ -53,27 +62,9 @@ export default function HomeScreen() {
     const { data: tournamentData } = await query;
     if (tournamentData) {
       setTournaments(tournamentData);
-      setFiltered(
-        selectedGame === 'All'
-          ? tournamentData
-          : tournamentData.filter((t: any) =>
-              t.game.toLowerCase().includes(selectedGame.toLowerCase())
-            )
-      );
     }
 
     setLoading(false);
-  }
-
-  function handleGameSelect(game: string) {
-    setSelectedGame(game);
-    if (game === 'All') {
-      setFiltered(tournaments);
-    } else {
-      setFiltered(tournaments.filter(t =>
-        t.game.toLowerCase().includes(game.toLowerCase())
-      ));
-    }
   }
 
   const getGameColor = (game: string) => {
@@ -85,6 +76,96 @@ export default function HomeScreen() {
     return '#7C3AED';
   };
 
+  const getGameIcon = (game: string): keyof typeof Ionicons.glyphMap => {
+    const g = game.toLowerCase();
+    for (const key in GAME_ICONS) {
+      if (g.includes(key)) return GAME_ICONS[key];
+    }
+    return 'game-controller';
+  };
+
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return 'TBA';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  };
+
+  const isHost = role === 'host';
+  const liveNow = tournaments.filter((t) => t.status === 'ongoing');
+  const startingSoon = [...tournaments.filter((t) => t.status === 'upcoming')]
+    .sort((a, b) => new Date(a.start_time ?? 0).getTime() - new Date(b.start_time ?? 0).getTime())
+    .slice(0, 10);
+  const bigPrizePools = [...tournaments]
+    .sort((a, b) => (b.prize_pool ?? 0) - (a.prize_pool ?? 0))
+    .slice(0, 10);
+  const canBecomeHost = !isHost && hostStatus !== 'pending';
+
+  const quickActions = [
+    { key: 'leaderboard', icon: 'trophy' as const, color: '#FFB800', label: 'Leaderboard', onPress: () => router.push('/leaderboard') },
+    { key: 'history', icon: 'time' as const, color: '#00D4AA', label: isHost ? 'My Tournaments' : 'My Registrations', onPress: () => tabNav?.goToTab('history') },
+    { key: 'chat', icon: 'chatbubbles' as const, color: '#7C3AED', label: 'Chats', onPress: () => tabNav?.goToTab('chat') },
+    ...(canBecomeHost
+      ? [{ key: 'host', icon: 'megaphone' as const, color: '#FF6B35', label: 'Become a Host', onPress: () => router.push('/request-host-access') }]
+      : []),
+  ];
+
+  function renderCompactCard(item: any, variant: 'live' | 'soon' | 'prize') {
+    return (
+      <TouchableOpacity
+        key={item.id}
+        style={styles.compactCard}
+        onPress={() => router.push(`/tournament-details?id=${item.id}`)}
+      >
+        {item.banner_url ? (
+          <Image source={{ uri: item.banner_url }} style={styles.compactBanner} contentFit="cover" />
+        ) : (
+          <View style={[styles.compactBannerFallback, { backgroundColor: getGameColor(item.game) + '22' }]}>
+            <Ionicons name={getGameIcon(item.game)} size={32} color={getGameColor(item.game)} />
+          </View>
+        )}
+        <View style={styles.compactBody}>
+          <View style={[styles.gameTag, { backgroundColor: getGameColor(item.game) + '22' }]}>
+            <Text style={[styles.gameTagText, { color: getGameColor(item.game) }]}>{item.game.toUpperCase()}</Text>
+          </View>
+          <Text style={styles.compactTitle} numberOfLines={1}>{item.title}</Text>
+          <View style={styles.hostRow}>
+            <Text style={styles.hostName} numberOfLines={1}>by {item.host?.username}</Text>
+            {item.host?.is_verified && <VerifiedBadge size={11} />}
+          </View>
+          {variant === 'soon' && (
+            <Text style={styles.compactMeta}>🗓 {formatDate(item.start_time)}</Text>
+          )}
+          {variant === 'prize' && (
+            <Text style={styles.compactPrize}>₹{item.prize_pool} PRIZE</Text>
+          )}
+          {variant === 'live' && (
+            <View style={styles.liveBadge}>
+              <View style={styles.liveDot} />
+              <Text style={styles.liveBadgeText}>LIVE</Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  }
+
+  function renderSection(title: string, emoji: string, data: any[], variant: 'live' | 'soon' | 'prize') {
+    if (data.length === 0) return null;
+    return (
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>{emoji} {title}</Text>
+          <TouchableOpacity onPress={() => tabNav?.goToTab('events')}>
+            <Text style={styles.sectionSeeAll}>See All →</Text>
+          </TouchableOpacity>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
+          {data.map((item) => renderCompactCard(item, variant))}
+        </ScrollView>
+      </View>
+    );
+  }
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -94,7 +175,7 @@ export default function HomeScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
@@ -105,172 +186,146 @@ export default function HomeScreen() {
           </View>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.leaderboardBtn} onPress={() => router.push('/leaderboard')}>
-            <Text style={styles.leaderboardIcon}>🏆</Text>
-          </TouchableOpacity>
           <NotificationBell />
         </View>
       </View>
 
-      {/* Welcome */}
-      <View style={styles.welcomeBox}>
-        <Text style={styles.welcomeText}>
-          {role === 'host' ? `Welcome back, ${username} 🏆` : `Hey ${username} 🎮`}
+      {/* Hero */}
+      <LinearGradient
+        colors={['#7C3AED', '#4C1D95']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.hero}
+      >
+        <Text style={styles.heroGreeting}>
+          {isHost ? `Welcome back, ${username} 🏆` : `Hey ${username} 🎮`}
         </Text>
-        <Text style={styles.welcomeSub}>
-          {role === 'host' ? 'Manage your tournaments' : 'Find your next tournament'}
+        <Text style={styles.heroSub}>
+          {isHost ? 'Manage your tournaments and grow your community' : 'Find your next tournament and claim victory'}
         </Text>
-      </View>
 
-      {/* Host Create Button */}
-      {role === 'host' && (
-        <TouchableOpacity
-          style={styles.createButton}
-          onPress={() => router.push('/create-tournament')}
-        >
-          <Text style={styles.createButtonText}>+ Create Tournament</Text>
-        </TouchableOpacity>
-      )}
+        <View style={styles.heroPill}>
+          {liveNow.length > 0 ? (
+            <>
+              <View style={styles.heroLiveDot} />
+              <Text style={styles.heroPillText}>{liveNow.length} tournament{liveNow.length !== 1 ? 's' : ''} live right now</Text>
+            </>
+          ) : (
+            <Text style={styles.heroPillText}>No tournaments live right now</Text>
+          )}
+        </View>
 
-      {/* Game Filter */}
-      <View style={styles.filterWrapper}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterContainer}
-        >
-          {GAMES.map((game) => (
-            <TouchableOpacity
-              key={game}
-              style={[styles.filterChip, selectedGame === game && styles.filterChipActive]}
-              onPress={() => handleGameSelect(game)}
-            >
-              <Text style={[styles.filterChipText, selectedGame === game && styles.filterChipTextActive]}>
-                {game}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* Tournament List */}
-      <FlatList
-        data={filtered}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>
-            {role === 'host' ? 'No tournaments yet. Create one!' : 'No tournaments available.'}
-          </Text>
-        }
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[styles.card, { borderLeftColor: getGameColor(item.game), borderLeftWidth: 4 }]}
-            onPress={() => router.push(`/tournament-details?id=${item.id}`)}
-          >
-            {item.banner_url && (
-              <Image source={{ uri: item.banner_url }} style={styles.cardBanner} contentFit="cover" />
-            )}
-            <View style={styles.cardBody}>
-              <View style={styles.cardTop}>
-                <View style={[styles.gameTag, { backgroundColor: getGameColor(item.game) + '22' }]}>
-                  <Text style={[styles.gameTagText, { color: getGameColor(item.game) }]}>
-                    {item.game.toUpperCase()}
-                  </Text>
-                </View>
-                <View style={[styles.statusBadge, {
-                  backgroundColor: item.status === 'upcoming' ? '#00D4AA22' :
-                    item.status === 'ongoing' ? '#FFB80022' : '#FF444422'
-                }]}>
-                  <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
-                </View>
-              </View>
-
-              <Text style={styles.cardTitle}>{item.title}</Text>
-
-              <View style={styles.hostRow}>
-                <Text style={styles.hostName}>by {item.host?.username}</Text>
-                {item.host?.is_verified && <VerifiedBadge size={13} />}
-              </View>
-
-              <View style={styles.cardStats}>
-                <View style={styles.stat}>
-                  <Text style={styles.statValue}>₹{item.prize_pool}</Text>
-                  <Text style={styles.statLabel}>PRIZE</Text>
-                </View>
-                <View style={styles.stat}>
-                  <Text style={styles.statValue}>₹{item.entry_fee}</Text>
-                  <Text style={styles.statLabel}>ENTRY</Text>
-                </View>
-                <View style={styles.stat}>
-                  <Text style={styles.statValue}>{item.max_teams}</Text>
-                  <Text style={styles.statLabel}>SLOTS</Text>
-                </View>
-              </View>
-            </View>
+        {isHost && (
+          <TouchableOpacity style={styles.createButton} onPress={() => router.push('/create-tournament')}>
+            <Ionicons name="add-circle" size={18} color="#7C3AED" />
+            <Text style={styles.createButtonText}>Create Tournament</Text>
           </TouchableOpacity>
         )}
-      />
-    </View>
+      </LinearGradient>
+
+      {/* Quick Actions */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickActionsRow}>
+        {quickActions.map((action) => (
+          <TouchableOpacity key={action.key} style={styles.quickAction} onPress={action.onPress}>
+            <View style={[styles.quickActionIcon, { backgroundColor: action.color + '22' }]}>
+              <Ionicons name={action.icon} size={22} color={action.color} />
+            </View>
+            <Text style={styles.quickActionLabel}>{action.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {tournaments.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="game-controller-outline" size={48} color="#333" />
+          <Text style={styles.emptyText}>
+            {isHost ? 'No tournaments yet. Create one!' : 'No tournaments available yet.'}
+          </Text>
+          {!isHost && (
+            <TouchableOpacity style={styles.emptyBtn} onPress={() => tabNav?.goToTab('events')}>
+              <Text style={styles.emptyBtnText}>Browse Events</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      ) : (
+        <>
+          {renderSection(isHost ? 'Live Now' : 'Live Now', '🔴', liveNow, 'live')}
+          {renderSection('Starting Soon', '⚡', startingSoon, 'soon')}
+          {renderSection('Big Prize Pools', '💰', bigPrizePools, 'prize')}
+        </>
+      )}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0a' },
+  content: { paddingBottom: 32 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' },
   header: {
     flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', padding: 24, paddingTop: 60, paddingBottom: 12,
+    alignItems: 'center', padding: 24, paddingTop: 60, paddingBottom: 16,
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  logo: {
-    width: 40, height: 40, borderRadius: 10,
-    backgroundColor: '#7C3AED', justifyContent: 'center', alignItems: 'center',
-  },
-  logoText: { color: '#fff', fontSize: 20, fontWeight: '800' },
   appName: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 2 },
   appTagline: { color: '#555', fontSize: 9, letterSpacing: 1.5, marginTop: 1 },
-  leaderboardBtn: { padding: 8 },
-  leaderboardIcon: { fontSize: 20 },
-  welcomeBox: { paddingHorizontal: 24, marginBottom: 16 },
-  welcomeText: { color: '#fff', fontSize: 20, fontWeight: '700' },
-  welcomeSub: { color: '#aaa', fontSize: 13, marginTop: 2 },
+
+  hero: {
+    marginHorizontal: 24, borderRadius: 20, padding: 22, marginBottom: 20,
+  },
+  heroGreeting: { color: '#fff', fontSize: 21, fontWeight: '800', marginBottom: 4 },
+  heroSub: { color: '#E9DDFF', fontSize: 13, marginBottom: 14 },
+  heroPill: {
+    flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start',
+    backgroundColor: '#00000033', paddingHorizontal: 12, paddingVertical: 7,
+    borderRadius: 20, gap: 6,
+  },
+  heroLiveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#00D4AA' },
+  heroPillText: { color: '#fff', fontSize: 12, fontWeight: '700' },
   createButton: {
-    backgroundColor: '#7C3AED', marginHorizontal: 24,
-    paddingVertical: 14, borderRadius: 12,
-    alignItems: 'center', marginBottom: 16,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    backgroundColor: '#fff', paddingVertical: 13, borderRadius: 12, marginTop: 16,
   },
-  createButtonText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  filterWrapper: { marginBottom: 8 },
-  filterContainer: { paddingHorizontal: 24, gap: 8, paddingVertical: 8 },
-  filterChip: {
-    paddingHorizontal: 16, paddingVertical: 10,
-    borderRadius: 20, backgroundColor: '#1a1a1a',
-    borderWidth: 1, borderColor: '#2a2a2a',
+  createButtonText: { color: '#7C3AED', fontSize: 15, fontWeight: '800' },
+
+  quickActionsRow: { paddingHorizontal: 24, gap: 20, paddingBottom: 24 },
+  quickAction: { alignItems: 'center', width: 72 },
+  quickActionIcon: {
+    width: 52, height: 52, borderRadius: 26,
+    justifyContent: 'center', alignItems: 'center', marginBottom: 6,
   },
-  filterChipActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
-  filterChipText: { color: '#aaa', fontSize: 13, fontWeight: '600' },
-  filterChipTextActive: { color: '#fff' },
-  listContent: { padding: 24, paddingTop: 4 },
-  emptyText: { color: '#555', textAlign: 'center', marginTop: 40, fontSize: 14 },
-  card: {
-    backgroundColor: '#1a1a1a', borderRadius: 12,
-    marginBottom: 12, borderWidth: 1, borderColor: '#2a2a2a', overflow: 'hidden',
+  quickActionLabel: { color: '#aaa', fontSize: 11, fontWeight: '600', textAlign: 'center' },
+
+  section: { marginBottom: 24 },
+  sectionHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 24, marginBottom: 12,
   },
-  cardBanner: { width: '100%', height: 120 },
-  cardBody: { padding: 16 },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-  gameTag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
-  gameTagText: { fontSize: 11, fontWeight: '800' },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
-  statusText: { fontSize: 11, fontWeight: '700', color: '#fff' },
-  cardTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 4 },
-  hostRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
-  hostName: { fontSize: 12, color: '#888', fontWeight: '600' },
-  cardStats: { flexDirection: 'row', gap: 16 },
-  stat: {},
-  statValue: { fontSize: 15, fontWeight: '700', color: '#7C3AED' },
-  statLabel: { fontSize: 10, color: '#555', fontWeight: '600', marginTop: 2 },
+  sectionTitle: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  sectionSeeAll: { color: '#7C3AED', fontSize: 12, fontWeight: '700' },
+  horizontalList: { paddingHorizontal: 24, gap: 12 },
+
+  compactCard: {
+    width: 220, backgroundColor: '#1a1a1a', borderRadius: 14,
+    borderWidth: 1, borderColor: '#2a2a2a', overflow: 'hidden',
+  },
+  compactBanner: { width: '100%', height: 90 },
+  compactBannerFallback: { width: '100%', height: 90, justifyContent: 'center', alignItems: 'center' },
+  compactBody: { padding: 12 },
+  gameTag: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, marginBottom: 6 },
+  gameTagText: { fontSize: 9, fontWeight: '800' },
+  compactTitle: { color: '#fff', fontSize: 14, fontWeight: '800', marginBottom: 4 },
+  hostRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 },
+  hostName: { fontSize: 11, color: '#888', fontWeight: '600' },
+  compactMeta: { color: '#666', fontSize: 11, fontWeight: '600' },
+  compactPrize: { color: '#FFB800', fontSize: 12, fontWeight: '800' },
+  liveBadge: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#00D4AA' },
+  liveBadgeText: { color: '#00D4AA', fontSize: 11, fontWeight: '800' },
+
+  emptyContainer: { alignItems: 'center', marginTop: 40, paddingHorizontal: 24 },
+  emptyText: { color: '#555', textAlign: 'center', marginTop: 12, fontSize: 14 },
+  emptyBtn: { marginTop: 16, backgroundColor: '#7C3AED', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12 },
+  emptyBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 });
