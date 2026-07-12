@@ -118,6 +118,13 @@ export default function RootLayout() {
           <Stack.Screen name="chat-thread" options={{ headerShown: false }} />
           <Stack.Screen name="new-group" options={{ headerShown: false }} />
           <Stack.Screen name="admin-reports" options={{ headerShown: false }} />
+          <Stack.Screen name="leaderboard" options={{ headerShown: false }} />
+          <Stack.Screen name="live-scoreboard" options={{ headerShown: false }} />
+          <Stack.Screen name="tournament-details" options={{ headerShown: false }} />
+          <Stack.Screen name="registrations" options={{ headerShown: false }} />
+          <Stack.Screen name="enter-results" options={{ headerShown: false }} />
+          <Stack.Screen name="payment" options={{ headerShown: false }} />
+          <Stack.Screen name="create-team" options={{ headerShown: false }} />
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>

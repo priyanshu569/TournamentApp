@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import { notifyAndLog } from '@/lib/notifications';
@@ -298,26 +299,32 @@ export default function TournamentDetails() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
 
+      {/* Header Bar */}
+      <View style={styles.headerBar}>
+        <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={20} color="#fff" />
+        </TouchableOpacity>
+        <View style={styles.shareRow}>
+          <TouchableOpacity style={styles.iconBtn} onPress={handleCopyLink}>
+            <Ionicons name="link" size={16} color="#aaa" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconBtn} onPress={handleShare}>
+            <Ionicons name="share-social" size={16} color="#aaa" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
       {/* Banner Image */}
       {tournament.banner_url && (
         <Image source={{ uri: tournament.banner_url }} style={styles.banner} contentFit="cover" />
       )}
 
-      {/* Game Tag + Share Row */}
+      {/* Game Tag */}
       <View style={styles.topRow}>
         <View style={[styles.gameTag, { backgroundColor: gameColor + '22', marginBottom: 0 }]}>
           <Text style={[styles.gameTagText, { color: gameColor }]}>
             {(tournament.game ?? '').toUpperCase()}
           </Text>
-        </View>
-
-        <View style={styles.shareRow}>
-          <TouchableOpacity style={styles.iconBtn} onPress={handleCopyLink}>
-            <Text style={styles.iconBtnText}>🔗</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconBtn} onPress={handleShare}>
-            <Text style={styles.iconBtnText}>📤</Text>
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -617,9 +624,22 @@ export default function TournamentDetails() {
   );
 }
 
+const cardShadow = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.3,
+  shadowRadius: 8,
+  elevation: 4,
+};
+
 const styles = StyleSheet.create({
+  headerBar: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', marginTop: 4, marginBottom: 16,
+  },
   banner: {
-    width: '100%', height: 180, borderRadius: 12, marginBottom: 16,
+    width: '100%', height: 180, borderRadius: 14, marginBottom: 16,
+    ...cardShadow,
   },
   topRow: {
     flexDirection: 'row', justifyContent: 'space-between',
@@ -627,22 +647,23 @@ const styles = StyleSheet.create({
   },
   shareRow: { flexDirection: 'row', gap: 8 },
   iconBtn: {
-    width: 36, height: 36, borderRadius: 10,
+    width: 36, height: 36, borderRadius: 18,
     backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a',
     justifyContent: 'center', alignItems: 'center',
   },
-  iconBtnText: { fontSize: 16 },
 
   descriptionText: { color: '#ccc', fontSize: 14, lineHeight: 22 },
   rulesBox: {
-    backgroundColor: '#1a1a1a', borderRadius: 12,
-    padding: 16, borderWidth: 1, borderColor: '#2a2a2a',
+    backgroundColor: '#161616', borderRadius: 14,
+    padding: 16, borderWidth: 1, borderColor: '#262626',
+    ...cardShadow,
   },
   rulesText: { color: '#ccc', fontSize: 14, lineHeight: 24 },
 
   resultsBox: {
-    backgroundColor: '#1a1a1a', borderRadius: 12,
-    padding: 16, borderWidth: 1, borderColor: '#2a2a2a',
+    backgroundColor: '#161616', borderRadius: 14,
+    padding: 16, borderWidth: 1, borderColor: '#262626',
+    ...cardShadow,
   },
   resultRow: {
     flexDirection: 'row', alignItems: 'center',
@@ -695,9 +716,10 @@ const styles = StyleSheet.create({
   dateText: { color: '#aaa', fontSize: 13 },
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
   statBox: {
-    flex: 1, backgroundColor: '#1a1a1a', borderRadius: 12,
+    flex: 1, backgroundColor: '#161616', borderRadius: 14,
     padding: 16, alignItems: 'center', borderWidth: 1,
-    borderColor: '#2a2a2a', borderTopWidth: 3,
+    borderColor: '#262626', borderTopWidth: 3,
+    ...cardShadow,
   },
   statValue: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 4 },
   statLabel: { fontSize: 11, color: '#aaa' },
@@ -708,8 +730,9 @@ const styles = StyleSheet.create({
     letterSpacing: 2, marginBottom: 12,
   },
   roomCodeBox: {
-    backgroundColor: '#1a1a1a', borderRadius: 12,
-    padding: 16, borderWidth: 1, borderColor: '#2a2a2a',
+    backgroundColor: '#161616', borderRadius: 14,
+    padding: 16, borderWidth: 1, borderColor: '#262626',
+    ...cardShadow,
   },
   roomRow: {
     flexDirection: 'row', justifyContent: 'space-between',
@@ -750,7 +773,8 @@ const styles = StyleSheet.create({
   },
   waitingText: { color: '#FFB800', fontSize: 13, fontWeight: '600' },
   actionButton: {
-    paddingVertical: 16, borderRadius: 12, alignItems: 'center',
+    paddingVertical: 16, borderRadius: 14, alignItems: 'center',
+    ...cardShadow,
   },
   actionButtonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
   alreadyRegistered: {

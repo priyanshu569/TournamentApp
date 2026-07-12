@@ -6,11 +6,13 @@ import { supabase } from '@/lib/supabase';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
 import { AntDesign } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import FragifyLogo from '@/components/FragifyLogo';
 WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const [googleLoading, setGoogleLoading] = useState(false);
+  const router = useRouter();
 
   async function signInWithGoogle() {
     setGoogleLoading(true);
@@ -75,8 +77,12 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.glowCircle} />
+
       <View style={styles.logoBox}>
-        <FragifyLogo size={64} />
+        <View style={styles.logoRing}>
+          <FragifyLogo size={64} />
+        </View>
         <Text style={styles.appName}>FRAGIFY</Text>
         <Text style={styles.appTagline}>ESPORTS · COMPETE · WIN</Text>
       </View>
@@ -84,25 +90,46 @@ export default function LoginScreen() {
       <Text style={styles.title}>Welcome back</Text>
       <Text style={styles.subtitle}>Sign in with Google to continue</Text>
 
-      <TouchableOpacity style={styles.googleButton} onPress={signInWithGoogle} disabled={googleLoading}>
+      <TouchableOpacity style={styles.googleButton} onPress={signInWithGoogle} disabled={googleLoading} activeOpacity={0.85}>
         <AntDesign name="google" size={20} color="#DB4437" style={{ marginRight: 10 }} />
         <Text style={styles.googleButtonText}>{googleLoading ? 'Connecting...' : 'Continue with Google'}</Text>
       </TouchableOpacity>
+
+      <Text style={styles.footerText}>
+        By continuing, you agree to our{' '}
+        <Text style={styles.footerLink} onPress={() => router.push('/privacy-policy')}>Privacy Policy</Text>
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#0a0a0a' },
+  container: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#0a0a0a', overflow: 'hidden' },
+  glowCircle: {
+    position: 'absolute', top: -120, alignSelf: 'center',
+    width: 340, height: 340, borderRadius: 170,
+    backgroundColor: '#7C3AED', opacity: 0.16,
+  },
   logoBox: { alignItems: 'center', marginBottom: 48 },
-  appName: { color: '#fff', fontSize: 20, fontWeight: '800', letterSpacing: 3, marginTop: 10 },
+  logoRing: {
+    width: 96, height: 96, borderRadius: 48,
+    justifyContent: 'center', alignItems: 'center',
+    backgroundColor: '#150f24', borderWidth: 1, borderColor: '#7C3AED44',
+    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5, shadowRadius: 20, elevation: 10,
+  },
+  appName: { color: '#fff', fontSize: 20, fontWeight: '800', letterSpacing: 3, marginTop: 16 },
   appTagline: { color: '#555', fontSize: 10, letterSpacing: 1.5, marginTop: 4 },
-  title: { fontSize: 24, fontWeight: '800', color: '#fff', marginBottom: 8, textAlign: 'center' },
+  title: { fontSize: 26, fontWeight: '800', color: '#fff', marginBottom: 8, textAlign: 'center' },
   subtitle: { fontSize: 14, color: '#aaa', marginBottom: 32, textAlign: 'center' },
   googleButton: {
-    borderWidth: 1, borderColor: '#2a2a2a', backgroundColor: '#1a1a1a',
-    paddingVertical: 16, borderRadius: 12, alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingVertical: 16, borderRadius: 14, alignItems: 'center',
     flexDirection: 'row', justifyContent: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3, shadowRadius: 10, elevation: 6,
   },
-  googleButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  googleButtonText: { color: '#1a1a1a', fontSize: 16, fontWeight: '700' },
+  footerText: { color: '#555', fontSize: 12, textAlign: 'center', marginTop: 24, lineHeight: 18 },
+  footerLink: { color: '#7C3AED', fontWeight: '700' },
 });
