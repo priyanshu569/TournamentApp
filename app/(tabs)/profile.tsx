@@ -83,7 +83,11 @@ export default function ProfileScreen() {
 
     const { error } = await supabase
       .from('Profiles')
-      .update({ role: newRole })
+      .update(
+        newRole === 'host'
+          ? { role: newRole, host_status: 'approved' }
+          : { role: newRole }
+      )
       .eq('id', userData.user.id);
 
     if (error) {
