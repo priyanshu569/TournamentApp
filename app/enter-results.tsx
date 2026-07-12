@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, ActivityIndicator,
   TouchableOpacity, Alert, ScrollView, TextInput
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 
 type RosterMember = {
@@ -27,7 +27,6 @@ type MatchTeamState = {
 
 export default function EnterResults() {
   const { tournament_id } = useLocalSearchParams();
-  const router = useRouter();
   const [tournament, setTournament] = useState<any>(null);
   const [roster, setRoster] = useState<RosterTeam[]>([]);
   const [selectedMatch, setSelectedMatch] = useState(1);
@@ -35,6 +34,7 @@ export default function EnterResults() {
   const [loading, setLoading] = useState(true);
   const [loadingMatch, setLoadingMatch] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
 
   useEffect(() => { loadRoster(); }, [tournament_id]);
   useEffect(() => {
@@ -142,6 +142,7 @@ export default function EnterResults() {
 
     setMatchState(nextState);
     setLoadingMatch(false);
+    setDirty(false);
   }
 
   function updatePlacement(teamId: string, value: string) {
@@ -149,6 +150,7 @@ export default function EnterResults() {
       ...prev,
       [teamId]: { ...prev[teamId], placement: value },
     }));
+    setDirty(true);
   }
 
   function updateKills(teamId: string, memberId: string, value: string) {
@@ -159,6 +161,7 @@ export default function EnterResults() {
         kills: { ...prev[teamId].kills, [memberId]: value },
       },
     }));
+    setDirty(true);
   }
 
   function setBenched(teamId: string, memberId: string) {
@@ -166,6 +169,24 @@ export default function EnterResults() {
       ...prev,
       [teamId]: { ...prev[teamId], benchedMemberId: memberId },
     }));
+    setDirty(true);
+  }
+
+  function handleMatchTabPress(num: number) {
+    if (num === selectedMatch) return;
+
+    if (dirty) {
+      Alert.alert(
+        'Unsaved Changes',
+        `You have unsaved changes for Match ${selectedMatch}. Switch anyway and lose them?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Discard & Switch', style: 'destructive', onPress: () => setSelectedMatch(num) },
+        ]
+      );
+    } else {
+      setSelectedMatch(num);
+    }
   }
 
   function teamTotalKills(team: RosterTeam) {
@@ -248,9 +269,8 @@ export default function EnterResults() {
     if (teamError) {
       Alert.alert('Error', teamError.message);
     } else {
-      Alert.alert('Saved 🎉', `Results for Match ${selectedMatch} have been recorded.`, [
-        { text: 'OK', onPress: () => router.back() }
-      ]);
+      setDirty(false);
+      Alert.alert('Saved 🎉', `Results for Match ${selectedMatch} have been recorded.`);
     }
   }
 
@@ -275,7 +295,7 @@ export default function EnterResults() {
             <TouchableOpacity
               key={num}
               style={[styles.matchChip, selectedMatch === num && styles.matchChipActive]}
-              onPress={() => setSelectedMatch(num)}
+              onPress={() => handleMatchTabPress(num)}
             >
               <Text style={[styles.matchChipText, selectedMatch === num && styles.matchChipTextActive]}>
                 Match {num}
