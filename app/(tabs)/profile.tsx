@@ -4,10 +4,20 @@ import {
   TouchableOpacity, ScrollView, Alert
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import NotificationBell from '@/components/NotificationBell';
 import Avatar from '@/components/Avatar';
 import { useTabNavigation } from '@/lib/tabNavigation';
+
+type MenuAction = {
+  key: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+  label: string;
+  onPress: () => void;
+};
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -113,8 +123,27 @@ export default function ProfileScreen() {
     );
   }
 
+  const canBecomeHost = profile?.role !== 'host' && profile?.host_status !== 'pending';
+  const isAdmin = !!profile?.is_admin;
+
+  const menuActions: MenuAction[] = [
+    ...(canBecomeHost ? [{
+      key: 'become-host', icon: 'trophy' as const, color: '#FFB800',
+      label: 'Become a Host', onPress: () => router.push('/request-host-access'),
+    }] : []),
+    { key: 'edit-profile', icon: 'create' as const, color: '#00D4AA', label: 'Edit Profile', onPress: () => router.push('/edit-profile') },
+    ...(isAdmin ? [
+      { key: 'admin-broadcast', icon: 'megaphone' as const, color: '#7C3AED', label: 'Admin Broadcast', onPress: () => router.push('/admin-broadcast') },
+      { key: 'admin-host-requests', icon: 'trophy' as const, color: '#7C3AED', label: 'Host Requests', onPress: () => router.push('/admin-host-requests') },
+      { key: 'switch-role', icon: 'sync' as const, color: '#7C3AED', label: 'Switch Role', onPress: handleSwitchRole },
+      { key: 'admin-reports', icon: 'warning' as const, color: '#7C3AED', label: 'Reports', onPress: () => router.push('/admin-reports') },
+    ] : []),
+    { key: 'settings', icon: 'settings' as const, color: '#888', label: 'Settings', onPress: () => router.push('/settings') },
+    { key: 'support', icon: 'help-circle' as const, color: '#4FA3FF', label: 'Support', onPress: () => router.push('/support') },
+  ];
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Profile</Text>
@@ -122,8 +151,13 @@ export default function ProfileScreen() {
       </View>
 
       {/* Profile Card */}
-      <View style={styles.profileCard}>
-        <Avatar avatarId={profile?.avatar_id} username={profile?.username} size={64} />
+      <LinearGradient
+        colors={['#241a3a', '#150f24']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.profileCard}
+      >
+        <Avatar avatarId={profile?.avatar_id} username={profile?.username} size={68} />
         <View style={[styles.profileInfo, { marginLeft: 16 }]}>
           <Text style={styles.username}>{profile?.username ?? 'Unknown'}</Text>
           <View style={styles.roleBadge}>
@@ -132,17 +166,23 @@ export default function ProfileScreen() {
             </Text>
           </View>
           {profile?.free_fire_uid ? (
-            <Text style={styles.uidText}>🎮 Free Fire UID: {profile.free_fire_uid}</Text>
+            <View style={styles.uidRow}>
+              <Ionicons name="flame" size={12} color="#FF6B35" />
+              <Text style={styles.uidText}>Free Fire: {profile.free_fire_uid}</Text>
+            </View>
           ) : null}
           {profile?.bgmi_uid ? (
-            <Text style={styles.uidText}>🎯 BGMI UID: {profile.bgmi_uid}</Text>
+            <View style={styles.uidRow}>
+              <Ionicons name="skull" size={12} color="#FFB800" />
+              <Text style={styles.uidText}>BGMI: {profile.bgmi_uid}</Text>
+            </View>
           ) : null}
         </View>
-      </View>
+      </LinearGradient>
 
       {/* Stats */}
       <View style={styles.statsRow}>
-        <TouchableOpacity style={styles.statBox} onPress={() => tabNav?.goToTab('history')}>
+        <TouchableOpacity style={styles.statBox} onPress={() => tabNav?.goToTab('history')} activeOpacity={0.8}>
           <Text style={styles.statValue}>{stats.tournaments}</Text>
           <Text style={styles.statLabel}>
             {profile?.role === 'host' ? 'Tournaments\nCreated' : 'Tournaments\nJoined'}
@@ -150,6 +190,7 @@ export default function ProfileScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.statBox}
+          activeOpacity={0.8}
           onPress={() => profile?.id && router.push(`/follow-list?id=${profile.id}&type=followers`)}
         >
           <Text style={styles.statValue}>{followCounts.followers}</Text>
@@ -157,6 +198,7 @@ export default function ProfileScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.statBox}
+          activeOpacity={0.8}
           onPress={() => profile?.id && router.push(`/follow-list?id=${profile.id}&type=following`)}
         >
           <Text style={styles.statValue}>{followCounts.following}</Text>
@@ -166,93 +208,36 @@ export default function ProfileScreen() {
 
       {/* Menu Items */}
       <View style={styles.menu}>
-        {profile?.role !== 'host' && profile?.host_status !== 'pending' && (
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => router.push('/request-host-access')}
-          >
-            <Text style={styles.menuIcon}>🏆</Text>
-            <Text style={styles.menuText}>Become a Host</Text>
-            <Text style={styles.menuArrow}>→</Text>
-          </TouchableOpacity>
-        )}
-
         {profile?.host_status === 'pending' && (
           <View style={[styles.menuItem, styles.pendingItem]}>
-            <Text style={styles.menuIcon}>⏳</Text>
+            <View style={[styles.menuIconCircle, { backgroundColor: '#FFB80022' }]}>
+              <Ionicons name="hourglass" size={18} color="#FFB800" />
+            </View>
             <Text style={styles.pendingText}>Host Request Pending</Text>
           </View>
         )}
 
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => router.push('/edit-profile')}
-        >
-          <Text style={styles.menuIcon}>✏️</Text>
-          <Text style={styles.menuText}>Edit Profile</Text>
-          <Text style={styles.menuArrow}>→</Text>
-        </TouchableOpacity>
-
-        {profile?.is_admin && (
+        {menuActions.map((action) => (
           <TouchableOpacity
-            style={[styles.menuItem, styles.adminItem]}
-            onPress={() => router.push('/admin-broadcast')}
+            key={action.key}
+            style={styles.menuItem}
+            onPress={action.onPress}
+            activeOpacity={0.8}
           >
-            <Text style={styles.menuIcon}>📢</Text>
-            <Text style={styles.adminText}>Admin Broadcast</Text>
-            <Text style={styles.menuArrow}>→</Text>
+            <View style={[styles.menuIconCircle, { backgroundColor: action.color + '22' }]}>
+              <Ionicons name={action.icon} size={18} color={action.color} />
+            </View>
+            <Text style={styles.menuText}>{action.label}</Text>
+            <Ionicons name="chevron-forward" size={18} color="#444" />
           </TouchableOpacity>
-        )}
+        ))}
 
-        {profile?.is_admin && (
-          <TouchableOpacity
-            style={[styles.menuItem, styles.adminItem]}
-            onPress={() => router.push('/admin-host-requests')}
-          >
-            <Text style={styles.menuIcon}>🏆</Text>
-            <Text style={styles.adminText}>Host Requests</Text>
-            <Text style={styles.menuArrow}>→</Text>
-          </TouchableOpacity>
-        )}
-
-        {profile?.is_admin && (
-          <TouchableOpacity
-            style={[styles.menuItem, styles.adminItem]}
-            onPress={handleSwitchRole}
-          >
-            <Text style={styles.menuIcon}>🔄</Text>
-            <Text style={styles.adminText}>Switch Role</Text>
-            <Text style={styles.menuArrow}>→</Text>
-          </TouchableOpacity>
-        )}
-
-        {profile?.is_admin && (
-          <TouchableOpacity
-            style={[styles.menuItem, styles.adminItem]}
-            onPress={() => router.push('/admin-reports')}
-          >
-            <Text style={styles.menuIcon}>⚠️</Text>
-            <Text style={styles.adminText}>Reports</Text>
-            <Text style={styles.menuArrow}>→</Text>
-          </TouchableOpacity>
-        )}
-
-        <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/settings')}>
-          <Text style={styles.menuIcon}>⚙️</Text>
-          <Text style={styles.menuText}>Settings</Text>
-          <Text style={styles.menuArrow}>→</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/support')}>
-          <Text style={styles.menuIcon}>❓</Text>
-          <Text style={styles.menuText}>Support</Text>
-          <Text style={styles.menuArrow}>→</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={[styles.menuItem, styles.logoutItem]} onPress={handleLogout}>
-          <Text style={styles.menuIcon}>🚪</Text>
+        <TouchableOpacity style={[styles.menuItem, styles.logoutItem]} onPress={handleLogout} activeOpacity={0.8}>
+          <View style={[styles.menuIconCircle, { backgroundColor: '#ff444422' }]}>
+            <Ionicons name="log-out" size={18} color="#ff4444" />
+          </View>
           <Text style={styles.logoutText}>Logout</Text>
-          <Text style={styles.menuArrow}>→</Text>
+          <Ionicons name="chevron-forward" size={18} color="#442222" />
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -267,49 +252,52 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', padding: 24, paddingTop: 60,
   },
-
-  uidText: { color: '#aaa', fontSize: 12, marginTop: 4, fontWeight: '600' },
-
   headerTitle: { fontSize: 26, fontWeight: '800', color: '#fff' },
-  notifBtn: { padding: 8 },
-  notifIcon: { fontSize: 22 },
+
+  uidRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 },
+  uidText: { color: '#aaa', fontSize: 12, fontWeight: '600' },
+
   profileCard: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#1a1a1a', margin: 24, marginTop: 0,
-    borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#2a2a2a',
+    margin: 24, marginTop: 0,
+    borderRadius: 18, padding: 20, borderWidth: 1, borderColor: '#2f2447',
+    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25, shadowRadius: 12, elevation: 6,
   },
   profileInfo: { flex: 1 },
   username: { fontSize: 20, fontWeight: '800', color: '#fff', marginBottom: 6 },
   roleBadge: {
-    alignSelf: 'flex-start', backgroundColor: '#7C3AED22',
+    alignSelf: 'flex-start', backgroundColor: '#7C3AED33',
     paddingHorizontal: 10, paddingVertical: 3,
     borderRadius: 20, borderWidth: 1, borderColor: '#7C3AED',
-    marginBottom: 4,
+    marginBottom: 2,
   },
-  roleText: { color: '#7C3AED', fontSize: 11, fontWeight: '700' },
+  roleText: { color: '#B794F6', fontSize: 11, fontWeight: '700' },
   statsRow: {
     flexDirection: 'row', marginHorizontal: 24,
     marginBottom: 24, gap: 12,
   },
   statBox: {
-    flex: 1, backgroundColor: '#1a1a1a', borderRadius: 12,
-    padding: 16, alignItems: 'center', borderWidth: 1, borderColor: '#2a2a2a',
+    flex: 1, backgroundColor: '#161616', borderRadius: 14,
+    padding: 16, alignItems: 'center', borderWidth: 1, borderColor: '#262626',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3, shadowRadius: 6, elevation: 3,
   },
   statValue: { fontSize: 22, fontWeight: '800', color: '#7C3AED', marginBottom: 4 },
   statLabel: { fontSize: 11, color: '#aaa', textAlign: 'center', lineHeight: 16 },
-  menu: { marginHorizontal: 24, gap: 8 },
+  menu: { marginHorizontal: 24, gap: 10 },
   menuItem: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#1a1a1a', borderRadius: 12,
-    padding: 16, borderWidth: 1, borderColor: '#2a2a2a',
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: '#161616', borderRadius: 14,
+    padding: 14, borderWidth: 1, borderColor: '#262626',
   },
-  menuIcon: { fontSize: 18, marginRight: 12 },
+  menuIconCircle: {
+    width: 38, height: 38, borderRadius: 19,
+    justifyContent: 'center', alignItems: 'center',
+  },
   menuText: { flex: 1, color: '#fff', fontSize: 15, fontWeight: '600' },
-  menuArrow: { color: '#555', fontSize: 16 },
-  adminItem: { borderColor: '#7C3AED' },
-  adminText: { flex: 1, color: '#7C3AED', fontSize: 15, fontWeight: '700' },
-  pendingItem: { borderColor: '#3a3a00', backgroundColor: '#1a1a00' },
+  pendingItem: { borderColor: '#3a3a00', backgroundColor: '#1a1a0088' },
   pendingText: { flex: 1, color: '#FFB800', fontSize: 15, fontWeight: '600' },
-  logoutItem: { borderColor: '#3a1a1a' },
+  logoutItem: { borderColor: '#2a1414' },
   logoutText: { flex: 1, color: '#ff4444', fontSize: 15, fontWeight: '600' },
 });

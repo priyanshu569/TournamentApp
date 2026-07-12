@@ -1,5 +1,5 @@
 import React, { useRef, useState, useCallback } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, Platform } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import PagerView from 'react-native-pager-view';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -80,12 +80,14 @@ export default function TabLayout() {
               onPress={() => handleTabPress(index)}
               activeOpacity={0.7}
             >
-              <Ionicons
-                name={tab.icon}
-                size={24}
-                color={isActive ? '#7C3AED' : '#555'}
-              />
-              <Text style={[styles.tabLabel, { color: isActive ? '#7C3AED' : '#555' }]}>
+              <View style={[styles.tabIconWrap, isActive && styles.tabIconWrapActive]}>
+                <Ionicons
+                  name={tab.icon}
+                  size={21}
+                  color={isActive ? '#fff' : '#666'}
+                />
+              </View>
+              <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
                 {tab.label}
               </Text>
             </TouchableOpacity>
@@ -104,7 +106,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#0d0d0d',
     borderTopColor: '#1a1a1a',
     borderTopWidth: 1,
-    paddingTop: 8,
+    paddingTop: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 12,
   },
   tabItem: {
     flex: 1,
@@ -112,9 +119,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 4,
   },
+  tabIconWrap: {
+    width: 40,
+    height: 30,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tabIconWrapActive: {
+    backgroundColor: '#7C3AED',
+  },
   tabLabel: {
     fontSize: 11,
     fontWeight: '600',
-    marginTop: 2,
+    marginTop: 3,
+    color: '#666',
+  },
+  tabLabelActive: {
+    color: '#7C3AED',
   },
 });

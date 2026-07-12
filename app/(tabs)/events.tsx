@@ -4,12 +4,20 @@ import {
   TouchableOpacity, ActivityIndicator, ScrollView, TextInput, Modal
 } from 'react-native';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import NotificationBell from '@/components/NotificationBell';
 
-const GAMES = ['All', 'Free Fire', 'BGMI', 'COD Mobile', 'Valorant'];
+const GAMES: { label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { label: 'All', icon: 'apps' },
+  { label: 'Free Fire', icon: 'flame' },
+  { label: 'BGMI', icon: 'skull' },
+  { label: 'COD Mobile', icon: 'skull' },
+  { label: 'Valorant', icon: 'flash' },
+];
 
 type SortOption =
   | 'newest'
@@ -141,13 +149,18 @@ export default function EventsScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Tournaments</Text>
-          <Text style={styles.headerSub}>{filtered.length} events found</Text>
+        <View style={styles.headerLeft}>
+          <View style={styles.headerIconBadge}>
+            <Ionicons name="trophy" size={20} color="#FFB800" />
+          </View>
+          <View>
+            <Text style={styles.headerTitle}>Tournaments</Text>
+            <Text style={styles.headerSub}>{filtered.length} events found</Text>
+          </View>
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.leaderboardBtn} onPress={() => router.push('/leaderboard')}>
-            <Text style={styles.leaderboardIcon}>🏆</Text>
+            <Ionicons name="podium" size={18} color="#7C3AED" />
           </TouchableOpacity>
           <NotificationBell />
         </View>
@@ -155,21 +168,27 @@ export default function EventsScreen() {
 
       {/* Tournaments / Scrims tabs */}
       <View style={styles.eventTabRow}>
-        <TouchableOpacity
-          style={[styles.eventTabBtn, eventTab === 'tournament' && styles.eventTabBtnActive]}
-          onPress={() => setEventTab('tournament')}
-        >
-          <Text style={[styles.eventTabText, eventTab === 'tournament' && styles.eventTabTextActive]}>
-            Tournaments
-          </Text>
+        <TouchableOpacity style={styles.eventTabBtnWrap} onPress={() => setEventTab('tournament')} activeOpacity={0.85}>
+          {eventTab === 'tournament' ? (
+            <LinearGradient colors={['#7C3AED', '#4C1D95']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.eventTabBtnInner}>
+              <Text style={styles.eventTabTextActive}>Tournaments</Text>
+            </LinearGradient>
+          ) : (
+            <View style={styles.eventTabBtnInner}>
+              <Text style={styles.eventTabText}>Tournaments</Text>
+            </View>
+          )}
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.eventTabBtn, eventTab === 'scrim' && styles.eventTabBtnActive]}
-          onPress={() => setEventTab('scrim')}
-        >
-          <Text style={[styles.eventTabText, eventTab === 'scrim' && styles.eventTabTextActive]}>
-            Scrims
-          </Text>
+        <TouchableOpacity style={styles.eventTabBtnWrap} onPress={() => setEventTab('scrim')} activeOpacity={0.85}>
+          {eventTab === 'scrim' ? (
+            <LinearGradient colors={['#7C3AED', '#4C1D95']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.eventTabBtnInner}>
+              <Text style={styles.eventTabTextActive}>Scrims</Text>
+            </LinearGradient>
+          ) : (
+            <View style={styles.eventTabBtnInner}>
+              <Text style={styles.eventTabText}>Scrims</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -192,7 +211,7 @@ export default function EventsScreen() {
       {/* Search Bar + Sort Button */}
       <View style={styles.searchRow}>
         <View style={styles.searchContainer}>
-          <Text style={styles.searchIcon}>🔍</Text>
+          <Ionicons name="search" size={16} color="#666" />
           <TextInput
             style={styles.searchInput}
             placeholder="Search tournaments..."
@@ -202,7 +221,7 @@ export default function EventsScreen() {
           />
           {search.length > 0 && (
             <TouchableOpacity onPress={() => setSearch('')}>
-              <Text style={styles.clearBtn}>✕</Text>
+              <Ionicons name="close-circle" size={18} color="#555" />
             </TouchableOpacity>
           )}
         </View>
@@ -211,7 +230,7 @@ export default function EventsScreen() {
           style={[styles.sortBtn, isSortActive && styles.sortBtnActive]}
           onPress={() => setSortModalVisible(true)}
         >
-          <Text style={styles.sortBtnIcon}>⇅</Text>
+          <Ionicons name="swap-vertical" size={15} color={isSortActive ? '#7C3AED' : '#aaa'} />
           <Text style={[styles.sortBtnText, isSortActive && styles.sortBtnTextActive]}>
             {isSortActive ? activeSortOption?.shortLabel : 'Sort'}
           </Text>
@@ -227,12 +246,17 @@ export default function EventsScreen() {
         >
           {GAMES.map((game) => (
             <TouchableOpacity
-              key={game}
-              style={[styles.filterChip, selectedGame === game && styles.filterChipActive]}
-              onPress={() => setSelectedGame(game)}
+              key={game.label}
+              style={[styles.filterChip, selectedGame === game.label && styles.filterChipActive]}
+              onPress={() => setSelectedGame(game.label)}
             >
-              <Text style={[styles.filterChipText, selectedGame === game && styles.filterChipTextActive]}>
-                {game}
+              <Ionicons
+                name={game.icon}
+                size={13}
+                color={selectedGame === game.label ? '#fff' : '#888'}
+              />
+              <Text style={[styles.filterChipText, selectedGame === game.label && styles.filterChipTextActive]}>
+                {game.label}
               </Text>
             </TouchableOpacity>
           ))}
@@ -247,15 +271,18 @@ export default function EventsScreen() {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>🔍</Text>
+            <View style={styles.emptyIconCircle}>
+              <Ionicons name="search" size={28} color="#444" />
+            </View>
             <Text style={styles.emptyText}>No tournaments found.</Text>
             <Text style={styles.emptySubText}>Try a different search or game filter.</Text>
           </View>
         }
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={[styles.card, { borderLeftColor: getGameColor(item.game), borderLeftWidth: 4 }]}
+            style={[styles.card, { borderLeftColor: getGameColor(item.game), borderLeftWidth: 3 }]}
             onPress={() => router.push(`/tournament-details?id=${item.id}`)}
+            activeOpacity={0.85}
           >
             {item.banner_url && (
               <Image source={{ uri: item.banner_url }} style={styles.cardBanner} contentFit="cover" />
@@ -294,10 +321,12 @@ export default function EventsScreen() {
                   <Text style={styles.statValue}>₹{item.prize_pool}</Text>
                   <Text style={styles.statLabel}>PRIZE</Text>
                 </View>
+                <View style={styles.statDivider} />
                 <View style={styles.stat}>
                   <Text style={styles.statValue}>₹{item.entry_fee}</Text>
                   <Text style={styles.statLabel}>ENTRY</Text>
                 </View>
+                <View style={styles.statDivider} />
                 <View style={styles.stat}>
                   <Text style={styles.statValue}>{item.max_teams}</Text>
                   <Text style={styles.statLabel}>SLOTS</Text>
@@ -363,6 +392,14 @@ export default function EventsScreen() {
   );
 }
 
+const cardShadow = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.35,
+  shadowRadius: 8,
+  elevation: 5,
+};
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0a' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' },
@@ -370,22 +407,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', padding: 24, paddingTop: 60, paddingBottom: 12,
   },
-  headerTitle: { fontSize: 26, fontWeight: '800', color: '#fff' },
-  headerSub: { fontSize: 13, color: '#aaa', marginTop: 2 },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  leaderboardBtn: { padding: 8 },
-  leaderboardIcon: { fontSize: 20 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  headerIconBadge: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: '#FFB80018', justifyContent: 'center', alignItems: 'center',
+  },
+  headerTitle: { fontSize: 24, fontWeight: '800', color: '#fff' },
+  headerSub: { fontSize: 12, color: '#888', marginTop: 2 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  leaderboardBtn: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: '#7C3AED18',
+    justifyContent: 'center', alignItems: 'center',
+  },
   eventTabRow: {
     flexDirection: 'row', marginHorizontal: 24, marginBottom: 12,
     backgroundColor: '#1a1a1a', borderRadius: 12, padding: 4,
-    borderWidth: 1, borderColor: '#2a2a2a',
+    borderWidth: 1, borderColor: '#2a2a2a', gap: 4,
   },
-  eventTabBtn: {
-    flex: 1, paddingVertical: 10, borderRadius: 9, alignItems: 'center',
-  },
-  eventTabBtnActive: { backgroundColor: '#7C3AED' },
+  eventTabBtnWrap: { flex: 1 },
+  eventTabBtnInner: { paddingVertical: 10, borderRadius: 9, alignItems: 'center' },
   eventTabText: { color: '#aaa', fontSize: 14, fontWeight: '700' },
-  eventTabTextActive: { color: '#fff' },
+  eventTabTextActive: { color: '#fff', fontSize: 14, fontWeight: '700' },
   lobbyFilterRow: {
     flexDirection: 'row', gap: 8, marginHorizontal: 24, marginBottom: 14,
   },
@@ -401,26 +443,24 @@ const styles = StyleSheet.create({
     marginHorizontal: 24, marginBottom: 14, gap: 10,
   },
   searchContainer: {
-    flex: 1, flexDirection: 'row', alignItems: 'center',
+    flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: '#1a1a1a',
     borderRadius: 12, paddingHorizontal: 14,
     borderWidth: 1, borderColor: '#2a2a2a',
   },
-  searchIcon: { fontSize: 16, marginRight: 8 },
   searchInput: { flex: 1, color: '#fff', fontSize: 15, paddingVertical: 12 },
-  clearBtn: { color: '#555', fontSize: 16, padding: 4 },
   sortBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, height: 46, borderRadius: 12,
     backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a',
   },
   sortBtnActive: { backgroundColor: '#7C3AED22', borderColor: '#7C3AED' },
-  sortBtnIcon: { fontSize: 14, color: '#aaa' },
   sortBtnText: { color: '#aaa', fontSize: 13, fontWeight: '600' },
   sortBtnTextActive: { color: '#7C3AED', fontWeight: '700' },
   filterWrapper: { marginBottom: 4 },
   filterContainer: { paddingHorizontal: 24, gap: 8, paddingVertical: 8 },
   filterChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 16, paddingVertical: 10,
     borderRadius: 20, backgroundColor: '#1a1a1a',
     borderWidth: 1, borderColor: '#2a2a2a',
@@ -430,12 +470,17 @@ const styles = StyleSheet.create({
   filterChipTextActive: { color: '#fff' },
   listContent: { padding: 24, paddingTop: 4 },
   emptyContainer: { alignItems: 'center', marginTop: 60 },
-  emptyIcon: { fontSize: 40, marginBottom: 12 },
+  emptyIconCircle: {
+    width: 64, height: 64, borderRadius: 32, backgroundColor: '#1a1a1a',
+    justifyContent: 'center', alignItems: 'center', marginBottom: 16,
+    borderWidth: 1, borderColor: '#2a2a2a',
+  },
   emptyText: { color: '#fff', fontSize: 16, fontWeight: '700', marginBottom: 4 },
   emptySubText: { color: '#555', fontSize: 13 },
   card: {
-    backgroundColor: '#1a1a1a', borderRadius: 12,
-    marginBottom: 12, borderWidth: 1, borderColor: '#2a2a2a', overflow: 'hidden',
+    backgroundColor: '#161616', borderRadius: 14,
+    marginBottom: 14, borderWidth: 1, borderColor: '#262626', overflow: 'hidden',
+    ...cardShadow,
   },
   cardBanner: { width: '100%', height: 120 },
   cardBody: { padding: 16 },
@@ -454,9 +499,10 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 4 },
   hostRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
   hostName: { fontSize: 12, color: '#888', fontWeight: '600' },
-  cardDate: { fontSize: 12, color: '#555', marginBottom: 12 },
-  cardStats: { flexDirection: 'row', gap: 16 },
+  cardDate: { fontSize: 12, color: '#555', marginBottom: 14 },
+  cardStats: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   stat: {},
+  statDivider: { width: 1, height: 24, backgroundColor: '#2a2a2a' },
   statValue: { fontSize: 15, fontWeight: '700', color: '#7C3AED' },
   statLabel: { fontSize: 10, color: '#555', fontWeight: '600', marginTop: 2 },
   modalOverlay: {

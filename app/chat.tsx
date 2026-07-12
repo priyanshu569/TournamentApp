@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '@/lib/supabase';
 import Avatar from '@/components/Avatar';
 
@@ -107,12 +108,29 @@ export default function ChatInboxScreen() {
     setLoading(false);
   }
 
+  function formatRelativeTime(dateStr: string) {
+    const diffMs = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return 'now';
+    if (mins < 60) return `${mins}m`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d`;
+    return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Chats</Text>
+        <View style={styles.headerLeft}>
+          <View style={styles.headerIconBadge}>
+            <Ionicons name="chatbubbles" size={20} color="#7C3AED" />
+          </View>
+          <Text style={styles.headerTitle}>Chats</Text>
+        </View>
         <TouchableOpacity onPress={() => router.push('/new-group')} style={styles.newGroupBtn}>
-          <Ionicons name="people" size={22} color="#7C3AED" />
+          <Ionicons name="people" size={20} color="#7C3AED" />
         </TouchableOpacity>
       </View>
 
@@ -123,29 +141,37 @@ export default function ChatInboxScreen() {
           data={conversations}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>
-              No conversations yet. Message someone from their profile, or start a group.
-            </Text>
+            <View style={styles.emptyContainer}>
+              <View style={styles.emptyIconCircle}>
+                <Ionicons name="chatbubble-ellipses-outline" size={28} color="#444" />
+              </View>
+              <Text style={styles.emptyText}>
+                No conversations yet. Message someone from their profile, or start a group.
+              </Text>
+            </View>
           }
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.row}
+              activeOpacity={0.85}
               onPress={() => router.push(`/chat-thread?id=${item.id}`)}
             >
               {item.type === 'direct' ? (
-                <Avatar avatarId={item.avatarId} username={item.avatarUsername} size={48} />
+                <Avatar avatarId={item.avatarId} username={item.avatarUsername} size={50} />
               ) : (
-                <View style={styles.groupIcon}>
+                <LinearGradient colors={['#7C3AED', '#4C1D95']} style={styles.groupIcon}>
                   <Ionicons name="people" size={22} color="#fff" />
-                </View>
+                </LinearGradient>
               )}
               <View style={styles.rowInfo}>
-                <Text style={styles.rowTitle}>{item.title}</Text>
+                <Text style={styles.rowTitle} numberOfLines={1}>{item.title}</Text>
                 <Text style={styles.rowPreview} numberOfLines={1}>
                   {item.lastMessage ?? 'No messages yet'}
                 </Text>
               </View>
+              <Text style={styles.rowTime}>{formatRelativeTime(item.lastMessageAt)}</Text>
             </TouchableOpacity>
           )}
         />
@@ -160,20 +186,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', paddingHorizontal: 24, paddingTop: 60, paddingBottom: 16,
   },
-  headerTitle: { fontSize: 26, fontWeight: '800', color: '#fff' },
-  newGroupBtn: { padding: 8 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  headerIconBadge: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: '#7C3AED18', justifyContent: 'center', alignItems: 'center',
+  },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
+  newGroupBtn: {
+    width: 36, height: 36, borderRadius: 18, backgroundColor: '#7C3AED18',
+    justifyContent: 'center', alignItems: 'center',
+  },
   listContent: { padding: 24, paddingTop: 4 },
-  emptyText: { color: '#555', textAlign: 'center', marginTop: 40, paddingHorizontal: 20 },
+  emptyContainer: { alignItems: 'center', marginTop: 60, paddingHorizontal: 20 },
+  emptyIconCircle: {
+    width: 64, height: 64, borderRadius: 32, backgroundColor: '#1a1a1a',
+    justifyContent: 'center', alignItems: 'center', marginBottom: 16,
+    borderWidth: 1, borderColor: '#2a2a2a',
+  },
+  emptyText: { color: '#555', textAlign: 'center' },
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#1a1a1a', borderRadius: 12, padding: 14,
-    marginBottom: 10, borderWidth: 1, borderColor: '#2a2a2a',
+    backgroundColor: '#161616', borderRadius: 14, padding: 14,
+    marginBottom: 10, borderWidth: 1, borderColor: '#262626',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
   },
   groupIcon: {
-    width: 48, height: 48, borderRadius: 24,
-    backgroundColor: '#7C3AED', justifyContent: 'center', alignItems: 'center',
+    width: 50, height: 50, borderRadius: 25,
+    justifyContent: 'center', alignItems: 'center',
   },
   rowInfo: { flex: 1 },
   rowTitle: { color: '#fff', fontSize: 15, fontWeight: '700', marginBottom: 2 },
   rowPreview: { color: '#888', fontSize: 13 },
+  rowTime: { color: '#555', fontSize: 11, fontWeight: '600', alignSelf: 'flex-start', marginTop: 2 },
 });
