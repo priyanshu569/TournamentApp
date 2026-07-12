@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TextInput,
-  TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform
+  TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Modal
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +15,8 @@ export default function ChatThreadScreen() {
   const [conversation, setConversation] = useState<any>(null);
   const [otherUser, setOtherUser] = useState<any>(null);
   const [participantNames, setParticipantNames] = useState<Map<string, string>>(new Map());
+  const [participantList, setParticipantList] = useState<{ id: string; username: string }[]>([]);
+  const [reportPickerVisible, setReportPickerVisible] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(true);
@@ -63,6 +65,11 @@ export default function ChatThreadScreen() {
 
     const nameMap = new Map((profiles ?? []).map((p: any) => [p.id, p.username ?? 'Unknown']));
     setParticipantNames(nameMap);
+    setParticipantList(
+      (profiles ?? [])
+        .filter((p: any) => p.id !== me)
+        .map((p: any) => ({ id: p.id, username: p.username ?? 'Unknown' }))
+    );
 
     if (convo?.conversation_type === 'direct') {
       const other = (profiles ?? []).find((p: any) => p.id !== me);
@@ -130,7 +137,13 @@ export default function ChatThreadScreen() {
             )}
             <Text style={styles.headerTitle} numberOfLines={1}>{title}</Text>
           </TouchableOpacity>
-          <View style={{ width: 26 }} />
+          {conversation?.conversation_type === 'group' ? (
+            <TouchableOpacity onPress={() => setReportPickerVisible(true)} style={styles.reportBtn}>
+              <Ionicons name="flag-outline" size={20} color="#aaa" />
+            </TouchableOpacity>
+          ) : (
+            <View style={{ width: 26 }} />
+          )}
         </View>
 
         <FlatList
@@ -173,6 +186,36 @@ export default function ChatThreadScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      <Modal
+        visible={reportPickerVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setReportPickerVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setReportPickerVisible(false)}
+        >
+          <View style={styles.reportSheet}>
+            <Text style={styles.reportSheetTitle}>Report a member</Text>
+            {participantList.map((p) => (
+              <TouchableOpacity
+                key={p.id}
+                style={styles.reportSheetRow}
+                onPress={() => {
+                  setReportPickerVisible(false);
+                  router.push(`/report-user?target_user_id=${p.id}`);
+                }}
+              >
+                <Text style={styles.reportSheetRowText}>{p.username}</Text>
+                <Ionicons name="chevron-forward" size={18} color="#555" />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -186,6 +229,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: '#1a1a1a',
   },
   backBtn: { padding: 4 },
+  reportBtn: { padding: 4, width: 26, alignItems: 'flex-end' },
   headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, justifyContent: 'center' },
   headerTitle: { color: '#fff', fontSize: 16, fontWeight: '800', flexShrink: 1 },
   messagesList: { padding: 16, paddingBottom: 24 },
@@ -209,4 +253,16 @@ const styles = StyleSheet.create({
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: '#7C3AED', justifyContent: 'center', alignItems: 'center',
   },
+  modalOverlay: { flex: 1, backgroundColor: '#000000aa', justifyContent: 'flex-end' },
+  reportSheet: {
+    backgroundColor: '#141414', borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    paddingHorizontal: 20, paddingTop: 20, paddingBottom: 34,
+    maxHeight: '60%', borderWidth: 1, borderColor: '#2a2a2a', borderBottomWidth: 0,
+  },
+  reportSheetTitle: { color: '#fff', fontSize: 16, fontWeight: '800', marginBottom: 12 },
+  reportSheetRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: 14, borderTopWidth: 1, borderTopColor: '#2a2a2a',
+  },
+  reportSheetRowText: { color: '#fff', fontSize: 15, fontWeight: '600' },
 });
