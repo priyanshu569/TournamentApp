@@ -12,6 +12,7 @@ import VerifiedBadge from '@/components/VerifiedBadge';
 import NotificationBell from '@/components/NotificationBell';
 import FragifyLogo from '@/components/FragifyLogo';
 import LeaderboardIcon from '@/components/LeaderboardIcon';
+import GradientIconBadge from '@/components/GradientIconBadge';
 import { useTabNavigation } from '@/lib/tabNavigation';
 
 const GAME_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -102,11 +103,11 @@ export default function HomeScreen() {
   const canBecomeHost = !isHost && hostStatus !== 'pending';
 
   const quickActions = [
-    { key: 'leaderboard', icon: 'trophy' as const, color: '#FFB800', label: 'Leaderboard', onPress: () => router.push('/leaderboard') },
-    { key: 'history', icon: 'time' as const, color: '#00D4AA', label: isHost ? 'My Tournaments' : 'My Registrations', onPress: () => tabNav?.goToTab('history') },
-    { key: 'chat', icon: 'chatbubbles' as const, color: '#7C3AED', label: 'Chats', onPress: () => tabNav?.goToTab('chat') },
+    { key: 'leaderboard', label: 'Leaderboard', onPress: () => router.push('/leaderboard') },
+    { key: 'history', label: isHost ? 'Tournaments' : 'Registrations', onPress: () => tabNav?.goToTab('history') },
+    { key: 'chat', label: 'Chats', onPress: () => tabNav?.goToTab('chat') },
     ...(canBecomeHost
-      ? [{ key: 'host', icon: 'megaphone' as const, color: '#FF6B35', label: 'Become a Host', onPress: () => router.push('/request-host-access') }]
+      ? [{ key: 'host', label: 'Become a Host', onPress: () => router.push('/request-host-access') }]
       : []),
   ];
 
@@ -228,16 +229,35 @@ export default function HomeScreen() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickActionsRow}>
         {quickActions.map((action) => (
           <TouchableOpacity key={action.key} style={styles.quickAction} onPress={action.onPress}>
-            {action.key === 'leaderboard' ? (
-              <View style={{ marginBottom: 6 }}>
-                <LeaderboardIcon size={52} />
-              </View>
-            ) : (
-              <View style={[styles.quickActionIcon, { backgroundColor: action.color + '22' }]}>
-                <Ionicons name={action.icon} size={22} color={action.color} />
-              </View>
-            )}
-            <Text style={styles.quickActionLabel}>{action.label}</Text>
+            <View style={styles.quickActionBadge}>
+              {action.key === 'leaderboard' && <LeaderboardIcon size={52} />}
+              {action.key === 'history' && (
+                <GradientIconBadge
+                  icon="time"
+                  size={52}
+                  colors={['#7BFFE0', '#00D4AA', '#00695C']}
+                  iconColor="#00332b"
+                  glowColor="#00D4AA"
+                />
+              )}
+              {action.key === 'chat' && (
+                <GradientIconBadge
+                  icon="chatbubbles"
+                  size={52}
+                  colors={['#9B6BFF', '#7C3AED', '#4C1D95']}
+                  glowColor="#7C3AED"
+                />
+              )}
+              {action.key === 'host' && (
+                <GradientIconBadge
+                  icon="megaphone"
+                  size={52}
+                  colors={['#FFA36B', '#FF6B35', '#C43E13']}
+                  glowColor="#FF6B35"
+                />
+              )}
+            </View>
+            <Text style={styles.quickActionLabel} numberOfLines={2}>{action.label}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -296,12 +316,9 @@ const styles = StyleSheet.create({
   },
   createButtonText: { color: '#7C3AED', fontSize: 15, fontWeight: '800' },
 
-  quickActionsRow: { paddingHorizontal: 24, gap: 20, paddingBottom: 24 },
-  quickAction: { alignItems: 'center', width: 72 },
-  quickActionIcon: {
-    width: 52, height: 52, borderRadius: 26,
-    justifyContent: 'center', alignItems: 'center', marginBottom: 6,
-  },
+  quickActionsRow: { paddingHorizontal: 24, gap: 18, paddingBottom: 24 },
+  quickAction: { alignItems: 'center', width: 80 },
+  quickActionBadge: { marginBottom: 6 },
   quickActionLabel: { color: '#aaa', fontSize: 11, fontWeight: '600', textAlign: 'center' },
 
   section: { marginBottom: 24 },
