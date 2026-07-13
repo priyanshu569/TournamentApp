@@ -49,13 +49,13 @@ export default function Leaderboard() {
   function showScoringInfo() {
     Alert.alert(
       'How points work',
-      'Total points = placement points (based on where your team finished each match) + kills × kill point value. Hosts can customize both curves per tournament, so the exact numbers can vary slightly by event.',
+      "Points are based purely on placement — where your team finished each match. Kills are shown separately but don't affect your ranking, so kill-farming can't outrank better placements. Hosts can customize the placement curve per tournament.",
     );
   }
 
   function pointsSummary(item: any) {
     const matches = `${item.matches_played} match${item.matches_played === 1 ? '' : 'es'}`;
-    return `${matches} · ${item.placement_points}+${item.kill_points} pts`;
+    return `${matches} · ${item.total_points} pts from placement`;
   }
 
   return (
