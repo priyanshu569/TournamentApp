@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, ScrollView,
-  ActivityIndicator, TouchableOpacity
+  ActivityIndicator, TouchableOpacity, Alert
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -46,6 +46,18 @@ export default function Leaderboard() {
     }
   }
 
+  function showScoringInfo() {
+    Alert.alert(
+      'How points work',
+      'Total points = placement points (based on where your team finished each match) + kills × kill point value. Hosts can customize both curves per tournament, so the exact numbers can vary slightly by event.',
+    );
+  }
+
+  function pointsSummary(item: any) {
+    const matches = `${item.matches_played} match${item.matches_played === 1 ? '' : 'es'}`;
+    return `${matches} · ${item.placement_points}+${item.kill_points} pts`;
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -58,21 +70,32 @@ export default function Leaderboard() {
           </View>
           <Text style={styles.headerTitle}>Leaderboard</Text>
         </View>
-        <View style={{ width: 36 }} />
+        <TouchableOpacity style={styles.infoBtn} onPress={showScoringInfo}>
+          <Ionicons name="information-circle-outline" size={22} color="#888" />
+        </TouchableOpacity>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.gameRow}>
-        {GAMES.map((g) => (
-          <TouchableOpacity
-            key={g.label}
-            style={[styles.gameChip, game === g.value && styles.gameChipActive]}
-            onPress={() => setGame(g.value)}
-          >
-            <Ionicons name={g.icon} size={13} color={game === g.value ? '#fff' : '#888'} />
-            <Text style={[styles.gameChipText, game === g.value && styles.gameChipTextActive]}>{g.label}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <View style={styles.gameRowWrap}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.gameRow}>
+          {GAMES.map((g) => (
+            <TouchableOpacity
+              key={g.label}
+              style={[styles.gameChip, game === g.value && styles.gameChipActive]}
+              onPress={() => setGame(g.value)}
+            >
+              <Ionicons name={g.icon} size={13} color={game === g.value ? '#fff' : '#888'} />
+              <Text style={[styles.gameChipText, game === g.value && styles.gameChipTextActive]}>{g.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+        <LinearGradient
+          colors={['#0a0a0a00', '#0a0a0a']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.gameRowFade}
+          pointerEvents="none"
+        />
+      </View>
 
       {loading ? (
         <ActivityIndicator size="large" color="#7C3AED" style={{ marginTop: 40 }} />
@@ -113,7 +136,7 @@ export default function Leaderboard() {
                         {item.is_verified && <VerifiedBadge size={13} />}
                       </View>
                       <Text style={[styles.podiumSubStat, { color: podium.textColor }]}>
-                        {item.matches_played} matches played
+                        {pointsSummary(item)}
                       </Text>
                     </View>
                     <View style={styles.statCol}>
@@ -144,7 +167,7 @@ export default function Leaderboard() {
                     <Text style={styles.username}>{item.username}</Text>
                     {item.is_verified && <VerifiedBadge size={13} />}
                   </View>
-                  <Text style={styles.subStat}>{item.matches_played} matches played</Text>
+                  <Text style={styles.subStat}>{pointsSummary(item)}</Text>
                 </View>
                 <View style={styles.statCol}>
                   <Text style={styles.statValue}>{item.wins}</Text>
@@ -185,7 +208,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFB80018', justifyContent: 'center', alignItems: 'center',
   },
   headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
+  infoBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+  gameRowWrap: { position: 'relative' },
   gameRow: { paddingHorizontal: 20, gap: 8, paddingBottom: 12 },
+  gameRowFade: {
+    position: 'absolute', right: 0, top: 0, bottom: 12,
+    width: 32,
+  },
   gameChip: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20,
