@@ -21,16 +21,6 @@ export default function GradientIconBadge({ icon, size = 52, colors, iconColor =
         end={{ x: 1, y: 1 }}
         style={[styles.circle, { width: size, height: size, borderRadius: size / 2 }]}
       >
-        <View
-          style={[
-            styles.shine,
-            {
-              width: size * 0.55, height: size * 0.38,
-              borderRadius: size * 0.3,
-              top: size * 0.05, left: size * 0.08,
-            },
-          ]}
-        />
         <Ionicons name={icon} size={iconSize} color={iconColor} />
       </LinearGradient>
     </View>
@@ -48,10 +38,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
-  },
-  shine: {
-    position: 'absolute',
-    backgroundColor: '#ffffff33',
-    transform: [{ rotate: '-20deg' }],
   },
 });
