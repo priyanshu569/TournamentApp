@@ -61,15 +61,15 @@ export default function ChatThreadScreen() {
     const participantIds = (participants ?? []).map((p: any) => p.user_id);
 
     const { data: profiles } = participantIds.length > 0
-      ? await supabase.from('public_profiles').select('id, username, avatar_id').in('id', participantIds)
+      ? await supabase.from('public_profiles').select('id, display_name, avatar_id').in('id', participantIds)
       : { data: [] };
 
-    const nameMap = new Map((profiles ?? []).map((p: any) => [p.id, p.username ?? 'Unknown']));
+    const nameMap = new Map((profiles ?? []).map((p: any) => [p.id, p.display_name ?? 'Unknown']));
     setParticipantNames(nameMap);
     setParticipantList(
       (profiles ?? [])
         .filter((p: any) => p.id !== me)
-        .map((p: any) => ({ id: p.id, username: p.username ?? 'Unknown' }))
+        .map((p: any) => ({ id: p.id, username: p.display_name ?? 'Unknown' }))
     );
 
     if (convo?.conversation_type === 'direct') {
@@ -104,7 +104,7 @@ export default function ChatThreadScreen() {
   }
 
   const title = conversation?.conversation_type === 'direct'
-    ? (otherUser?.username ?? 'Chat')
+    ? (otherUser?.display_name ?? 'Chat')
     : (conversation?.name ?? 'Group Chat');
 
   if (loading) {
@@ -132,7 +132,7 @@ export default function ChatThreadScreen() {
             disabled={!otherUser}
           >
             {conversation?.conversation_type === 'direct' ? (
-              <Avatar avatarId={otherUser?.avatar_id} username={otherUser?.username} size={32} />
+              <Avatar avatarId={otherUser?.avatar_id} username={otherUser?.display_name} size={32} />
             ) : (
               <LinearGradient colors={['#7C3AED', '#4C1D95']} style={styles.groupIconSmall}>
                 <Ionicons name="people" size={16} color="#fff" />

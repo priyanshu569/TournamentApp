@@ -132,6 +132,7 @@ export default function ProfileScreen() {
       label: 'Become a Host', onPress: () => router.push('/request-host-access'),
     }] : []),
     { key: 'edit-profile', icon: 'create' as const, color: '#00D4AA', label: 'Edit Profile', onPress: () => router.push('/edit-profile') },
+    { key: 'game-details', icon: 'game-controller' as const, color: '#FFB800', label: 'My Games', onPress: () => router.push('/game-details') },
     ...(isAdmin ? [
       { key: 'admin-broadcast', icon: 'megaphone' as const, color: '#7C3AED', label: 'Admin Broadcast', onPress: () => router.push('/admin-broadcast') },
       { key: 'admin-host-requests', icon: 'trophy' as const, color: '#7C3AED', label: 'Host Requests', onPress: () => router.push('/admin-host-requests') },
@@ -157,26 +158,15 @@ export default function ProfileScreen() {
         end={{ x: 1, y: 1 }}
         style={styles.profileCard}
       >
-        <Avatar avatarId={profile?.avatar_id} username={profile?.username} size={68} />
+        <Avatar avatarId={profile?.avatar_id} username={profile?.display_name} size={68} />
         <View style={[styles.profileInfo, { marginLeft: 16 }]}>
-          <Text style={styles.username}>{profile?.username ?? 'Unknown'}</Text>
+          <Text style={styles.username}>{profile?.display_name ?? 'Unknown'}</Text>
+          {profile?.username && <Text style={styles.handle}>@{profile.username}</Text>}
           <View style={styles.roleBadge}>
             <Text style={styles.roleText}>
               {profile?.is_admin ? 'ADMIN' : (profile?.role?.toUpperCase() ?? 'PLAYER')}
             </Text>
           </View>
-          {profile?.free_fire_uid ? (
-            <View style={styles.uidRow}>
-              <Ionicons name="flame" size={12} color="#FF6B35" />
-              <Text style={styles.uidText}>Free Fire: {profile.free_fire_uid}</Text>
-            </View>
-          ) : null}
-          {profile?.bgmi_uid ? (
-            <View style={styles.uidRow}>
-              <Ionicons name="skull" size={12} color="#FFB800" />
-              <Text style={styles.uidText}>BGMI: {profile.bgmi_uid}</Text>
-            </View>
-          ) : null}
         </View>
       </LinearGradient>
 
@@ -254,8 +244,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 26, fontWeight: '800', color: '#fff' },
 
-  uidRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 },
-  uidText: { color: '#aaa', fontSize: 12, fontWeight: '600' },
+  handle: { color: '#888', fontSize: 13, fontWeight: '600', marginBottom: 6 },
 
   profileCard: {
     flexDirection: 'row', alignItems: 'center',

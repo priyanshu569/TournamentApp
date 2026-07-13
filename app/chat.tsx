@@ -57,7 +57,7 @@ export default function ChatInboxScreen() {
     )];
 
     const { data: profiles } = otherUserIds.length > 0
-      ? await supabase.from('public_profiles').select('id, username, avatar_id').in('id', otherUserIds)
+      ? await supabase.from('public_profiles').select('id, display_name, avatar_id').in('id', otherUserIds)
       : { data: [] };
 
     const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
@@ -86,9 +86,9 @@ export default function ChatInboxScreen() {
           (p: any) => p.conversation_id === c.id && p.user_id !== me
         )?.user_id;
         const otherProfile = otherId ? profileMap.get(otherId) : null;
-        title = otherProfile?.username ?? 'Unknown User';
+        title = otherProfile?.display_name ?? 'Unknown User';
         avatarId = otherProfile?.avatar_id ?? null;
-        avatarUsername = otherProfile?.username ?? null;
+        avatarUsername = otherProfile?.display_name ?? null;
       }
 
       return {

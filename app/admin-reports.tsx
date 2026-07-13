@@ -36,10 +36,13 @@ export default function AdminReportsScreen() {
       const allIds = [...new Set([...reporterIds, ...reportedIds])];
 
       const { data: profiles } = allIds.length > 0
-        ? await supabase.from('public_profiles').select('id, username').in('id', allIds)
+        ? await supabase.from('public_profiles').select('id, username, display_name').in('id', allIds)
         : { data: [] };
 
-      const nameMap = new Map((profiles ?? []).map((p: any) => [p.id, p.username ?? 'Unknown']));
+      const nameMap = new Map((profiles ?? []).map((p: any) => [
+        p.id,
+        p.username ? `${p.display_name ?? 'Unknown'} (@${p.username})` : (p.display_name ?? 'Unknown'),
+      ]));
 
       setReports(data.map((r: any) => ({
         ...r,

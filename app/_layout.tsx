@@ -26,14 +26,16 @@ export default function RootLayout() {
       // Session exists — check if profile is set up
       const { data: profile } = await supabase
         .from('Profiles')
-        .select('role, username')
+        .select('role, username, display_name, games_onboarded')
         .eq('id', session.user.id)
         .single();
 
       if (!profile || !profile.role) {
         router.replace('/select-role');
-      } else if (!profile.username) {
-        router.replace('/profile');
+      } else if (!profile.username || !profile.display_name) {
+        router.replace('/edit-profile');
+      } else if (!profile.games_onboarded) {
+        router.replace('/game-details');
       } else {
         router.replace('/(tabs)');
       }
@@ -54,14 +56,16 @@ export default function RootLayout() {
           // Check profile
           const { data: profile } = await supabase
             .from('Profiles')
-            .select('role, username')
+            .select('role, username, display_name, games_onboarded')
             .eq('id', session.user.id)
             .single();
 
           if (!profile || !profile.role) {
             router.replace('/select-role');
-          } else if (!profile.username) {
-            router.replace('/profile');
+          } else if (!profile.username || !profile.display_name) {
+            router.replace('/edit-profile');
+          } else if (!profile.games_onboarded) {
+            router.replace('/game-details');
           } else {
             router.replace('/(tabs)');
           }
@@ -100,6 +104,7 @@ export default function RootLayout() {
           <Stack.Screen name="login" options={{ headerShown: false }} />
           <Stack.Screen name="select-role" options={{ headerShown: false }} />
           <Stack.Screen name="edit-profile" options={{ headerShown: false }} />
+          <Stack.Screen name="game-details" options={{ headerShown: false }} />
           <Stack.Screen name="create-tournament" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />

@@ -176,11 +176,14 @@ export default function UserProfileScreen() {
       </View>
 
       <View style={styles.profileTop}>
-        <Avatar avatarId={profile.avatar_id} username={profile.username} size={88} />
+        <Avatar avatarId={profile.avatar_id} username={profile.display_name} size={88} />
         <View style={styles.nameRow}>
-          <Text style={styles.username}>{profile.username ?? 'Unknown'}</Text>
+          <Text style={styles.username}>{profile.display_name ?? 'Unknown'}</Text>
           {profile.is_verified && <VerifiedBadge size={16} />}
         </View>
+        {profile.username && (
+          <Text style={styles.handle}>@{profile.username}</Text>
+        )}
         {profile.role && (
           <View style={styles.roleBadge}>
             <Text style={styles.roleText}>{profile.role.toUpperCase()}</Text>
@@ -268,6 +271,7 @@ const styles = StyleSheet.create({
   profileTop: { alignItems: 'center', marginBottom: 24 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14 },
   username: { fontSize: 22, fontWeight: '900', color: '#fff' },
+  handle: { fontSize: 13, color: '#888', marginTop: 2, fontWeight: '600' },
   roleBadge: {
     marginTop: 8, backgroundColor: '#7C3AED22', paddingHorizontal: 12,
     paddingVertical: 4, borderRadius: 20, borderWidth: 1, borderColor: '#7C3AED',

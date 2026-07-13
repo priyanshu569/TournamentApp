@@ -15,6 +15,7 @@ export default function SettingsScreen() {
   const [loading, setLoading] = useState(true);
   const [phone, setPhone] = useState('');
   const [username, setUsername] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [role, setRole] = useState('');
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [googleLinked, setGoogleLinked] = useState(false);
@@ -33,12 +34,13 @@ export default function SettingsScreen() {
 
       const { data: profile } = await supabase
         .from('Profiles')
-        .select('username, role, follow_list_private, push_enabled')
+        .select('username, display_name, role, follow_list_private, push_enabled')
         .eq('id', userData.user.id)
         .single();
 
       if (profile) {
         setUsername(profile.username || '');
+        setDisplayName(profile.display_name || '');
         setRole(profile.role || '');
         setFollowListPrivate(!!profile.follow_list_private);
         setNotificationsEnabled(profile.push_enabled !== false);
@@ -168,8 +170,13 @@ export default function SettingsScreen() {
       <Text style={styles.sectionLabel}>ACCOUNT</Text>
       <View style={styles.card}>
         <View style={styles.row}>
+          <Text style={styles.rowLabel}>Display Name</Text>
+          <Text style={styles.rowValue}>{displayName || '—'}</Text>
+        </View>
+        <View style={styles.divider} />
+        <View style={styles.row}>
           <Text style={styles.rowLabel}>Username</Text>
-          <Text style={styles.rowValue}>{username || '—'}</Text>
+          <Text style={styles.rowValue}>{username ? `@${username}` : '—'}</Text>
         </View>
         <View style={styles.divider} />
         <View style={styles.row}>

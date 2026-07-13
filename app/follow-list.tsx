@@ -64,7 +64,7 @@ export default function FollowListScreen() {
 
     const { data: profiles } = await supabase
       .from('public_profiles')
-      .select('id, username, avatar_id, is_verified')
+      .select('id, display_name, avatar_id, is_verified')
       .in('id', otherIds);
 
     setPeople(profiles ?? []);
@@ -104,10 +104,10 @@ export default function FollowListScreen() {
               style={styles.row}
               onPress={() => router.push(`/user-profile?id=${item.id}`)}
             >
-              <Avatar avatarId={item.avatar_id} username={item.username} size={44} />
+              <Avatar avatarId={item.avatar_id} username={item.display_name} size={44} />
               <View style={styles.rowInfo}>
                 <View style={styles.nameRow}>
-                  <Text style={styles.username}>{item.username ?? 'Unknown'}</Text>
+                  <Text style={styles.username}>{item.display_name ?? 'Unknown'}</Text>
                   {item.is_verified && <VerifiedBadge size={13} />}
                 </View>
               </View>

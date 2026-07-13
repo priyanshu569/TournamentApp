@@ -46,7 +46,7 @@ export default function NewGroupScreen() {
 
     const { data: profiles } = await supabase
       .from('public_profiles')
-      .select('id, username, avatar_id')
+      .select('id, display_name, avatar_id')
       .in('id', otherIds);
 
     setCandidates(profiles ?? []);
@@ -125,8 +125,8 @@ export default function NewGroupScreen() {
             const isSelected = selected.has(item.id);
             return (
               <TouchableOpacity style={styles.row} onPress={() => toggleSelect(item.id)}>
-                <Avatar avatarId={item.avatar_id} username={item.username} size={44} />
-                <Text style={styles.rowName}>{item.username ?? 'Unknown'}</Text>
+                <Avatar avatarId={item.avatar_id} username={item.display_name} size={44} />
+                <Text style={styles.rowName}>{item.display_name ?? 'Unknown'}</Text>
                 <Ionicons
                   name={isSelected ? 'checkbox' : 'square-outline'}
                   size={22}

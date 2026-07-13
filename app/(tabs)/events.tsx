@@ -108,7 +108,7 @@ export default function EventsScreen() {
   async function fetchTournaments() {
     const { data } = await supabase
       .from('tournaments')
-      .select('*, host:public_profiles!host_id(username, is_verified)')
+      .select('*, host:public_profiles!host_id(display_name, is_verified)')
       .order('created_at', { ascending: false });
 
     if (data) {
@@ -311,7 +311,7 @@ export default function EventsScreen() {
               <Text style={styles.cardTitle}>{item.title}</Text>
 
               <View style={styles.hostRow}>
-                <Text style={styles.hostName}>by {item.host?.username}</Text>
+                <Text style={styles.hostName}>by {item.host?.display_name}</Text>
                 {item.host?.is_verified && <VerifiedBadge size={13} />}
               </View>
 

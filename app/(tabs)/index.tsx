@@ -25,7 +25,7 @@ const GAME_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 export default function HomeScreen() {
   const [role, setRole] = useState<string | null>(null);
   const [hostStatus, setHostStatus] = useState<string | null>(null);
-  const [username, setUsername] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [tournaments, setTournaments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -43,20 +43,20 @@ export default function HomeScreen() {
 
     const { data: profile } = await supabase
       .from('Profiles')
-      .select('role, username, host_status')
+      .select('role, display_name, host_status')
       .eq('id', userData.user.id)
       .single();
 
     if (profile) {
       setRole(profile.role);
-      setUsername(profile.username || '');
+      setDisplayName(profile.display_name || '');
       setHostStatus(profile.host_status);
     }
 
     const isHost = profile?.role === 'host';
     const query = supabase
       .from('tournaments')
-      .select('*, host:public_profiles!host_id(username, is_verified)')
+      .select('*, host:public_profiles!host_id(display_name, is_verified)')
       .order('created_at', { ascending: false });
 
     if (isHost) query.eq('host_id', userData.user.id);
@@ -131,7 +131,7 @@ export default function HomeScreen() {
           </View>
           <Text style={styles.compactTitle} numberOfLines={1}>{item.title}</Text>
           <View style={styles.hostRow}>
-            <Text style={styles.hostName} numberOfLines={1}>by {item.host?.username}</Text>
+            <Text style={styles.hostName} numberOfLines={1}>by {item.host?.display_name}</Text>
             {item.host?.is_verified && <VerifiedBadge size={11} />}
           </View>
           {variant === 'soon' && (
@@ -200,7 +200,7 @@ export default function HomeScreen() {
         style={styles.hero}
       >
         <Text style={styles.heroGreeting}>
-          {isHost ? `Welcome back, ${username} 🏆` : `Hey ${username} 🎮`}
+          {isHost ? `Welcome back, ${displayName} 🏆` : `Hey ${displayName} 🎮`}
         </Text>
         <Text style={styles.heroSub}>
           {isHost ? 'Manage your tournaments and grow your community' : 'Find your next tournament and claim victory'}
