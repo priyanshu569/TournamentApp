@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import Avatar from '@/components/Avatar';
+import LeaderboardIcon from '@/components/LeaderboardIcon';
 
 const RANK_STYLES: { colors: [string, string]; icon: string; textColor: string }[] = [
   { colors: ['#FFD700', '#B8860B'], icon: '🥇', textColor: '#3a2a00' },
@@ -65,9 +66,7 @@ export default function Leaderboard() {
           <Ionicons name="chevron-back" size={22} color="#fff" />
         </TouchableOpacity>
         <View style={styles.headerTitleRow}>
-          <View style={styles.headerIconBadge}>
-            <Ionicons name="trophy" size={18} color="#FFB800" />
-          </View>
+          <LeaderboardIcon size={32} />
           <Text style={styles.headerTitle}>Leaderboard</Text>
         </View>
         <TouchableOpacity style={styles.infoBtn} onPress={showScoringInfo}>
@@ -203,10 +202,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  headerIconBadge: {
-    width: 34, height: 34, borderRadius: 10,
-    backgroundColor: '#FFB80018', justifyContent: 'center', alignItems: 'center',
-  },
   headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
   infoBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
   gameRowWrap: { position: 'relative' },

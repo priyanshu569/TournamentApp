@@ -11,6 +11,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import NotificationBell from '@/components/NotificationBell';
 import FragifyLogo from '@/components/FragifyLogo';
+import LeaderboardIcon from '@/components/LeaderboardIcon';
 import { useTabNavigation } from '@/lib/tabNavigation';
 
 const GAME_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -227,9 +228,15 @@ export default function HomeScreen() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickActionsRow}>
         {quickActions.map((action) => (
           <TouchableOpacity key={action.key} style={styles.quickAction} onPress={action.onPress}>
-            <View style={[styles.quickActionIcon, { backgroundColor: action.color + '22' }]}>
-              <Ionicons name={action.icon} size={22} color={action.color} />
-            </View>
+            {action.key === 'leaderboard' ? (
+              <View style={{ marginBottom: 6 }}>
+                <LeaderboardIcon size={52} />
+              </View>
+            ) : (
+              <View style={[styles.quickActionIcon, { backgroundColor: action.color + '22' }]}>
+                <Ionicons name={action.icon} size={22} color={action.color} />
+              </View>
+            )}
             <Text style={styles.quickActionLabel}>{action.label}</Text>
           </TouchableOpacity>
         ))}

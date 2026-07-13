@@ -10,6 +10,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import NotificationBell from '@/components/NotificationBell';
+import LeaderboardIcon from '@/components/LeaderboardIcon';
 
 const GAMES: { label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { label: 'All', icon: 'apps' },
@@ -159,8 +160,8 @@ export default function EventsScreen() {
           </View>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.leaderboardBtn} onPress={() => router.push('/leaderboard')}>
-            <Ionicons name="podium" size={18} color="#7C3AED" />
+          <TouchableOpacity onPress={() => router.push('/leaderboard')}>
+            <LeaderboardIcon size={36} />
           </TouchableOpacity>
           <NotificationBell />
         </View>
@@ -415,10 +416,6 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 24, fontWeight: '800', color: '#fff' },
   headerSub: { fontSize: 12, color: '#888', marginTop: 2 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  leaderboardBtn: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: '#7C3AED18',
-    justifyContent: 'center', alignItems: 'center',
-  },
   eventTabRow: {
     flexDirection: 'row', marginHorizontal: 24, marginBottom: 12,
     backgroundColor: '#1a1a1a', borderRadius: 12, padding: 4,
