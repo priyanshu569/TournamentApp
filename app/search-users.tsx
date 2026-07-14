@@ -17,22 +17,38 @@ export default function SearchUsersScreen() {
   const [myId, setMyId] = useState<string | null>(null);
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
   const [actingId, setActingId] = useState<string | null>(null);
+  const [suggested, setSuggested] = useState<any[]>([]);
+  const [suggestedLoading, setSuggestedLoading] = useState(true);
 
   useEffect(() => {
-    loadFollowing();
+    init();
   }, []);
 
-  async function loadFollowing() {
+  async function init() {
     const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return;
-    setMyId(userData.user.id);
+    const me = userData.user?.id ?? null;
+    setMyId(me);
 
-    const { data: rows } = await supabase
-      .from('follows')
-      .select('following_id')
-      .eq('follower_id', userData.user.id);
+    const following = new Set<string>();
+    if (me) {
+      const { data: rows } = await supabase
+        .from('follows')
+        .select('following_id')
+        .eq('follower_id', me);
+      (rows ?? []).forEach((r: any) => following.add(r.following_id));
+    }
+    setFollowingIds(following);
 
-    setFollowingIds(new Set((rows ?? []).map((r: any) => r.following_id)));
+    let sb = supabase
+      .from('public_profiles')
+      .select('id, username, display_name, avatar_id, is_verified')
+      .order('username', { ascending: true })
+      .limit(30);
+    if (me) sb = sb.neq('id', me);
+
+    const { data: suggestions } = await sb;
+    setSuggested((suggestions ?? []).filter((p: any) => !following.has(p.id)));
+    setSuggestedLoading(false);
   }
 
   useEffect(() => {
@@ -88,6 +104,40 @@ export default function SearchUsersScreen() {
     setActingId(null);
   }
 
+  function renderUserRow(item: any) {
+    const isFollowing = followingIds.has(item.id);
+    return (
+      <TouchableOpacity style={styles.row} onPress={() => router.push(`/user-profile?id=${item.id}`)}>
+        <Avatar avatarId={item.avatar_id} username={item.display_name} size={46} />
+        <View style={styles.rowInfo}>
+          <View style={styles.nameRow}>
+            <Text style={styles.displayName} numberOfLines={1}>{item.display_name ?? 'Unknown'}</Text>
+            {item.is_verified && <VerifiedBadge size={13} />}
+          </View>
+          {item.username && <Text style={styles.handle}>@{item.username}</Text>}
+        </View>
+        <TouchableOpacity
+          style={[styles.followBtn, isFollowing && styles.followBtnActive]}
+          onPress={(e) => { e.stopPropagation(); toggleFollow(item.id); }}
+          disabled={actingId === item.id}
+        >
+          {actingId === item.id
+            ? <ActivityIndicator size="small" color={isFollowing ? '#7C3AED' : '#fff'} />
+            : (
+              <Text style={[styles.followBtnText, isFollowing && styles.followBtnTextActive]}>
+                {isFollowing ? 'Following' : 'Follow'}
+              </Text>
+            )
+          }
+        </TouchableOpacity>
+      </TouchableOpacity>
+    );
+  }
+
+  const isSearching = query.trim().length > 0;
+  const listData = isSearching ? results : suggested;
+  const listLoading = isSearching ? loading : suggestedLoading;
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -117,54 +167,31 @@ export default function SearchUsersScreen() {
         )}
       </View>
 
-      {loading ? (
+      {listLoading ? (
         <ActivityIndicator size="large" color="#7C3AED" style={{ marginTop: 40 }} />
       ) : (
         <FlatList
-          data={results}
+          data={listData}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          ListHeaderComponent={
+            !isSearching && listData.length > 0 ? (
+              <Text style={styles.sectionLabel}>SUGGESTED FOR YOU</Text>
+            ) : null
+          }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <View style={styles.emptyIconCircle}>
-                <Ionicons name={query.trim() ? 'person-outline' : 'search'} size={28} color="#444" />
+                <Ionicons name={isSearching ? 'person-outline' : 'people-outline'} size={28} color="#444" />
               </View>
               <Text style={styles.emptyText}>
-                {query.trim() ? `No users found for "${query.trim()}"` : 'Search for a username or name'}
+                {isSearching ? `No users found for "${query.trim()}"` : 'No suggestions right now'}
               </Text>
             </View>
           }
-          renderItem={({ item }) => {
-            const isFollowing = followingIds.has(item.id);
-            return (
-              <TouchableOpacity style={styles.row} onPress={() => router.push(`/user-profile?id=${item.id}`)}>
-                <Avatar avatarId={item.avatar_id} username={item.display_name} size={46} />
-                <View style={styles.rowInfo}>
-                  <View style={styles.nameRow}>
-                    <Text style={styles.displayName} numberOfLines={1}>{item.display_name ?? 'Unknown'}</Text>
-                    {item.is_verified && <VerifiedBadge size={13} />}
-                  </View>
-                  {item.username && <Text style={styles.handle}>@{item.username}</Text>}
-                </View>
-                <TouchableOpacity
-                  style={[styles.followBtn, isFollowing && styles.followBtnActive]}
-                  onPress={(e) => { e.stopPropagation(); toggleFollow(item.id); }}
-                  disabled={actingId === item.id}
-                >
-                  {actingId === item.id
-                    ? <ActivityIndicator size="small" color={isFollowing ? '#7C3AED' : '#fff'} />
-                    : (
-                      <Text style={[styles.followBtnText, isFollowing && styles.followBtnTextActive]}>
-                        {isFollowing ? 'Following' : 'Follow'}
-                      </Text>
-                    )
-                  }
-                </TouchableOpacity>
-              </TouchableOpacity>
-            );
-          }}
+          renderItem={({ item }) => renderUserRow(item)}
         />
       )}
     </View>
@@ -190,6 +217,10 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, color: '#fff', fontSize: 15, paddingVertical: 12 },
   listContent: { padding: 24, paddingTop: 0 },
+  sectionLabel: {
+    color: '#666', fontSize: 11, fontWeight: '800',
+    letterSpacing: 1.5, marginBottom: 12,
+  },
   emptyContainer: { alignItems: 'center', gap: 10, marginTop: 60, paddingHorizontal: 20 },
   emptyIconCircle: {
     width: 64, height: 64, borderRadius: 32, backgroundColor: '#1a1a1a',

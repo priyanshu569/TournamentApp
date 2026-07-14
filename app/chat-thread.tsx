@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TextInput,
-  TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Modal
+  TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Modal, Alert
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,7 +17,8 @@ export default function ChatThreadScreen() {
   const [otherUser, setOtherUser] = useState<any>(null);
   const [participantNames, setParticipantNames] = useState<Map<string, string>>(new Map());
   const [participantList, setParticipantList] = useState<{ id: string; username: string }[]>([]);
-  const [reportPickerVisible, setReportPickerVisible] = useState(false);
+  const [optionsVisible, setOptionsVisible] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(true);
@@ -103,6 +104,37 @@ export default function ChatThreadScreen() {
     setSending(false);
   }
 
+  function confirmLeaveGroup() {
+    setOptionsVisible(false);
+    Alert.alert(
+      'Leave Group?',
+      "You'll no longer see messages in this group.",
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Leave Group', style: 'destructive', onPress: handleLeaveGroup },
+      ]
+    );
+  }
+
+  async function handleLeaveGroup() {
+    if (!myId) return;
+    setLeaving(true);
+
+    const { error } = await supabase
+      .from('conversation_participants')
+      .delete()
+      .eq('conversation_id', id)
+      .eq('user_id', myId);
+
+    setLeaving(false);
+
+    if (error) {
+      Alert.alert('Error', error.message);
+      return;
+    }
+    router.back();
+  }
+
   const title = conversation?.conversation_type === 'direct'
     ? (otherUser?.display_name ?? 'Chat')
     : (conversation?.name ?? 'Group Chat');
@@ -141,8 +173,8 @@ export default function ChatThreadScreen() {
             <Text style={styles.headerTitle} numberOfLines={1}>{title}</Text>
           </TouchableOpacity>
           {conversation?.conversation_type === 'group' ? (
-            <TouchableOpacity onPress={() => setReportPickerVisible(true)} style={styles.reportBtn}>
-              <Ionicons name="flag-outline" size={20} color="#aaa" />
+            <TouchableOpacity onPress={() => setOptionsVisible(true)} style={styles.reportBtn}>
+              <Ionicons name="ellipsis-vertical" size={20} color="#aaa" />
             </TouchableOpacity>
           ) : (
             <View style={{ width: 36 }} />
@@ -191,24 +223,34 @@ export default function ChatThreadScreen() {
       </View>
 
       <Modal
-        visible={reportPickerVisible}
+        visible={optionsVisible}
         transparent
         animationType="fade"
-        onRequestClose={() => setReportPickerVisible(false)}
+        onRequestClose={() => setOptionsVisible(false)}
       >
         <TouchableOpacity
           style={styles.modalOverlay}
           activeOpacity={1}
-          onPress={() => setReportPickerVisible(false)}
+          onPress={() => setOptionsVisible(false)}
         >
           <View style={styles.reportSheet}>
-            <Text style={styles.reportSheetTitle}>Report a member</Text>
+            <Text style={styles.reportSheetTitle}>Group Options</Text>
+
+            <TouchableOpacity style={styles.leaveGroupRow} onPress={confirmLeaveGroup} disabled={leaving}>
+              <Ionicons name="exit-outline" size={18} color="#ff4444" />
+              {leaving
+                ? <ActivityIndicator size="small" color="#ff4444" />
+                : <Text style={styles.leaveGroupText}>Leave Group</Text>
+              }
+            </TouchableOpacity>
+
+            <Text style={styles.reportSheetSubtitle}>Report a member</Text>
             {participantList.map((p) => (
               <TouchableOpacity
                 key={p.id}
                 style={styles.reportSheetRow}
                 onPress={() => {
-                  setReportPickerVisible(false);
+                  setOptionsVisible(false);
                   router.push(`/report-user?target_user_id=${p.id}`);
                 }}
               >
@@ -272,6 +314,12 @@ const styles = StyleSheet.create({
     maxHeight: '60%', borderWidth: 1, borderColor: '#2a2a2a', borderBottomWidth: 0,
   },
   reportSheetTitle: { color: '#fff', fontSize: 16, fontWeight: '800', marginBottom: 12 },
+  leaveGroupRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#2a2a2a',
+  },
+  leaveGroupText: { color: '#ff4444', fontSize: 15, fontWeight: '700' },
+  reportSheetSubtitle: { color: '#666', fontSize: 12, fontWeight: '700', marginTop: 14, marginBottom: 4 },
   reportSheetRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingVertical: 14, borderTopWidth: 1, borderTopColor: '#2a2a2a',

@@ -16,6 +16,7 @@ export default function UserProfileScreen() {
   const [myId, setMyId] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [theyFollowMe, setTheyFollowMe] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
@@ -55,6 +56,14 @@ export default function UserProfileScreen() {
         .eq('following_id', id)
         .maybeSingle();
       setIsFollowing(!!followRow);
+
+      const { data: followsMeRow } = await supabase
+        .from('follows')
+        .select('id')
+        .eq('follower_id', id)
+        .eq('following_id', me)
+        .maybeSingle();
+      setTheyFollowMe(!!followsMeRow);
 
       const { data: blockRow } = await supabase
         .from('blocks')
@@ -184,9 +193,9 @@ export default function UserProfileScreen() {
         {profile.username && (
           <Text style={styles.handle}>@{profile.username}</Text>
         )}
-        {profile.role && (
+        {(profile.is_admin || profile.role) && (
           <View style={styles.roleBadge}>
-            <Text style={styles.roleText}>{profile.role.toUpperCase()}</Text>
+            <Text style={styles.roleText}>{profile.is_admin ? 'ADMIN' : profile.role.toUpperCase()}</Text>
           </View>
         )}
       </View>
@@ -221,7 +230,7 @@ export default function UserProfileScreen() {
             disabled={actionLoading}
           >
             <Text style={[styles.actionBtnText, isFollowing && styles.actionBtnTextActive]}>
-              {isFollowing ? 'Following' : 'Follow'}
+              {isFollowing ? 'Following' : (theyFollowMe ? 'Follow Back' : 'Follow')}
             </Text>
           </TouchableOpacity>
 
