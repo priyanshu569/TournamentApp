@@ -139,6 +139,11 @@ export default function EditTournament() {
       return;
     }
 
+    if (!startTime) {
+      Alert.alert('Missing', 'Please select a date and time for the tournament.');
+      return;
+    }
+
     const parsedMatchCount = parseInt(matchCount, 10);
     if (!parsedMatchCount || parsedMatchCount < 1) {
       Alert.alert('Missing', 'Match count must be at least 1.');

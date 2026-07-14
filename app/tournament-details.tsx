@@ -524,12 +524,17 @@ export default function TournamentDetails() {
               </TouchableOpacity>
             </View>
           ) : (
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: gameColor }]}
-              onPress={() => setShowRoomForm(true)}
-            >
-              <Text style={styles.actionButtonText}>🔑 Publish Room Code</Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity
+                style={[styles.actionButton, { backgroundColor: gameColor }]}
+                onPress={() => setShowRoomForm(true)}
+              >
+                <Text style={styles.actionButtonText}>🔑 Publish Room Code</Text>
+              </TouchableOpacity>
+              {tournament.status === 'upcoming' && (
+                <Text style={styles.statusHint}>Publish your room code before marking this Ongoing</Text>
+              )}
+            </>
           )}
 
           {showRoomForm && (
@@ -589,9 +594,6 @@ export default function TournamentDetails() {
               </TouchableOpacity>
             ))}
           </View>
-          {tournament.status === 'upcoming' && !tournament.room_code && (
-            <Text style={styles.statusHint}>💡 Publish your room code before marking this Ongoing</Text>
-          )}
         </View>
       )}
 

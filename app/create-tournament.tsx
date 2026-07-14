@@ -97,6 +97,11 @@ export default function CreateTournament() {
       return;
     }
 
+    if (!startTime) {
+      Alert.alert('Missing Fields', 'Please select a date and time for the tournament.');
+      return;
+    }
+
     const parsedMatchCount = parseInt(matchCount, 10);
     if (!parsedMatchCount || parsedMatchCount < 1) {
       Alert.alert('Missing Fields', 'Match count must be at least 1.');
