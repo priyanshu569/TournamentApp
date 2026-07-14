@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
   },
   createButtonText: { color: '#7C3AED', fontSize: 15, fontWeight: '800' },
 
-  quickActionsRow: { paddingHorizontal: 24, gap: 18, paddingBottom: 24 },
+  quickActionsRow: { paddingHorizontal: 24, gap: 18, paddingTop: 12, paddingBottom: 24 },
   quickAction: { alignItems: 'center', width: 80 },
   quickActionBadge: { marginBottom: 6 },
   quickActionLabel: { color: '#aaa', fontSize: 11, fontWeight: '600', textAlign: 'center' },
