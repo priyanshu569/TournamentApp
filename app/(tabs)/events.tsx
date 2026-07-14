@@ -312,6 +312,12 @@ export default function EventsScreen() {
                   <View style={[styles.gameTag, { backgroundColor: gameColor }]}>
                     <Text style={styles.gameTagText}>{item.game.toUpperCase()}</Text>
                   </View>
+                </View>
+              </View>
+
+              <View style={styles.cardBody}>
+                <View style={styles.cardTitleRow}>
+                  <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
                   <View style={[
                     styles.statusBadge,
                     item.status === 'ongoing' ? styles.statusLive :
@@ -324,10 +330,6 @@ export default function EventsScreen() {
                     <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
                   </View>
                 </View>
-              </View>
-
-              <View style={styles.cardBody}>
-                <Text style={styles.cardTitle}>{item.title}</Text>
 
                 <View style={styles.hostRow}>
                   <Text style={styles.hostName}>by {item.host?.display_name}</Text>
@@ -527,7 +529,11 @@ const styles = StyleSheet.create({
   statusCompleted: { backgroundColor: '#3a1414e6' },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#FFB800' },
   statusText: { fontSize: 11, fontWeight: '700', color: '#fff' },
-  cardTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 6 },
+  cardTitleRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    gap: 8, marginBottom: 8,
+  },
+  cardTitle: { flex: 1, fontSize: 18, fontWeight: '800', color: '#fff' },
   hostRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   hostName: { fontSize: 12, color: '#888', fontWeight: '600' },
   cardDateRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 14 },
