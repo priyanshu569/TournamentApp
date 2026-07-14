@@ -127,6 +127,14 @@ export default function EventsScreen() {
     return '#7C3AED';
   };
 
+  const getGameIcon = (game: string): keyof typeof Ionicons.glyphMap => {
+    const g = game.toLowerCase();
+    if (g.includes('free fire') || g.includes('freefire')) return 'flame';
+    if (g.includes('bgmi') || g.includes('cod')) return 'skull';
+    if (g.includes('valorant')) return 'flash';
+    return 'game-controller';
+  };
+
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return 'TBA';
     const date = new Date(dateStr);
@@ -279,63 +287,85 @@ export default function EventsScreen() {
             <Text style={styles.emptySubText}>Try a different search or game filter.</Text>
           </View>
         }
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[styles.card, { borderLeftColor: getGameColor(item.game), borderLeftWidth: 3 }]}
-            onPress={() => router.push(`/tournament-details?id=${item.id}`)}
-            activeOpacity={0.85}
-          >
-            {item.banner_url && (
-              <Image source={{ uri: item.banner_url }} style={styles.cardBanner} contentFit="cover" />
-            )}
-            <View style={styles.cardBody}>
-              <View style={styles.cardTop}>
-                <View style={[styles.gameTag, { backgroundColor: getGameColor(item.game) + '22' }]}>
-                  <Text style={[styles.gameTagText, { color: getGameColor(item.game) }]}>
-                    {item.game.toUpperCase()}
-                  </Text>
-                </View>
-                <View style={[
-                  styles.statusBadge,
-                  item.status === 'ongoing' ? styles.statusLive :
-                    item.status === 'completed' ? styles.statusCompleted :
-                      styles.statusUpcoming
-                ]}>
-                  {(item.status === 'ongoing' || item.status === 'upcoming') && <View style={[styles.liveDot, {
-                    backgroundColor: item.status === 'upcoming' ? '#00D4AA' : '#FFB800'
-                  }]} />}
-                  <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
-                </View>
-              </View>
-
-              <Text style={styles.cardTitle}>{item.title}</Text>
-
-              <View style={styles.hostRow}>
-                <Text style={styles.hostName}>by {item.host?.display_name}</Text>
-                {item.host?.is_verified && <VerifiedBadge size={13} />}
-              </View>
-
-              <Text style={styles.cardDate}>🗓 {formatDate(item.start_time)}</Text>
-
-              <View style={styles.cardStats}>
-                <View style={styles.stat}>
-                  <Text style={styles.statValue}>₹{item.prize_pool}</Text>
-                  <Text style={styles.statLabel}>PRIZE</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.stat}>
-                  <Text style={styles.statValue}>₹{item.entry_fee}</Text>
-                  <Text style={styles.statLabel}>ENTRY</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.stat}>
-                  <Text style={styles.statValue}>{item.max_teams}</Text>
-                  <Text style={styles.statLabel}>SLOTS</Text>
+        renderItem={({ item }) => {
+          const gameColor = getGameColor(item.game);
+          return (
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() => router.push(`/tournament-details?id=${item.id}`)}
+              activeOpacity={0.85}
+            >
+              <View style={styles.cardHero}>
+                {item.banner_url ? (
+                  <Image source={{ uri: item.banner_url }} style={styles.cardBanner} contentFit="cover" />
+                ) : (
+                  <LinearGradient
+                    colors={[gameColor + '4d', '#0a0a0a']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.cardBannerFallback}
+                  >
+                    <Ionicons name={getGameIcon(item.game)} size={72} color={gameColor + '40'} />
+                  </LinearGradient>
+                )}
+                <View style={styles.cardHeroOverlay}>
+                  <View style={[styles.gameTag, { backgroundColor: gameColor }]}>
+                    <Text style={styles.gameTagText}>{item.game.toUpperCase()}</Text>
+                  </View>
+                  <View style={[
+                    styles.statusBadge,
+                    item.status === 'ongoing' ? styles.statusLive :
+                      item.status === 'completed' ? styles.statusCompleted :
+                        styles.statusUpcoming
+                  ]}>
+                    {(item.status === 'ongoing' || item.status === 'upcoming') && <View style={[styles.liveDot, {
+                      backgroundColor: item.status === 'upcoming' ? '#00D4AA' : '#FFB800'
+                    }]} />}
+                    <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
+                  </View>
                 </View>
               </View>
-            </View>
-          </TouchableOpacity>
-        )}
+
+              <View style={styles.cardBody}>
+                <Text style={styles.cardTitle}>{item.title}</Text>
+
+                <View style={styles.hostRow}>
+                  <Text style={styles.hostName}>by {item.host?.display_name}</Text>
+                  {item.host?.is_verified && <VerifiedBadge size={13} />}
+                </View>
+
+                <View style={styles.cardDateRow}>
+                  <Ionicons name="calendar-outline" size={12} color="#666" />
+                  <Text style={styles.cardDate}>{formatDate(item.start_time)}</Text>
+                </View>
+
+                <View style={styles.cardStats}>
+                  <View style={[styles.statChip, { backgroundColor: '#FFB80014' }]}>
+                    <Ionicons name="cash" size={14} color="#FFB800" />
+                    <View>
+                      <Text style={[styles.statChipValue, { color: '#FFB800' }]}>₹{item.prize_pool}</Text>
+                      <Text style={styles.statChipLabel}>PRIZE</Text>
+                    </View>
+                  </View>
+                  <View style={[styles.statChip, { backgroundColor: '#00D4AA14' }]}>
+                    <Ionicons name="ticket" size={14} color="#00D4AA" />
+                    <View>
+                      <Text style={[styles.statChipValue, { color: '#00D4AA' }]}>₹{item.entry_fee}</Text>
+                      <Text style={styles.statChipLabel}>ENTRY</Text>
+                    </View>
+                  </View>
+                  <View style={[styles.statChip, { backgroundColor: '#7C3AED14' }]}>
+                    <Ionicons name="people" size={14} color="#7C3AED" />
+                    <View>
+                      <Text style={[styles.statChipValue, { color: '#7C3AED' }]}>{item.max_teams}</Text>
+                      <Text style={styles.statChipLabel}>SLOTS</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </TouchableOpacity>
+          );
+        }}
       />
 
       {/* Sort Modal */}
@@ -392,14 +422,6 @@ export default function EventsScreen() {
     </View>
   );
 }
-
-const cardShadow = {
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.35,
-  shadowRadius: 8,
-  elevation: 5,
-};
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0a' },
@@ -475,33 +497,48 @@ const styles = StyleSheet.create({
   emptyText: { color: '#fff', fontSize: 16, fontWeight: '700', marginBottom: 4 },
   emptySubText: { color: '#555', fontSize: 13 },
   card: {
-    backgroundColor: '#161616', borderRadius: 14,
-    marginBottom: 14, borderWidth: 1, borderColor: '#262626', overflow: 'hidden',
-    ...cardShadow,
+    backgroundColor: '#161616', borderRadius: 18,
+    marginBottom: 16, borderWidth: 1, borderColor: '#262626', overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4, shadowRadius: 12, elevation: 6,
   },
-  cardBanner: { width: '100%', height: 120 },
+  cardHero: { height: 130, position: 'relative' },
+  cardBanner: { width: '100%', height: '100%' },
+  cardBannerFallback: {
+    width: '100%', height: '100%',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  cardHeroOverlay: {
+    position: 'absolute', top: 12, left: 12, right: 12,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
+  },
   cardBody: { padding: 16 },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-  gameTag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
-  gameTagText: { fontSize: 11, fontWeight: '800' },
+  gameTag: {
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 3, elevation: 3,
+  },
+  gameTagText: { fontSize: 11, fontWeight: '800', color: '#fff' },
   statusBadge: {
     flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, gap: 4,
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, gap: 4,
   },
-  statusUpcoming: { backgroundColor: '#0a2a2a' },
-  statusLive: { backgroundColor: '#FFB80022' },
-  statusCompleted: { backgroundColor: '#FF444422' },
+  statusUpcoming: { backgroundColor: '#0d2e2ae6' },
+  statusLive: { backgroundColor: '#3a2a00e6' },
+  statusCompleted: { backgroundColor: '#3a1414e6' },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#FFB800' },
   statusText: { fontSize: 11, fontWeight: '700', color: '#fff' },
-  cardTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 4 },
-  hostRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  cardTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 6 },
+  hostRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   hostName: { fontSize: 12, color: '#888', fontWeight: '600' },
-  cardDate: { fontSize: 12, color: '#555', marginBottom: 14 },
-  cardStats: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  stat: {},
-  statDivider: { width: 1, height: 24, backgroundColor: '#2a2a2a' },
-  statValue: { fontSize: 15, fontWeight: '700', color: '#7C3AED' },
-  statLabel: { fontSize: 10, color: '#555', fontWeight: '600', marginTop: 2 },
+  cardDateRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 14 },
+  cardDate: { fontSize: 12, color: '#666', fontWeight: '600' },
+  cardStats: { flexDirection: 'row', gap: 8 },
+  statChip: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10,
+  },
+  statChipValue: { fontSize: 13, fontWeight: '800' },
+  statChipLabel: { fontSize: 9, color: '#666', fontWeight: '700', marginTop: 1 },
   modalOverlay: {
     flex: 1, backgroundColor: '#000000aa',
     justifyContent: 'flex-end',
