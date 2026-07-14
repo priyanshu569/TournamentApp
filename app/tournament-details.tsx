@@ -166,7 +166,23 @@ export default function TournamentDetails() {
     }
   };
 
-  const handleStatusUpdate = async (s: string) => {
+  const handleStatusUpdate = (s: string) => {
+    if (s === 'ongoing' && !tournament.room_code) {
+      Alert.alert(
+        'No Room Code Published',
+        "Players won't know where to join without a room code. Publish it before starting?",
+        [
+          { text: 'Publish Room Code', onPress: () => setShowRoomForm(true) },
+          { text: 'Start Anyway', style: 'destructive', onPress: () => applyStatusUpdate(s) },
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      );
+      return;
+    }
+    applyStatusUpdate(s);
+  };
+
+  async function applyStatusUpdate(s: string) {
     const { error } = await supabase
       .from('tournaments')
       .update({ status: s })
@@ -186,7 +202,7 @@ export default function TournamentDetails() {
     } else {
       Alert.alert('Error', error.message);
     }
-  };
+  }
 
   function confirmCancelRegistration() {
     Alert.alert(
@@ -261,6 +277,22 @@ export default function TournamentDetails() {
       Alert.alert('Error', 'Failed to copy link.');
     }
   };
+
+  function getPlayerStatusMessage() {
+    if (!isConfirmed) {
+      return { icon: '⏳', text: 'Registration pending payment confirmation.', color: '#FFB800' };
+    }
+    if (tournament.status === 'completed') {
+      return { icon: '🏁', text: 'Tournament has ended — check the final standings above!', color: '#aaa' };
+    }
+    if (tournament.status === 'ongoing') {
+      return { icon: '🔴', text: 'Tournament is live right now — good luck out there!', color: '#FFB800' };
+    }
+    if (tournament.room_code) {
+      return { icon: '✅', text: 'Confirmed! Your room code is ready below.', color: '#00D4AA' };
+    }
+    return { icon: '✅', text: "Confirmed! We'll notify you when the room code is published.", color: '#00D4AA' };
+  }
 
   function medal(placement: number | null) {
     if (!placement) return '🔴';
@@ -365,6 +397,20 @@ export default function TournamentDetails() {
           <Text style={styles.statLabel}>Max Teams</Text>
         </View>
       </View>
+
+      {/* Live / Completed banner — visible to host and player alike */}
+      {tournament.status === 'ongoing' && (
+        <View style={styles.liveBanner}>
+          <View style={styles.livePulseDot} />
+          <Text style={styles.liveBannerText}>This tournament is LIVE right now!</Text>
+        </View>
+      )}
+      {tournament.status === 'completed' && (
+        <View style={styles.completedBanner}>
+          <Ionicons name="checkmark-done-circle" size={18} color="#888" />
+          <Text style={styles.completedBannerText}>This tournament has ended</Text>
+        </View>
+      )}
 
       <View style={styles.divider} />
       {/* Description */}
@@ -543,6 +589,9 @@ export default function TournamentDetails() {
               </TouchableOpacity>
             ))}
           </View>
+          {tournament.status === 'upcoming' && !tournament.room_code && (
+            <Text style={styles.statusHint}>💡 Publish your room code before marking this Ongoing</Text>
+          )}
         </View>
       )}
 
@@ -584,13 +633,16 @@ export default function TournamentDetails() {
         </TouchableOpacity>
       ) : isRegistered ? (
         <>
-          <View style={styles.alreadyRegistered}>
-            <Text style={styles.alreadyRegisteredText}>
-              {isConfirmed
-                ? '✅ You are confirmed for this tournament!'
-                : '⏳ Registration pending payment confirmation.'}
-            </Text>
-          </View>
+          {(() => {
+            const msg = getPlayerStatusMessage();
+            return (
+              <View style={[styles.alreadyRegistered, { borderColor: msg.color + '55' }]}>
+                <Text style={[styles.alreadyRegisteredText, { color: msg.color }]}>
+                  {msg.icon} {msg.text}
+                </Text>
+              </View>
+            );
+          })()}
 
           {!isConfirmed && (
             <TouchableOpacity
@@ -723,6 +775,19 @@ const styles = StyleSheet.create({
   },
   statValue: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 4 },
   statLabel: { fontSize: 11, color: '#aaa' },
+  liveBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: '#3a2a00', borderWidth: 1, borderColor: '#FFB800',
+    borderRadius: 14, padding: 16, marginBottom: 24,
+  },
+  livePulseDot: { width: 9, height: 9, borderRadius: 4.5, backgroundColor: '#FFB800' },
+  liveBannerText: { color: '#FFB800', fontSize: 14, fontWeight: '700' },
+  completedBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: '#161616', borderWidth: 1, borderColor: '#2a2a2a',
+    borderRadius: 14, padding: 16, marginBottom: 24,
+  },
+  completedBannerText: { color: '#888', fontSize: 14, fontWeight: '700' },
   divider: { height: 1, backgroundColor: '#1a1a1a', marginBottom: 24 },
   section: { marginBottom: 24 },
   sectionTitle: {
@@ -767,6 +832,7 @@ const styles = StyleSheet.create({
     borderColor: '#2a2a2a', alignItems: 'center',
   },
   statusChipText: { color: '#aaa', fontSize: 12, fontWeight: '600' },
+  statusHint: { color: '#FFB800', fontSize: 12, marginTop: 10, fontWeight: '600' },
   waitingBox: {
     backgroundColor: '#1a1a00', borderRadius: 12, padding: 16,
     borderWidth: 1, borderColor: '#3a3a00', marginBottom: 24,
