@@ -129,9 +129,14 @@ export default function ChatInboxScreen() {
           </View>
           <Text style={styles.headerTitle}>Chats</Text>
         </View>
-        <TouchableOpacity onPress={() => router.push('/new-group')} style={styles.newGroupBtn}>
-          <Ionicons name="people" size={20} color="#7C3AED" />
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity onPress={() => router.push('/search-users')} style={styles.newGroupBtn}>
+            <Ionicons name="search" size={18} color="#7C3AED" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/new-group')} style={styles.newGroupBtn}>
+            <Ionicons name="people" size={20} color="#7C3AED" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {loading ? (
@@ -187,6 +192,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', paddingHorizontal: 24, paddingTop: 60, paddingBottom: 16,
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerIconBadge: {
     width: 40, height: 40, borderRadius: 12,
     backgroundColor: '#7C3AED18', justifyContent: 'center', alignItems: 'center',

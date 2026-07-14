@@ -78,7 +78,9 @@ export default function FollowListScreen() {
           <Ionicons name="chevron-back" size={26} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{type === 'followers' ? 'Followers' : 'Following'}</Text>
-        <View style={{ width: 26 }} />
+        <TouchableOpacity onPress={() => router.push('/search-users')} style={styles.backBtn}>
+          <Ionicons name="search" size={18} color="#fff" />
+        </TouchableOpacity>
       </View>
 
       {loading ? (
