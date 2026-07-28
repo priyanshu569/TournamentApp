@@ -33,6 +33,7 @@ export default function EditProfileScreen() {
   const [displayName, setDisplayName] = useState('');
   const [gender, setGender] = useState<string | null>(null);
   const [state, setState] = useState<string | null>(null);
+  const [city, setCity] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null);
   const [avatarId, setAvatarId] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -92,7 +93,7 @@ export default function EditProfileScreen() {
 
     const { data } = await supabase
       .from('Profiles')
-      .select('username, display_name, gender, state, date_of_birth, avatar_id, avatar_url, games_onboarded')
+      .select('username, display_name, gender, state, city, date_of_birth, avatar_id, avatar_url, games_onboarded')
       .eq('id', userData.user.id)
       .single();
 
@@ -101,6 +102,7 @@ export default function EditProfileScreen() {
       setDisplayName(data.display_name || '');
       setGender(data.gender || null);
       setState(data.state || null);
+      setCity(data.city || '');
       setDateOfBirth(data.date_of_birth ? new Date(data.date_of_birth) : null);
       setAvatarId(data.avatar_id || null);
       setAvatarUrl(data.avatar_url || null);
@@ -167,6 +169,7 @@ export default function EditProfileScreen() {
         display_name: displayName.trim(),
         gender,
         state,
+        city: city.trim() || null,
         date_of_birth: dateOfBirth ? dateOfBirth.toISOString().slice(0, 10) : null,
         avatar_id: avatarId,
         avatar_url: avatarUrl,
@@ -347,6 +350,18 @@ export default function EditProfileScreen() {
             </Text>
             <Ionicons name="chevron-down" size={18} color={colors.textMuted} />
           </TouchableOpacity>
+        </View>
+
+        {/* City */}
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>City (optional)</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Share your city if you'd like"
+            placeholderTextColor={colors.textDisabled}
+            value={city}
+            onChangeText={setCity}
+          />
         </View>
 
         {/* Date of Birth */}

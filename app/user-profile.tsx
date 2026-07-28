@@ -4,6 +4,7 @@ import {
   TouchableOpacity, Alert, ScrollView
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import Avatar from '@/components/Avatar';
@@ -11,12 +12,27 @@ import VerifiedBadge from '@/components/VerifiedBadge';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 
+const GAME_META: Record<string, { icon: keyof typeof Ionicons.glyphMap; color: string }> = {
+  'Free Fire': { icon: 'flame', color: '#FF6B35' },
+  'BGMI': { icon: 'skull', color: '#FFB800' },
+  'COD Mobile': { icon: 'skull', color: '#00D4AA' },
+  'Valorant': { icon: 'flash', color: '#FF4655' },
+};
+
+function getGenderMeta(gender: string | null, colors: ThemeColors) {
+  if (gender === 'male') return { icon: 'male' as const, color: '#4FA3FF' };
+  if (gender === 'female') return { icon: 'female' as const, color: '#FF6FA5' };
+  if (gender === 'other') return { icon: 'person' as const, color: colors.textTertiary };
+  return null;
+}
+
 export default function UserProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { colors } = useAppTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
   const [profile, setProfile] = useState<any>(null);
+  const [games, setGames] = useState<any[]>([]);
   const [myId, setMyId] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -51,6 +67,12 @@ export default function UserProfileScreen() {
       .single();
     setProfile(p);
     setListsPrivate(!!p?.follow_list_private);
+
+    const { data: gameRows } = await supabase
+      .from('game_profiles')
+      .select('game, in_game_name, game_uid')
+      .eq('user_id', id);
+    setGames(gameRows ?? []);
 
     if (me && me !== id) {
       const { data: followRow } = await supabase
@@ -178,9 +200,11 @@ export default function UserProfileScreen() {
 
   const isOwnProfile = myId === id;
   const canSeeLists = !listsPrivate || isOwnProfile || isAdmin;
+  const genderMeta = getGenderMeta(profile.gender, colors);
+  const location = [profile.city, profile.state].filter(Boolean).join(', ');
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
@@ -188,8 +212,16 @@ export default function UserProfileScreen() {
         <View style={{ width: 36 }} />
       </View>
 
-      <View style={styles.profileTop}>
-        <Avatar avatarId={profile.avatar_id} avatarUrl={profile.avatar_url} username={profile.display_name} size={88} />
+      {/* Hero */}
+      <LinearGradient
+        colors={['#2d1b4e', '#1a0f2e', '#0d0619']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.hero}
+      >
+        <View style={styles.avatarRing}>
+          <Avatar avatarId={profile.avatar_id} avatarUrl={profile.avatar_url} username={profile.display_name} size={84} />
+        </View>
         <View style={styles.nameRow}>
           <Text style={styles.username}>{profile.display_name ?? 'Unknown'}</Text>
           {profile.is_verified && <VerifiedBadge size={16} />}
@@ -197,24 +229,48 @@ export default function UserProfileScreen() {
         {profile.username && (
           <Text style={styles.handle}>@{profile.username}</Text>
         )}
-        {(profile.is_admin || profile.role) && (
-          <View style={styles.roleBadge}>
-            <Text style={styles.roleText}>{profile.is_admin ? 'ADMIN' : profile.role.toUpperCase()}</Text>
+
+        {(genderMeta || location) && (
+          <View style={styles.infoRow}>
+            {genderMeta && (
+              <View style={styles.infoChip}>
+                <Ionicons name={genderMeta.icon} size={13} color={genderMeta.color} />
+              </View>
+            )}
+            {!!location && (
+              <View style={styles.infoChip}>
+                <Ionicons name="location" size={12} color="#c9b8ea" />
+                <Text style={styles.infoChipText}>{location}</Text>
+              </View>
+            )}
           </View>
         )}
-      </View>
 
-      <View style={styles.statsRow}>
+        {(profile.is_admin || profile.role) && (
+          <LinearGradient
+            colors={['#7C3AED', '#4C1D95']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.roleBadge}
+          >
+            <Text style={styles.roleText}>{profile.is_admin ? 'ADMIN' : profile.role.toUpperCase()}</Text>
+          </LinearGradient>
+        )}
+      </LinearGradient>
+
+      {/* Stats */}
+      <View style={styles.statsCard}>
         <TouchableOpacity
-          style={styles.statBox}
+          style={styles.statItem}
           disabled={!canSeeLists}
           onPress={() => router.push(`/follow-list?id=${id}&type=followers`)}
         >
           <Text style={styles.statValue}>{canSeeLists ? followersCount : '—'}</Text>
           <Text style={styles.statLabel}>Followers</Text>
         </TouchableOpacity>
+        <View style={styles.statDivider} />
         <TouchableOpacity
-          style={styles.statBox}
+          style={styles.statItem}
           disabled={!canSeeLists}
           onPress={() => router.push(`/follow-list?id=${id}&type=following`)}
         >
@@ -248,23 +304,48 @@ export default function UserProfileScreen() {
         </View>
       )}
 
+      {/* Games */}
+      {games.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>GAMES</Text>
+          <View style={{ gap: 10 }}>
+            {games.map((g) => {
+              const meta = GAME_META[g.game] ?? { icon: 'game-controller' as const, color: colors.accent };
+              return (
+                <View key={g.game} style={styles.gameCard}>
+                  <View style={[styles.gameIconCircle, { backgroundColor: meta.color + '1c', borderColor: meta.color + '55' }]}>
+                    <Ionicons name={meta.icon} size={18} color={meta.color} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.gameName}>{g.game}</Text>
+                    <Text style={styles.gameDetail}>{g.in_game_name} · UID: {g.game_uid}</Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      )}
+
       {!isOwnProfile && (
-        <View style={styles.menu}>
-          <TouchableOpacity style={styles.menuItem} onPress={handleBlockToggle} disabled={actionLoading}>
-            <View style={[styles.menuIconCircle, { backgroundColor: colors.errorMuted }]}>
-              <Ionicons name="ban" size={16} color={colors.error} />
-            </View>
-            <Text style={styles.menuText}>{isBlocked ? 'Unblock User' : 'Block User'}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => router.push(`/report-user?target_user_id=${id}`)}
-          >
-            <View style={[styles.menuIconCircle, { backgroundColor: colors.warningMuted }]}>
-              <Ionicons name="warning" size={16} color={colors.warning} />
-            </View>
-            <Text style={styles.menuText}>Report User</Text>
-          </TouchableOpacity>
+        <View style={styles.section}>
+          <View style={styles.menu}>
+            <TouchableOpacity style={styles.menuItem} onPress={handleBlockToggle} disabled={actionLoading}>
+              <View style={[styles.menuIconCircle, { backgroundColor: colors.errorMuted, borderColor: colors.error + '44' }]}>
+                <Ionicons name="ban" size={16} color={colors.error} />
+              </View>
+              <Text style={styles.menuText}>{isBlocked ? 'Unblock User' : 'Block User'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => router.push(`/report-user?target_user_id=${id}`)}
+            >
+              <View style={[styles.menuIconCircle, { backgroundColor: colors.warningMuted, borderColor: colors.warning + '44' }]}>
+                <Ionicons name="warning" size={16} color={colors.warning} />
+              </View>
+              <Text style={styles.menuText}>Report User</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
     </ScrollView>
@@ -282,24 +363,46 @@ function getStyles(colors: ThemeColors) {
       width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceAlt,
       justifyContent: 'center', alignItems: 'center',
     },
-    profileTop: { alignItems: 'center', marginBottom: 24 },
-    nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14 },
-    username: { fontSize: 22, fontWeight: '900', color: colors.textPrimary },
-    handle: { fontSize: 13, color: colors.textTertiary, marginTop: 2, fontWeight: '600' },
-    roleBadge: {
-      marginTop: 8, backgroundColor: colors.accentMutedStrong, paddingHorizontal: 12,
-      paddingVertical: 4, borderRadius: 20, borderWidth: 1, borderColor: colors.accent,
+    hero: {
+      alignItems: 'center', borderRadius: 24, padding: 24, marginBottom: 20,
+      borderWidth: 1, borderColor: '#3a2c5c',
+      shadowColor: colors.accent, shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.3, shadowRadius: 16, elevation: 8,
     },
-    roleText: { color: colors.accent, fontSize: 11, fontWeight: '700' },
-    statsRow: { flexDirection: 'row', justifyContent: 'center', gap: 40, marginBottom: 6 },
-    statBox: { alignItems: 'center' },
+    avatarRing: {
+      padding: 3, borderRadius: 46, borderWidth: 2, borderColor: colors.accent, marginBottom: 14,
+    },
+    nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    username: { fontSize: 22, fontWeight: '900', color: '#fff' },
+    handle: { fontSize: 13, color: '#c9b8ea', marginTop: 2, fontWeight: '600' },
+    infoRow: { flexDirection: 'row', gap: 8, marginTop: 12, flexWrap: 'wrap', justifyContent: 'center' },
+    infoChip: {
+      flexDirection: 'row', alignItems: 'center', gap: 5,
+      backgroundColor: '#ffffff14', paddingHorizontal: 10, paddingVertical: 5,
+      borderRadius: 20, borderWidth: 1, borderColor: '#ffffff1f',
+    },
+    infoChipText: { color: '#e5d9fb', fontSize: 12, fontWeight: '600' },
+    roleBadge: {
+      marginTop: 14, paddingHorizontal: 12,
+      paddingVertical: 4, borderRadius: 20,
+    },
+    roleText: { color: '#fff', fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
+
+    statsCard: {
+      flexDirection: 'row', backgroundColor: colors.surface, borderRadius: 18,
+      borderWidth: 1, borderColor: colors.borderMuted, paddingVertical: 16, marginBottom: 6,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.25, shadowRadius: 8, elevation: 3,
+    },
+    statItem: { flex: 1, alignItems: 'center' },
+    statDivider: { width: 1, backgroundColor: colors.border },
     statValue: { color: colors.textPrimary, fontSize: 20, fontWeight: '800' },
     statLabel: { color: colors.textSecondary, fontSize: 12, marginTop: 2 },
-    privateHint: { color: colors.textFaint, fontSize: 12, textAlign: 'center', marginBottom: 20 },
-    actionsRow: { flexDirection: 'row', gap: 12, marginTop: 16, marginBottom: 24 },
+    privateHint: { color: colors.textFaint, fontSize: 12, textAlign: 'center', marginTop: 10 },
+    actionsRow: { flexDirection: 'row', gap: 12, marginTop: 20 },
     actionBtn: {
       flex: 1, backgroundColor: colors.accent, paddingVertical: 14,
-      borderRadius: 12, alignItems: 'center',
+      borderRadius: 14, alignItems: 'center',
       shadowColor: colors.accent, shadowOffset: { width: 0, height: 6 },
       shadowOpacity: 0.4, shadowRadius: 10, elevation: 6,
     },
@@ -308,18 +411,36 @@ function getStyles(colors: ThemeColors) {
     actionBtnTextActive: { color: colors.accent },
     actionBtnOutline: {
       flex: 1, backgroundColor: colors.surfaceAlt, paddingVertical: 14,
-      borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: colors.border,
+      borderRadius: 14, alignItems: 'center', borderWidth: 1, borderColor: colors.border,
     },
     actionBtnOutlineText: { color: colors.textPrimary, fontSize: 15, fontWeight: '700' },
-    menu: { gap: 8 },
+
+    section: { marginTop: 24 },
+    sectionLabel: {
+      fontSize: 11, color: colors.textMuted, fontWeight: '700',
+      letterSpacing: 1.2, marginBottom: 10, marginLeft: 4,
+    },
+    gameCard: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      backgroundColor: colors.surface, borderRadius: 16,
+      padding: 14, borderWidth: 1, borderColor: colors.borderMuted,
+    },
+    gameIconCircle: {
+      width: 40, height: 40, borderRadius: 20,
+      justifyContent: 'center', alignItems: 'center', borderWidth: 1,
+    },
+    gameName: { color: colors.textPrimary, fontSize: 15, fontWeight: '700', marginBottom: 2 },
+    gameDetail: { color: colors.textTertiary, fontSize: 12 },
+
+    menu: { gap: 10 },
     menuItem: {
       flexDirection: 'row', alignItems: 'center', gap: 12,
-      backgroundColor: colors.surface, borderRadius: 14,
+      backgroundColor: colors.surface, borderRadius: 16,
       padding: 14, borderWidth: 1, borderColor: colors.borderMuted,
     },
     menuIconCircle: {
       width: 34, height: 34, borderRadius: 17,
-      justifyContent: 'center', alignItems: 'center',
+      justifyContent: 'center', alignItems: 'center', borderWidth: 1,
     },
     menuText: { flex: 1, color: colors.textPrimary, fontSize: 15, fontWeight: '600' },
   });
