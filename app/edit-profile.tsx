@@ -12,6 +12,7 @@ import FragifyLogo from '@/components/FragifyLogo';
 import Avatar from '@/components/Avatar';
 import { AVATAR_PRESETS } from '@/lib/avatars';
 import { INDIAN_STATES } from '@/lib/indianStates';
+import { pickAndUploadAvatarPhoto } from '@/lib/avatarUpload';
 
 const GENDERS = [
   { value: 'male', label: 'Male' },
@@ -30,10 +31,12 @@ export default function EditProfileScreen() {
   const [state, setState] = useState<string | null>(null);
   const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null);
   const [avatarId, setAvatarId] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [gamesOnboarded, setGamesOnboarded] = useState(true);
 
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [statePickerVisible, setStatePickerVisible] = useState(false);
   const [dobPickerVisible, setDobPickerVisible] = useState(false);
 
@@ -85,7 +88,7 @@ export default function EditProfileScreen() {
 
     const { data } = await supabase
       .from('Profiles')
-      .select('username, display_name, gender, state, date_of_birth, avatar_id, games_onboarded')
+      .select('username, display_name, gender, state, date_of_birth, avatar_id, avatar_url, games_onboarded')
       .eq('id', userData.user.id)
       .single();
 
@@ -96,9 +99,25 @@ export default function EditProfileScreen() {
       setState(data.state || null);
       setDateOfBirth(data.date_of_birth ? new Date(data.date_of_birth) : null);
       setAvatarId(data.avatar_id || null);
+      setAvatarUrl(data.avatar_url || null);
       setGamesOnboarded(!!data.games_onboarded);
     }
     setFetching(false);
+  }
+
+  async function handleUploadPhoto() {
+    if (!userId) return;
+    setUploadingPhoto(true);
+    try {
+      const url = await pickAndUploadAvatarPhoto(userId);
+      if (url) {
+        setAvatarUrl(url);
+        setAvatarId(null);
+      }
+    } catch (err: any) {
+      Alert.alert('Error', err.message);
+    }
+    setUploadingPhoto(false);
   }
 
   function handleUsernameChange(text: string) {
@@ -146,6 +165,7 @@ export default function EditProfileScreen() {
         state,
         date_of_birth: dateOfBirth ? dateOfBirth.toISOString().slice(0, 10) : null,
         avatar_id: avatarId,
+        avatar_url: avatarUrl,
       });
 
     setLoading(false);
@@ -219,18 +239,45 @@ export default function EditProfileScreen() {
         {/* Avatar */}
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Avatar</Text>
+
+          <TouchableOpacity style={styles.photoRow} onPress={handleUploadPhoto} disabled={uploadingPhoto}>
+            {avatarUrl ? (
+              <Avatar avatarUrl={avatarUrl} size={56} />
+            ) : (
+              <View style={styles.photoPlaceholder}>
+                {uploadingPhoto
+                  ? <ActivityIndicator color="#7C3AED" />
+                  : <Ionicons name="camera" size={22} color="#7C3AED" />
+                }
+              </View>
+            )}
+            <View style={{ flex: 1 }}>
+              <Text style={styles.photoRowTitle}>{avatarUrl ? 'Change Photo' : 'Upload a Photo'}</Text>
+              <Text style={styles.photoRowSubtitle}>Use your own photo instead of an avatar below</Text>
+            </View>
+            {avatarUrl && (
+              <TouchableOpacity onPress={() => setAvatarUrl(null)} style={styles.photoRemoveBtn}>
+                <Ionicons name="close" size={16} color="#aaa" />
+              </TouchableOpacity>
+            )}
+          </TouchableOpacity>
+
           <View style={styles.avatarGrid}>
             {AVATAR_PRESETS.map((preset) => (
               <TouchableOpacity
                 key={preset.id}
-                style={[styles.avatarOption, avatarId === preset.id && styles.avatarOptionActive]}
-                onPress={() => setAvatarId(avatarId === preset.id ? null : preset.id)}
+                style={[styles.avatarOption, !avatarUrl && avatarId === preset.id && styles.avatarOptionActive]}
+                onPress={() => { setAvatarId(avatarId === preset.id ? null : preset.id); setAvatarUrl(null); }}
               >
                 <Avatar avatarId={preset.id} size={52} />
               </TouchableOpacity>
             ))}
           </View>
-          <Text style={styles.hint}>Tap an avatar to select it, or tap it again to use your initials instead.</Text>
+          <Text style={styles.hint}>
+            {avatarUrl
+              ? 'Using your uploaded photo. Tap an avatar below to switch back to a preset.'
+              : 'Tap an avatar to select it, or tap it again to use your initials instead.'}
+          </Text>
         </View>
 
         {/* Username */}
@@ -383,6 +430,23 @@ const styles = StyleSheet.create({
   hint: { color: '#555', fontSize: 12, marginTop: 6 },
   hintSuccess: { color: '#00D4AA' },
   hintError: { color: '#ff4444' },
+  photoRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: '#161616', borderRadius: 14, padding: 12,
+    marginBottom: 14, borderWidth: 1, borderColor: '#262626',
+  },
+  photoPlaceholder: {
+    width: 56, height: 56, borderRadius: 28, backgroundColor: '#7C3AED18',
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: '#7C3AED44', borderStyle: 'dashed',
+  },
+  photoRowTitle: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  photoRowSubtitle: { color: '#888', fontSize: 12, marginTop: 2 },
+  photoRemoveBtn: {
+    width: 28, height: 28, borderRadius: 14, backgroundColor: '#1a1a1a',
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: '#2a2a2a',
+  },
   avatarGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   avatarOption: {
     padding: 4, borderRadius: 32, borderWidth: 2, borderColor: 'transparent',

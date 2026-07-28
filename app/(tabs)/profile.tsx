@@ -158,7 +158,7 @@ export default function ProfileScreen() {
         end={{ x: 1, y: 1 }}
         style={styles.profileCard}
       >
-        <Avatar avatarId={profile?.avatar_id} username={profile?.display_name} size={68} />
+        <Avatar avatarId={profile?.avatar_id} avatarUrl={profile?.avatar_url} username={profile?.display_name} size={68} />
         <View style={[styles.profileInfo, { marginLeft: 16 }]}>
           <Text style={styles.username}>{profile?.display_name ?? 'Unknown'}</Text>
           {profile?.username && <Text style={styles.handle}>@{profile.username}</Text>}

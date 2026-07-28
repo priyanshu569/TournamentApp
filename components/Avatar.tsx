@@ -1,17 +1,27 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Image, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { getAvatarPreset } from '@/lib/avatars';
 
 type Props = {
   avatarId?: string | null;
+  avatarUrl?: string | null;
   username?: string | null;
   size?: number;
 };
 
-export default function Avatar({ avatarId, username, size = 64 }: Props) {
+export default function Avatar({ avatarId, avatarUrl, username, size = 64 }: Props) {
   const preset = getAvatarPreset(avatarId);
   const iconSize = Math.round(size * 0.52);
+
+  if (avatarUrl) {
+    return (
+      <Image
+        source={{ uri: avatarUrl }}
+        style={[styles.circle, { width: size, height: size, borderRadius: size / 2 }]}
+      />
+    );
+  }
 
   if (preset) {
     const IconComponent = preset.iconFamily === 'ionicons' ? Ionicons : MaterialCommunityIcons;

@@ -185,7 +185,7 @@ export default function UserProfileScreen() {
       </View>
 
       <View style={styles.profileTop}>
-        <Avatar avatarId={profile.avatar_id} username={profile.display_name} size={88} />
+        <Avatar avatarId={profile.avatar_id} avatarUrl={profile.avatar_url} username={profile.display_name} size={88} />
         <View style={styles.nameRow}>
           <Text style={styles.username}>{profile.display_name ?? 'Unknown'}</Text>
           {profile.is_verified && <VerifiedBadge size={16} />}

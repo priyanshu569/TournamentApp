@@ -74,7 +74,7 @@ export default function ChatThreadScreen() {
     const participantIds = (participants ?? []).map((p: any) => p.user_id);
 
     const { data: profiles } = participantIds.length > 0
-      ? await supabase.from('public_profiles').select('id, display_name, avatar_id').in('id', participantIds)
+      ? await supabase.from('public_profiles').select('id, display_name, avatar_id, avatar_url').in('id', participantIds)
       : { data: [] };
 
     const nameMap = new Map((profiles ?? []).map((p: any) => [p.id, p.display_name ?? 'Unknown']));
@@ -184,7 +184,7 @@ export default function ChatThreadScreen() {
             disabled={!otherUser}
           >
             {conversation?.conversation_type === 'direct' ? (
-              <Avatar avatarId={otherUser?.avatar_id} username={otherUser?.display_name} size={32} />
+              <Avatar avatarId={otherUser?.avatar_id} avatarUrl={otherUser?.avatar_url} username={otherUser?.display_name} size={32} />
             ) : (
               <LinearGradient colors={['#7C3AED', '#4C1D95']} style={styles.groupIconSmall}>
                 <Ionicons name="people" size={16} color="#fff" />

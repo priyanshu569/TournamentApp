@@ -57,7 +57,7 @@ export default function ChatInboxScreen() {
     )];
 
     const { data: profiles } = otherUserIds.length > 0
-      ? await supabase.from('public_profiles').select('id, display_name, avatar_id').in('id', otherUserIds)
+      ? await supabase.from('public_profiles').select('id, display_name, avatar_id, avatar_url').in('id', otherUserIds)
       : { data: [] };
 
     const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
@@ -79,6 +79,7 @@ export default function ChatInboxScreen() {
       const lastMessage = lastMessageMap.get(c.id);
       let title = c.name ?? 'Group Chat';
       let avatarId: string | null = null;
+      let avatarUrl: string | null = null;
       let avatarUsername: string | null = null;
 
       if (c.conversation_type === 'direct') {
@@ -88,6 +89,7 @@ export default function ChatInboxScreen() {
         const otherProfile = otherId ? profileMap.get(otherId) : null;
         title = otherProfile?.display_name ?? 'Unknown User';
         avatarId = otherProfile?.avatar_id ?? null;
+        avatarUrl = otherProfile?.avatar_url ?? null;
         avatarUsername = otherProfile?.display_name ?? null;
       }
 
@@ -96,6 +98,7 @@ export default function ChatInboxScreen() {
         type: c.conversation_type,
         title,
         avatarId,
+        avatarUrl,
         avatarUsername,
         lastMessage: lastMessage?.content ?? null,
         lastMessageAt: lastMessage?.created_at ?? c.created_at,
@@ -164,7 +167,7 @@ export default function ChatInboxScreen() {
               onPress={() => router.push(`/chat-thread?id=${item.id}`)}
             >
               {item.type === 'direct' ? (
-                <Avatar avatarId={item.avatarId} username={item.avatarUsername} size={50} />
+                <Avatar avatarId={item.avatarId} avatarUrl={item.avatarUrl} username={item.avatarUsername} size={50} />
               ) : (
                 <LinearGradient colors={['#7C3AED', '#4C1D95']} style={styles.groupIcon}>
                   <Ionicons name="people" size={22} color="#fff" />
