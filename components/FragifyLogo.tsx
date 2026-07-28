@@ -1,12 +1,15 @@
 import Svg, {
   Path, G, Defs, LinearGradient, Stop, ClipPath, Rect,
 } from 'react-native-svg';
+import { useAppTheme } from '@/lib/ThemeContext';
 
 type Props = {
   size?: number;
 };
 
 export default function FragifyLogo({ size = 40 }: Props) {
+  const { colors } = useAppTheme();
+
   return (
     <Svg width={size} height={size} viewBox="241.68 55.54 771.87 771.87" fill="none">
     <G clipPath="url(#clip0_3311_113)">
@@ -52,8 +55,8 @@ export default function FragifyLogo({ size = 40 }: Props) {
     </G>
     <Defs>
     <LinearGradient id="paint0_linear_3311_113" x1="649.3" y1="717.725" x2="648.173" y2="276.645" gradientUnits="userSpaceOnUse">
-    <Stop stopColor="#D6D5D6"/>
-    <Stop offset="1" stopColor="white"/>
+    <Stop stopColor={colors.textSecondary}/>
+    <Stop offset="1" stopColor={colors.textPrimary}/>
     </LinearGradient>
     <LinearGradient id="paint1_linear_3311_113" x1="784.038" y1="406.399" x2="873.092" y2="232.757" gradientUnits="userSpaceOnUse">
     <Stop stopColor="#6A19D0"/>
