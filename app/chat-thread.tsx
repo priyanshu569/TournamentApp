@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TextInput,
-  TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Modal, Alert
+  TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Modal, Alert, Keyboard
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,9 +23,21 @@ export default function ChatThreadScreen() {
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const listRef = useRef<FlatList>(null);
 
   useEffect(() => { loadThread(); }, [id]);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, () => setKeyboardVisible(true));
+    const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   useEffect(() => {
     const channel = supabase
@@ -212,7 +224,7 @@ export default function ChatThreadScreen() {
           }}
         />
 
-        <View style={styles.inputRow}>
+        <View style={[styles.inputRow, { paddingBottom: keyboardVisible ? 12 : 34 }]}>
           <TextInput
             style={styles.input}
             placeholder="Message..."
@@ -302,7 +314,7 @@ const styles = StyleSheet.create({
   messageText: { color: '#fff', fontSize: 14, lineHeight: 20 },
   inputRow: {
     flexDirection: 'row', alignItems: 'flex-end', gap: 10,
-    paddingHorizontal: 12, paddingTop: 12, paddingBottom: 34,
+    paddingHorizontal: 12, paddingTop: 12,
     borderTopWidth: 1, borderTopColor: '#1a1a1a',
   },
   input: {
