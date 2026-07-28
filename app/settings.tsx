@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   Switch, ActivityIndicator, Alert
@@ -8,10 +8,14 @@ import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
 import { supabase } from '@/lib/supabase';
+import { useAppTheme } from '@/lib/ThemeContext';
+import { ThemeColors } from '@/constants/theme';
 WebBrowser.maybeCompleteAuthSession();
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { theme, colors, setTheme } = useAppTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [loading, setLoading] = useState(true);
   const [phone, setPhone] = useState('');
   const [username, setUsername] = useState('');
@@ -150,7 +154,7 @@ export default function SettingsScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#7C3AED" />
+        <ActivityIndicator size="large" color={colors.accent} />
       </View>
     );
   }
@@ -160,7 +164,7 @@ export default function SettingsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={20} color="#fff" />
+          <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Settings</Text>
         <View style={{ width: 36 }} />
@@ -192,14 +196,14 @@ export default function SettingsScreen() {
         {googleLinked ? (
           <View style={styles.row}>
             <Text style={styles.rowLabel}>Google Account</Text>
-            <Text style={[styles.rowValue, { color: '#00D4AA' }]}>✓ Linked</Text>
+            <Text style={[styles.rowValue, { color: colors.success }]}>✓ Linked</Text>
           </View>
         ) : (
           <TouchableOpacity style={styles.row} onPress={handleLinkGoogle} disabled={linkingGoogle}>
             <Text style={styles.rowLabel}>Link Google Account</Text>
             {linkingGoogle
-              ? <ActivityIndicator size="small" color="#7C3AED" />
-              : <Ionicons name="chevron-forward" size={18} color="#555" />
+              ? <ActivityIndicator size="small" color={colors.accent} />
+              : <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
             }
           </TouchableOpacity>
         )}
@@ -216,7 +220,7 @@ export default function SettingsScreen() {
           <Switch
             value={notificationsEnabled}
             onValueChange={toggleNotifications}
-            trackColor={{ false: '#2a2a2a', true: '#7C3AED' }}
+            trackColor={{ false: colors.border, true: colors.accent }}
             thumbColor="#fff"
           />
         </View>
@@ -233,7 +237,7 @@ export default function SettingsScreen() {
           <Switch
             value={followListPrivate}
             onValueChange={toggleFollowListPrivate}
-            trackColor={{ false: '#2a2a2a', true: '#7C3AED' }}
+            trackColor={{ false: colors.border, true: colors.accent }}
             thumbColor="#fff"
           />
         </View>
@@ -245,13 +249,12 @@ export default function SettingsScreen() {
         <View style={styles.row}>
           <Text style={styles.rowLabel}>Dark Mode</Text>
           <Switch
-            value={true}
-            disabled={true}
-            trackColor={{ false: '#2a2a2a', true: '#7C3AED' }}
+            value={theme === 'dark'}
+            onValueChange={(value) => setTheme(value ? 'dark' : 'light')}
+            trackColor={{ false: colors.border, true: colors.accent }}
             thumbColor="#fff"
           />
         </View>
-        <Text style={styles.helperText}>Light mode is coming in a future update.</Text>
       </View>
 
       {/* Legal & Account Management */}
@@ -262,14 +265,14 @@ export default function SettingsScreen() {
           onPress={() => router.push('/privacy-policy')}
         >
           <Text style={styles.rowLabel}>Privacy Policy</Text>
-          <Ionicons name="chevron-forward" size={18} color="#555" />
+          <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
         </TouchableOpacity>
         <View style={styles.divider} />
         <TouchableOpacity style={styles.row} onPress={handleDeleteAccount} disabled={deleting}>
-          <Text style={[styles.rowLabel, { color: '#ff4444' }]}>Delete Account</Text>
+          <Text style={[styles.rowLabel, { color: colors.error }]}>Delete Account</Text>
           {deleting
-            ? <ActivityIndicator size="small" color="#ff4444" />
-            : <Ionicons name="chevron-forward" size={18} color="#555" />
+            ? <ActivityIndicator size="small" color={colors.error} />
+            : <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
           }
         </TouchableOpacity>
       </View>
@@ -277,36 +280,37 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
-  content: { paddingBottom: 48 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' },
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', paddingHorizontal: 16, paddingTop: 60, paddingBottom: 16,
-  },
-  backBtn: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
-  sectionLabel: {
-    fontSize: 12, color: '#666', fontWeight: '700',
-    marginHorizontal: 24, marginBottom: 8, marginTop: 16, letterSpacing: 1,
-  },
-  card: {
-    backgroundColor: '#161616', marginHorizontal: 24, borderRadius: 14,
-    borderWidth: 1, borderColor: '#262626', overflow: 'hidden',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25, shadowRadius: 6, elevation: 3,
-  },
-  row: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 14,
-  },
-  divider: { height: 1, backgroundColor: '#2a2a2a', marginHorizontal: 16 },
-  rowLabel: { color: '#fff', fontSize: 15, fontWeight: '600' },
-  rowSubLabel: { color: '#777', fontSize: 12, marginTop: 2 },
-  rowValue: { color: '#aaa', fontSize: 14 },
-  helperText: { color: '#555', fontSize: 11, paddingHorizontal: 16, paddingBottom: 12 },
-});
+function getStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { paddingBottom: 48 },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+    header: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', paddingHorizontal: 16, paddingTop: 60, paddingBottom: 16,
+    },
+    backBtn: {
+      width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    headerTitle: { fontSize: 20, fontWeight: '800', color: colors.textPrimary },
+    sectionLabel: {
+      fontSize: 12, color: colors.textMuted, fontWeight: '700',
+      marginHorizontal: 24, marginBottom: 8, marginTop: 16, letterSpacing: 1,
+    },
+    card: {
+      backgroundColor: colors.surface, marginHorizontal: 24, borderRadius: 14,
+      borderWidth: 1, borderColor: colors.borderMuted, overflow: 'hidden',
+      shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.25, shadowRadius: 6, elevation: 3,
+    },
+    row: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: 16, paddingVertical: 14,
+    },
+    divider: { height: 1, backgroundColor: colors.border, marginHorizontal: 16 },
+    rowLabel: { color: colors.textPrimary, fontSize: 15, fontWeight: '600' },
+    rowSubLabel: { color: colors.textTertiary, fontSize: 12, marginTop: 2 },
+    rowValue: { color: colors.textSecondary, fontSize: 14 },
+  });
+}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
   TouchableOpacity, FlatList
@@ -8,10 +8,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import Avatar from '@/components/Avatar';
 import VerifiedBadge from '@/components/VerifiedBadge';
+import { useAppTheme } from '@/lib/ThemeContext';
+import { ThemeColors } from '@/constants/theme';
 
 export default function FollowListScreen() {
   const { id, type } = useLocalSearchParams<{ id: string; type: 'followers' | 'following' }>();
   const router = useRouter();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [people, setPeople] = useState<any[]>([]);
   const [canView, setCanView] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -75,19 +79,19 @@ export default function FollowListScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={26} color="#fff" />
+          <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{type === 'followers' ? 'Followers' : 'Following'}</Text>
         <TouchableOpacity onPress={() => router.push('/search-users')} style={styles.backBtn}>
-          <Ionicons name="search" size={18} color="#fff" />
+          <Ionicons name="search" size={18} color={colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#7C3AED" style={{ marginTop: 40 }} />
+        <ActivityIndicator size="large" color={colors.accent} style={{ marginTop: 40 }} />
       ) : !canView ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="lock-closed" size={22} color="#555" />
+          <Ionicons name="lock-closed" size={22} color={colors.textFaint} />
           <Text style={styles.emptyText}>This list is private.</Text>
         </View>
       ) : (
@@ -121,28 +125,30 @@ export default function FollowListScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', paddingHorizontal: 16, paddingTop: 60, paddingBottom: 16,
-  },
-  backBtn: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
-  listContent: { padding: 24, paddingTop: 8 },
-  emptyContainer: { alignItems: 'center', gap: 10, marginTop: 60 },
-  emptyText: { color: '#555', textAlign: 'center' },
-  row: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#161616', borderRadius: 14, padding: 12,
-    marginBottom: 10, borderWidth: 1, borderColor: '#262626',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25, shadowRadius: 6, elevation: 3,
-  },
-  rowInfo: { flex: 1 },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  username: { color: '#fff', fontSize: 15, fontWeight: '700' },
-});
+function getStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    header: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', paddingHorizontal: 16, paddingTop: 60, paddingBottom: 16,
+    },
+    backBtn: {
+      width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    headerTitle: { fontSize: 18, fontWeight: '800', color: colors.textPrimary },
+    listContent: { padding: 24, paddingTop: 8 },
+    emptyContainer: { alignItems: 'center', gap: 10, marginTop: 60 },
+    emptyText: { color: colors.textFaint, textAlign: 'center' },
+    row: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      backgroundColor: colors.surface, borderRadius: 14, padding: 12,
+      marginBottom: 10, borderWidth: 1, borderColor: colors.borderMuted,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.25, shadowRadius: 6, elevation: 3,
+    },
+    rowInfo: { flex: 1 },
+    nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    username: { color: colors.textPrimary, fontSize: 15, fontWeight: '700' },
+  });
+}

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, SectionList,
   TouchableOpacity, ActivityIndicator, RefreshControl
@@ -6,15 +6,17 @@ import {
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
+import { useAppTheme } from '@/lib/ThemeContext';
+import { ThemeColors } from '@/constants/theme';
 
-function getNotificationMeta(title: string): { icon: keyof typeof Ionicons.glyphMap; color: string } {
+function getNotificationMeta(title: string, colors: ThemeColors): { icon: keyof typeof Ionicons.glyphMap; color: string } {
   const t = title.toLowerCase();
-  if (t.includes('confirmed') || t.includes('payment')) return { icon: 'checkmark-circle', color: '#00D4AA' };
-  if (t.includes('room code')) return { icon: 'key', color: '#FFB800' };
+  if (t.includes('confirmed') || t.includes('payment')) return { icon: 'checkmark-circle', color: colors.success };
+  if (t.includes('room code')) return { icon: 'key', color: colors.warning };
   if (t.includes('host')) return { icon: 'trophy', color: '#FF6B35' };
-  if (t.includes('cancel') || t.includes('failed') || t.includes('rejected')) return { icon: 'close-circle', color: '#ff4444' };
-  if (t.includes('tournament') || t.includes('update')) return { icon: 'megaphone', color: '#7C3AED' };
-  return { icon: 'notifications', color: '#7C3AED' };
+  if (t.includes('cancel') || t.includes('failed') || t.includes('rejected')) return { icon: 'close-circle', color: colors.error };
+  if (t.includes('tournament') || t.includes('update')) return { icon: 'megaphone', color: colors.accent };
+  return { icon: 'notifications', color: colors.accent };
 }
 
 function dayBucket(dateStr: string): string {
@@ -34,6 +36,8 @@ const BUCKET_ORDER = ['Today', 'Yesterday', 'This Week', 'Earlier'];
 
 export default function NotificationsScreen() {
   const router = useRouter();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -103,7 +107,7 @@ export default function NotificationsScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#7C3AED" />
+        <ActivityIndicator size="large" color={colors.accent} />
       </View>
     );
   }
@@ -112,7 +116,7 @@ export default function NotificationsScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={20} color="#fff" />
+          <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notifications</Text>
         <View style={{ width: 36 }} />
@@ -125,12 +129,12 @@ export default function NotificationsScreen() {
         showsVerticalScrollIndicator={false}
         stickySectionHeadersEnabled={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7C3AED" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} />
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconCircle}>
-              <Ionicons name="notifications-outline" size={28} color="#444" />
+              <Ionicons name="notifications-outline" size={28} color={colors.textDisabled} />
             </View>
             <Text style={styles.emptyText}>No notifications yet.</Text>
           </View>
@@ -139,7 +143,7 @@ export default function NotificationsScreen() {
           <Text style={styles.sectionHeader}>{section.title}</Text>
         )}
         renderItem={({ item }) => {
-          const meta = getNotificationMeta(item.title);
+          const meta = getNotificationMeta(item.title, colors);
           return (
             <TouchableOpacity
               style={[styles.card, !item.is_read && styles.cardUnread]}
@@ -162,7 +166,7 @@ export default function NotificationsScreen() {
                 onPress={(e) => { e.stopPropagation(); handleDelete(item.id); }}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Ionicons name="close" size={16} color="#555" />
+                <Ionicons name="close" size={16} color={colors.textFaint} />
               </TouchableOpacity>
             </TouchableOpacity>
           );
@@ -172,45 +176,47 @@ export default function NotificationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' },
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', paddingHorizontal: 24,
-    paddingTop: 60, paddingBottom: 16,
-  },
-  backBtn: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  listContent: { padding: 24, paddingTop: 8 },
-  sectionHeader: {
-    color: '#666', fontSize: 12, fontWeight: '800',
-    letterSpacing: 1, marginBottom: 10, marginTop: 12,
-  },
-  emptyContainer: { alignItems: 'center', marginTop: 80 },
-  emptyIconCircle: {
-    width: 64, height: 64, borderRadius: 32, backgroundColor: '#1a1a1a',
-    justifyContent: 'center', alignItems: 'center', marginBottom: 16,
-    borderWidth: 1, borderColor: '#2a2a2a',
-  },
-  emptyText: { color: '#555', fontSize: 14 },
-  card: {
-    flexDirection: 'row', alignItems: 'flex-start', gap: 12,
-    backgroundColor: '#161616', borderRadius: 14,
-    padding: 14, marginBottom: 10, borderWidth: 1, borderColor: '#262626',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25, shadowRadius: 6, elevation: 3,
-  },
-  cardUnread: { borderColor: '#7C3AED' },
-  iconCircle: {
-    width: 36, height: 36, borderRadius: 18,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  cardTitle: { color: '#fff', fontSize: 15, fontWeight: '700', marginBottom: 4 },
-  cardBody: { color: '#aaa', fontSize: 13, marginBottom: 6 },
-  cardTime: { color: '#555', fontSize: 11 },
-  deleteBtn: { padding: 2 },
-});
+function getStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+    header: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', paddingHorizontal: 24,
+      paddingTop: 60, paddingBottom: 16,
+    },
+    backBtn: {
+      width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    headerTitle: { color: colors.textPrimary, fontSize: 18, fontWeight: '800' },
+    listContent: { padding: 24, paddingTop: 8 },
+    sectionHeader: {
+      color: colors.textMuted, fontSize: 12, fontWeight: '800',
+      letterSpacing: 1, marginBottom: 10, marginTop: 12,
+    },
+    emptyContainer: { alignItems: 'center', marginTop: 80 },
+    emptyIconCircle: {
+      width: 64, height: 64, borderRadius: 32, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center', marginBottom: 16,
+      borderWidth: 1, borderColor: colors.border,
+    },
+    emptyText: { color: colors.textFaint, fontSize: 14 },
+    card: {
+      flexDirection: 'row', alignItems: 'flex-start', gap: 12,
+      backgroundColor: colors.surface, borderRadius: 14,
+      padding: 14, marginBottom: 10, borderWidth: 1, borderColor: colors.borderMuted,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.25, shadowRadius: 6, elevation: 3,
+    },
+    cardUnread: { borderColor: colors.accent },
+    iconCircle: {
+      width: 36, height: 36, borderRadius: 18,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    cardTitle: { color: colors.textPrimary, fontSize: 15, fontWeight: '700', marginBottom: 4 },
+    cardBody: { color: colors.textSecondary, fontSize: 13, marginBottom: 6 },
+    cardTime: { color: colors.textFaint, fontSize: 11 },
+    deleteBtn: { padding: 2 },
+  });
+}

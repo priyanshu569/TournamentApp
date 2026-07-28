@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList,
   TouchableOpacity, ActivityIndicator, Alert
@@ -6,12 +6,16 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
+import { useAppTheme } from '@/lib/ThemeContext';
+import { ThemeColors } from '@/constants/theme';
 
 const FILTERS = ['pending', 'reviewed', 'dismissed'] as const;
 type Filter = typeof FILTERS[number];
 
 export default function AdminReportsScreen() {
   const router = useRouter();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [reports, setReports] = useState<any[]>([]);
   const [filter, setFilter] = useState<Filter>('pending');
   const [loading, setLoading] = useState(true);
@@ -76,7 +80,7 @@ export default function AdminReportsScreen() {
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={20} color="#fff" />
+          <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
@@ -98,7 +102,7 @@ export default function AdminReportsScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#7C3AED" style={{ marginTop: 40 }} />
+        <ActivityIndicator size="large" color={colors.accent} style={{ marginTop: 40 }} />
       ) : (
         <FlatList
           data={reports}
@@ -126,7 +130,7 @@ export default function AdminReportsScreen() {
                     disabled={actingId === item.id}
                   >
                     {actingId === item.id
-                      ? <ActivityIndicator color="#aaa" size="small" />
+                      ? <ActivityIndicator color={colors.textSecondary} size="small" />
                       : <Text style={styles.dismissBtnText}>Dismiss</Text>
                     }
                   </TouchableOpacity>
@@ -150,44 +154,46 @@ export default function AdminReportsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a', paddingTop: 60 },
-  headerRow: { paddingHorizontal: 24, marginBottom: 8 },
-  backBtn: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  heading: { color: '#fff', fontSize: 24, fontWeight: '800', paddingHorizontal: 24, marginBottom: 4 },
-  sub: { color: '#888', fontSize: 13, paddingHorizontal: 24, marginBottom: 20 },
-  filterRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 24, marginBottom: 16 },
-  filterChip: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-    backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a',
-  },
-  filterChipActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
-  filterChipText: { color: '#aaa', fontSize: 13, fontWeight: '600' },
-  filterChipTextActive: { color: '#fff' },
-  listContent: { padding: 24, paddingTop: 0 },
-  emptyText: { color: '#555', textAlign: 'center', marginTop: 40 },
-  card: {
-    backgroundColor: '#161616', borderRadius: 14, padding: 16,
-    marginBottom: 12, borderWidth: 1, borderColor: '#262626',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
-  },
-  reportedName: { color: '#fff', fontSize: 15, fontWeight: '700', marginBottom: 6 },
-  reason: { color: '#ccc', fontSize: 13, lineHeight: 19, marginBottom: 8 },
-  reporter: { color: '#888', fontSize: 12, marginBottom: 2 },
-  date: { color: '#555', fontSize: 11 },
-  actionsRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
-  dismissBtn: {
-    flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center',
-    backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a',
-  },
-  dismissBtnText: { color: '#aaa', fontSize: 13, fontWeight: '700' },
-  reviewedBtn: {
-    flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center',
-    backgroundColor: '#7C3AED',
-  },
-  reviewedBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
-});
+function getStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background, paddingTop: 60 },
+    headerRow: { paddingHorizontal: 24, marginBottom: 8 },
+    backBtn: {
+      width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    heading: { color: colors.textPrimary, fontSize: 24, fontWeight: '800', paddingHorizontal: 24, marginBottom: 4 },
+    sub: { color: colors.textTertiary, fontSize: 13, paddingHorizontal: 24, marginBottom: 20 },
+    filterRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 24, marginBottom: 16 },
+    filterChip: {
+      paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+      backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border,
+    },
+    filterChipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+    filterChipText: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
+    filterChipTextActive: { color: '#fff' },
+    listContent: { padding: 24, paddingTop: 0 },
+    emptyText: { color: colors.textFaint, textAlign: 'center', marginTop: 40 },
+    card: {
+      backgroundColor: colors.surface, borderRadius: 14, padding: 16,
+      marginBottom: 12, borderWidth: 1, borderColor: colors.borderMuted,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
+    },
+    reportedName: { color: colors.textPrimary, fontSize: 15, fontWeight: '700', marginBottom: 6 },
+    reason: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, marginBottom: 8 },
+    reporter: { color: colors.textTertiary, fontSize: 12, marginBottom: 2 },
+    date: { color: colors.textFaint, fontSize: 11 },
+    actionsRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
+    dismissBtn: {
+      flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center',
+      backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border,
+    },
+    dismissBtnText: { color: colors.textSecondary, fontSize: 13, fontWeight: '700' },
+    reviewedBtn: {
+      flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center',
+      backgroundColor: colors.accent,
+    },
+    reviewedBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  });
+}

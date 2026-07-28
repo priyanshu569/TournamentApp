@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
   TouchableOpacity, Alert, ScrollView, TextInput
@@ -6,6 +6,8 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
+import { useAppTheme } from '@/lib/ThemeContext';
+import { ThemeColors } from '@/constants/theme';
 
 type RosterMember = {
   team_member_id: string;
@@ -29,6 +31,8 @@ type MatchTeamState = {
 export default function EnterResults() {
   const { tournament_id } = useLocalSearchParams();
   const router = useRouter();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [tournament, setTournament] = useState<any>(null);
   const [roster, setRoster] = useState<RosterTeam[]>([]);
   const [selectedMatch, setSelectedMatch] = useState(1);
@@ -294,7 +298,7 @@ export default function EnterResults() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#7C3AED" />
+        <ActivityIndicator size="large" color={colors.accent} />
       </View>
     );
   }
@@ -304,7 +308,7 @@ export default function EnterResults() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
-        <Ionicons name="chevron-back" size={20} color="#fff" />
+        <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
       </TouchableOpacity>
 
       <Text style={styles.heading}>Enter Results</Text>
@@ -329,7 +333,7 @@ export default function EnterResults() {
       {roster.length === 0 ? (
         <Text style={styles.emptyText}>No confirmed teams to enter results for.</Text>
       ) : loadingMatch || !matchState[roster[0].team_id] ? (
-        <ActivityIndicator size="large" color="#7C3AED" style={{ marginTop: 40 }} />
+        <ActivityIndicator size="large" color={colors.accent} style={{ marginTop: 40 }} />
       ) : (
         roster.map((team) => {
           const state = matchState[team.team_id];
@@ -349,7 +353,7 @@ export default function EnterResults() {
                 <TextInput
                   style={styles.placementInput}
                   placeholder="e.g. 1"
-                  placeholderTextColor="#444"
+                  placeholderTextColor={colors.textDisabled}
                   keyboardType="number-pad"
                   value={state.placement}
                   onChangeText={(v) => updatePlacement(team.team_id, v)}
@@ -403,7 +407,7 @@ export default function EnterResults() {
                         <TextInput
                           style={styles.killsInput}
                           placeholder="0"
-                          placeholderTextColor="#444"
+                          placeholderTextColor={colors.textDisabled}
                           keyboardType="number-pad"
                           value={state.kills[member.team_member_id]}
                           onChangeText={(v) => updateKills(team.team_id, member.team_member_id, v)}
@@ -430,78 +434,80 @@ export default function EnterResults() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
-  content: { padding: 24, paddingTop: 60, paddingBottom: 60 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' },
-  backBtn: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
-    justifyContent: 'center', alignItems: 'center', marginBottom: 12,
-  },
-  heading: { fontSize: 26, fontWeight: '900', color: '#fff', marginBottom: 4 },
-  sub: { fontSize: 14, color: '#aaa', marginBottom: 16 },
-  emptyText: { color: '#555', textAlign: 'center', marginTop: 40 },
-  matchRow: { marginBottom: 20 },
-  matchChip: {
-    paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20,
-    backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a', marginRight: 8,
-  },
-  matchChipActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
-  matchChipText: { color: '#aaa', fontSize: 13, fontWeight: '700' },
-  matchChipTextActive: { color: '#fff' },
-  teamCard: {
-    backgroundColor: '#161616', borderRadius: 14, padding: 16,
-    marginBottom: 16, borderWidth: 1, borderColor: '#262626',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
-  },
-  teamHeader: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 12,
-  },
-  teamName: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  totalKillsBadge: {
-    backgroundColor: '#7C3AED22', paddingHorizontal: 10,
-    paddingVertical: 4, borderRadius: 20, borderWidth: 1, borderColor: '#7C3AED',
-  },
-  totalKillsText: { color: '#7C3AED', fontSize: 12, fontWeight: '800' },
-  placementGroup: { marginBottom: 12 },
-  inputLabel: { color: '#aaa', fontSize: 12, marginBottom: 6, fontWeight: '600' },
-  placementInput: {
-    backgroundColor: '#0a0a0a', color: '#fff', borderRadius: 8,
-    paddingHorizontal: 12, paddingVertical: 10, fontSize: 15,
-    borderWidth: 1, borderColor: '#2a2a2a', width: 100,
-  },
-  divider: { height: 1, backgroundColor: '#2a2a2a', marginBottom: 12 },
-  benchLabel: { color: '#aaa', fontSize: 12, fontWeight: '600', marginBottom: 8 },
-  benchRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
-  benchChip: {
-    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16,
-    backgroundColor: '#0a0a0a', borderWidth: 1, borderColor: '#2a2a2a',
-  },
-  benchChipActive: { backgroundColor: '#FF444422', borderColor: '#FF4444' },
-  benchChipText: { color: '#aaa', fontSize: 12, fontWeight: '600' },
-  benchChipTextActive: { color: '#FF4444', fontWeight: '700' },
-  memberRow: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 10,
-  },
-  memberRowBenched: { opacity: 0.5 },
-  memberInfo: { flex: 1, marginRight: 12 },
-  memberName: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  memberUid: { color: '#555', fontSize: 11, marginTop: 1 },
-  benchedTag: { color: '#FF4444', fontSize: 12, fontWeight: '700' },
-  killsGroup: { width: 80 },
-  killsInput: {
-    backgroundColor: '#0a0a0a', color: '#fff', borderRadius: 8,
-    paddingHorizontal: 12, paddingVertical: 10, fontSize: 15,
-    borderWidth: 1, borderColor: '#2a2a2a', textAlign: 'center',
-  },
-  saveBtn: {
-    backgroundColor: '#7C3AED', paddingVertical: 16,
-    borderRadius: 12, alignItems: 'center', marginTop: 8,
-    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4, shadowRadius: 10, elevation: 6,
-  },
-  saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
-});
+function getStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { padding: 24, paddingTop: 60, paddingBottom: 60 },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+    backBtn: {
+      width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center', marginBottom: 12,
+    },
+    heading: { fontSize: 26, fontWeight: '900', color: colors.textPrimary, marginBottom: 4 },
+    sub: { fontSize: 14, color: colors.textSecondary, marginBottom: 16 },
+    emptyText: { color: colors.textFaint, textAlign: 'center', marginTop: 40 },
+    matchRow: { marginBottom: 20 },
+    matchChip: {
+      paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20,
+      backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border, marginRight: 8,
+    },
+    matchChipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+    matchChipText: { color: colors.textSecondary, fontSize: 13, fontWeight: '700' },
+    matchChipTextActive: { color: '#fff' },
+    teamCard: {
+      backgroundColor: colors.surface, borderRadius: 14, padding: 16,
+      marginBottom: 16, borderWidth: 1, borderColor: colors.borderMuted,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
+    },
+    teamHeader: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', marginBottom: 12,
+    },
+    teamName: { color: colors.textPrimary, fontSize: 16, fontWeight: '700' },
+    totalKillsBadge: {
+      backgroundColor: colors.accentMutedStrong, paddingHorizontal: 10,
+      paddingVertical: 4, borderRadius: 20, borderWidth: 1, borderColor: colors.accent,
+    },
+    totalKillsText: { color: colors.accent, fontSize: 12, fontWeight: '800' },
+    placementGroup: { marginBottom: 12 },
+    inputLabel: { color: colors.textSecondary, fontSize: 12, marginBottom: 6, fontWeight: '600' },
+    placementInput: {
+      backgroundColor: colors.background, color: colors.textPrimary, borderRadius: 8,
+      paddingHorizontal: 12, paddingVertical: 10, fontSize: 15,
+      borderWidth: 1, borderColor: colors.border, width: 100,
+    },
+    divider: { height: 1, backgroundColor: colors.border, marginBottom: 12 },
+    benchLabel: { color: colors.textSecondary, fontSize: 12, fontWeight: '600', marginBottom: 8 },
+    benchRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
+    benchChip: {
+      paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16,
+      backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border,
+    },
+    benchChipActive: { backgroundColor: colors.errorMuted, borderColor: colors.error },
+    benchChipText: { color: colors.textSecondary, fontSize: 12, fontWeight: '600' },
+    benchChipTextActive: { color: colors.error, fontWeight: '700' },
+    memberRow: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', marginBottom: 10,
+    },
+    memberRowBenched: { opacity: 0.5 },
+    memberInfo: { flex: 1, marginRight: 12 },
+    memberName: { color: colors.textPrimary, fontSize: 14, fontWeight: '600' },
+    memberUid: { color: colors.textFaint, fontSize: 11, marginTop: 1 },
+    benchedTag: { color: colors.error, fontSize: 12, fontWeight: '700' },
+    killsGroup: { width: 80 },
+    killsInput: {
+      backgroundColor: colors.background, color: colors.textPrimary, borderRadius: 8,
+      paddingHorizontal: 12, paddingVertical: 10, fontSize: 15,
+      borderWidth: 1, borderColor: colors.border, textAlign: 'center',
+    },
+    saveBtn: {
+      backgroundColor: colors.accent, paddingVertical: 16,
+      borderRadius: 12, alignItems: 'center', marginTop: 8,
+      shadowColor: colors.accent, shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.4, shadowRadius: 10, elevation: 6,
+    },
+    saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  });
+}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   FlatList, ActivityIndicator
@@ -8,9 +8,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import Avatar from '@/components/Avatar';
 import VerifiedBadge from '@/components/VerifiedBadge';
+import { useAppTheme } from '@/lib/ThemeContext';
+import { ThemeColors } from '@/constants/theme';
 
 export default function SearchUsersScreen() {
   const router = useRouter();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -122,7 +126,7 @@ export default function SearchUsersScreen() {
           disabled={actingId === item.id}
         >
           {actingId === item.id
-            ? <ActivityIndicator size="small" color={isFollowing ? '#7C3AED' : '#fff'} />
+            ? <ActivityIndicator size="small" color={isFollowing ? colors.accent : '#fff'} />
             : (
               <Text style={[styles.followBtnText, isFollowing && styles.followBtnTextActive]}>
                 {isFollowing ? 'Following' : 'Follow'}
@@ -142,18 +146,18 @@ export default function SearchUsersScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={20} color="#fff" />
+          <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Find People</Text>
         <View style={{ width: 36 }} />
       </View>
 
       <View style={styles.searchRow}>
-        <Ionicons name="search" size={16} color="#666" />
+        <Ionicons name="search" size={16} color={colors.textMuted} />
         <TextInput
           style={styles.searchInput}
           placeholder="Search by username or name..."
-          placeholderTextColor="#444"
+          placeholderTextColor={colors.textDisabled}
           value={query}
           onChangeText={setQuery}
           autoCapitalize="none"
@@ -162,13 +166,13 @@ export default function SearchUsersScreen() {
         />
         {query.length > 0 && (
           <TouchableOpacity onPress={() => setQuery('')}>
-            <Ionicons name="close-circle" size={18} color="#555" />
+            <Ionicons name="close-circle" size={18} color={colors.textFaint} />
           </TouchableOpacity>
         )}
       </View>
 
       {listLoading ? (
-        <ActivityIndicator size="large" color="#7C3AED" style={{ marginTop: 40 }} />
+        <ActivityIndicator size="large" color={colors.accent} style={{ marginTop: 40 }} />
       ) : (
         <FlatList
           data={listData}
@@ -184,7 +188,7 @@ export default function SearchUsersScreen() {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <View style={styles.emptyIconCircle}>
-                <Ionicons name={isSearching ? 'person-outline' : 'people-outline'} size={28} color="#444" />
+                <Ionicons name={isSearching ? 'person-outline' : 'people-outline'} size={28} color={colors.textDisabled} />
               </View>
               <Text style={styles.emptyText}>
                 {isSearching ? `No users found for "${query.trim()}"` : 'No suggestions right now'}
@@ -198,52 +202,54 @@ export default function SearchUsersScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', paddingHorizontal: 16, paddingTop: 60, paddingBottom: 16,
-  },
-  backBtn: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
-  searchRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#1a1a1a', borderRadius: 12, paddingHorizontal: 14,
-    borderWidth: 1, borderColor: '#2a2a2a',
-    marginHorizontal: 24, marginBottom: 16,
-  },
-  searchInput: { flex: 1, color: '#fff', fontSize: 15, paddingVertical: 12 },
-  listContent: { padding: 24, paddingTop: 0 },
-  sectionLabel: {
-    color: '#666', fontSize: 11, fontWeight: '800',
-    letterSpacing: 1.5, marginBottom: 12,
-  },
-  emptyContainer: { alignItems: 'center', gap: 10, marginTop: 60, paddingHorizontal: 20 },
-  emptyIconCircle: {
-    width: 64, height: 64, borderRadius: 32, backgroundColor: '#1a1a1a',
-    justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1, borderColor: '#2a2a2a',
-  },
-  emptyText: { color: '#555', textAlign: 'center' },
-  row: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#161616', borderRadius: 14, padding: 12,
-    marginBottom: 10, borderWidth: 1, borderColor: '#262626',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25, shadowRadius: 6, elevation: 3,
-  },
-  rowInfo: { flex: 1 },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  displayName: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  handle: { color: '#888', fontSize: 12, marginTop: 2, fontWeight: '600' },
-  followBtn: {
-    paddingHorizontal: 16, paddingVertical: 9, borderRadius: 20,
-    backgroundColor: '#7C3AED', minWidth: 92, alignItems: 'center',
-  },
-  followBtnActive: { backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#7C3AED' },
-  followBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  followBtnTextActive: { color: '#7C3AED' },
-});
+function getStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    header: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', paddingHorizontal: 16, paddingTop: 60, paddingBottom: 16,
+    },
+    backBtn: {
+      width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    headerTitle: { fontSize: 18, fontWeight: '800', color: colors.textPrimary },
+    searchRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 8,
+      backgroundColor: colors.surfaceAlt, borderRadius: 12, paddingHorizontal: 14,
+      borderWidth: 1, borderColor: colors.border,
+      marginHorizontal: 24, marginBottom: 16,
+    },
+    searchInput: { flex: 1, color: colors.textPrimary, fontSize: 15, paddingVertical: 12 },
+    listContent: { padding: 24, paddingTop: 0 },
+    sectionLabel: {
+      color: colors.textMuted, fontSize: 11, fontWeight: '800',
+      letterSpacing: 1.5, marginBottom: 12,
+    },
+    emptyContainer: { alignItems: 'center', gap: 10, marginTop: 60, paddingHorizontal: 20 },
+    emptyIconCircle: {
+      width: 64, height: 64, borderRadius: 32, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center',
+      borderWidth: 1, borderColor: colors.border,
+    },
+    emptyText: { color: colors.textFaint, textAlign: 'center' },
+    row: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      backgroundColor: colors.surface, borderRadius: 14, padding: 12,
+      marginBottom: 10, borderWidth: 1, borderColor: colors.borderMuted,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.25, shadowRadius: 6, elevation: 3,
+    },
+    rowInfo: { flex: 1 },
+    nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    displayName: { color: colors.textPrimary, fontSize: 15, fontWeight: '700' },
+    handle: { color: colors.textTertiary, fontSize: 12, marginTop: 2, fontWeight: '600' },
+    followBtn: {
+      paddingHorizontal: 16, paddingVertical: 9, borderRadius: 20,
+      backgroundColor: colors.accent, minWidth: 92, alignItems: 'center',
+    },
+    followBtnActive: { backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.accent },
+    followBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+    followBtnTextActive: { color: colors.accent },
+  });
+}

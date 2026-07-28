@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
   FlatList, TouchableOpacity
@@ -6,10 +6,14 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
+import { useAppTheme } from '@/lib/ThemeContext';
+import { ThemeColors } from '@/constants/theme';
 
 export default function Registrations() {
   const { tournament_id } = useLocalSearchParams();
   const router = useRouter();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [registrations, setRegistrations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [tournament, setTournament] = useState<any>(null);
@@ -50,7 +54,7 @@ export default function Registrations() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#7C3AED" />
+        <ActivityIndicator size="large" color={colors.accent} />
       </View>
     );
   }
@@ -62,7 +66,7 @@ export default function Registrations() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={20} color="#fff" />
+          <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
@@ -143,66 +147,68 @@ export default function Registrations() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' },
-  header: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 8 },
-  backBtn: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
-    justifyContent: 'center', alignItems: 'center', alignSelf: 'flex-start',
-  },
-  tournamentInfo: { paddingHorizontal: 24, paddingBottom: 16 },
-  gameTag: {
-    alignSelf: 'flex-start', paddingHorizontal: 10,
-    paddingVertical: 4, borderRadius: 6, marginBottom: 8,
-  },
-  gameTagText: { fontSize: 11, fontWeight: '800', letterSpacing: 1 },
-  tournamentTitle: { fontSize: 22, fontWeight: '900', color: '#fff', marginBottom: 4 },
-  regCount: { fontSize: 13, color: '#aaa', marginBottom: 10 },
-  progressBar: {
-    height: 4, backgroundColor: '#1a1a1a',
-    borderRadius: 2, overflow: 'hidden',
-  },
-  progressFill: { height: '100%', borderRadius: 2 },
-  listContent: { padding: 24, paddingTop: 8 },
-  emptyText: { color: '#555', textAlign: 'center', marginTop: 40 },
-  card: {
-    backgroundColor: '#161616', borderRadius: 14,
-    padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#262626',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
-  },
-  cardHeader: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 12,
-  },
-  teamNameRow: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  teamNumber: {
-    width: 28, height: 28, borderRadius: 14,
-    backgroundColor: '#2a2a2a', justifyContent: 'center',
-    alignItems: 'center', marginRight: 10,
-  },
-  teamNumberText: { color: '#fff', fontSize: 13, fontWeight: '800' },
-  teamName: { fontSize: 16, fontWeight: '700', color: '#fff', flex: 1 },
-  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  badgePending: { backgroundColor: '#3a2a00' },
-  badgeConfirmed: { backgroundColor: '#0a3a0a' },
-  badgeText: { fontSize: 11, fontWeight: '700', color: '#fff' },
-  divider: { height: 1, backgroundColor: '#2a2a2a', marginBottom: 12 },
-  memberRow: {
-    flexDirection: 'row', alignItems: 'center', marginBottom: 8,
-  },
-  memberIndex: {
-    width: 22, height: 22, borderRadius: 11,
-    justifyContent: 'center', alignItems: 'center', marginRight: 10,
-  },
-  memberIndexText: { color: '#fff', fontSize: 10, fontWeight: '800' },
-  memberInfo: { flex: 1 },
-  memberName: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  memberUid: { color: '#555', fontSize: 11, marginTop: 1 },
-  captainBadge: {
-    backgroundColor: '#7C3AED22', paddingHorizontal: 8,
-    paddingVertical: 3, borderRadius: 10, borderWidth: 1, borderColor: '#7C3AED',
-  },
-  captainText: { color: '#7C3AED', fontSize: 9, fontWeight: '800' },
-});
+function getStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+    header: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 8 },
+    backBtn: {
+      width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center', alignSelf: 'flex-start',
+    },
+    tournamentInfo: { paddingHorizontal: 24, paddingBottom: 16 },
+    gameTag: {
+      alignSelf: 'flex-start', paddingHorizontal: 10,
+      paddingVertical: 4, borderRadius: 6, marginBottom: 8,
+    },
+    gameTagText: { fontSize: 11, fontWeight: '800', letterSpacing: 1 },
+    tournamentTitle: { fontSize: 22, fontWeight: '900', color: colors.textPrimary, marginBottom: 4 },
+    regCount: { fontSize: 13, color: colors.textSecondary, marginBottom: 10 },
+    progressBar: {
+      height: 4, backgroundColor: colors.surfaceAlt,
+      borderRadius: 2, overflow: 'hidden',
+    },
+    progressFill: { height: '100%', borderRadius: 2 },
+    listContent: { padding: 24, paddingTop: 8 },
+    emptyText: { color: colors.textFaint, textAlign: 'center', marginTop: 40 },
+    card: {
+      backgroundColor: colors.surface, borderRadius: 14,
+      padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.borderMuted,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
+    },
+    cardHeader: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', marginBottom: 12,
+    },
+    teamNameRow: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+    teamNumber: {
+      width: 28, height: 28, borderRadius: 14,
+      backgroundColor: colors.border, justifyContent: 'center',
+      alignItems: 'center', marginRight: 10,
+    },
+    teamNumberText: { color: colors.textPrimary, fontSize: 13, fontWeight: '800' },
+    teamName: { fontSize: 16, fontWeight: '700', color: colors.textPrimary, flex: 1 },
+    badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+    badgePending: { backgroundColor: '#3a2a00' },
+    badgeConfirmed: { backgroundColor: '#0a3a0a' },
+    badgeText: { fontSize: 11, fontWeight: '700', color: '#fff' },
+    divider: { height: 1, backgroundColor: colors.border, marginBottom: 12 },
+    memberRow: {
+      flexDirection: 'row', alignItems: 'center', marginBottom: 8,
+    },
+    memberIndex: {
+      width: 22, height: 22, borderRadius: 11,
+      justifyContent: 'center', alignItems: 'center', marginRight: 10,
+    },
+    memberIndexText: { color: '#fff', fontSize: 10, fontWeight: '800' },
+    memberInfo: { flex: 1 },
+    memberName: { color: colors.textPrimary, fontSize: 14, fontWeight: '600' },
+    memberUid: { color: colors.textFaint, fontSize: 11, marginTop: 1 },
+    captainBadge: {
+      backgroundColor: colors.accentMutedStrong, paddingHorizontal: 8,
+      paddingVertical: 3, borderRadius: 10, borderWidth: 1, borderColor: colors.accent,
+    },
+    captainText: { color: colors.accent, fontSize: 9, fontWeight: '800' },
+  });
+}

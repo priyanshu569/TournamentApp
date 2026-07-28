@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList,
   TouchableOpacity, ActivityIndicator, ScrollView, TextInput, Modal
@@ -11,6 +11,8 @@ import { supabase } from '@/lib/supabase';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import NotificationBell from '@/components/NotificationBell';
 import LeaderboardIcon from '@/components/LeaderboardIcon';
+import { useAppTheme } from '@/lib/ThemeContext';
+import { ThemeColors } from '@/constants/theme';
 
 const GAMES: { label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { label: 'All', icon: 'apps' },
@@ -45,6 +47,8 @@ const SORT_OPTIONS: { value: SortOption; label: string; shortLabel: string; icon
 
 export default function EventsScreen() {
   const router = useRouter();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [tournaments, setTournaments] = useState<any[]>([]);
   const [filtered, setFiltered] = useState<any[]>([]);
   const [selectedGame, setSelectedGame] = useState('All');
@@ -149,7 +153,7 @@ export default function EventsScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#7C3AED" />
+        <ActivityIndicator size="large" color={colors.accent} />
       </View>
     );
   }
@@ -160,7 +164,7 @@ export default function EventsScreen() {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.headerIconBadge}>
-            <Ionicons name="trophy" size={20} color="#FFB800" />
+            <Ionicons name="trophy" size={20} color={colors.warning} />
           </View>
           <View>
             <Text style={styles.headerTitle}>Tournaments</Text>
@@ -220,17 +224,17 @@ export default function EventsScreen() {
       {/* Search Bar + Sort Button */}
       <View style={styles.searchRow}>
         <View style={styles.searchContainer}>
-          <Ionicons name="search" size={16} color="#666" />
+          <Ionicons name="search" size={16} color={colors.textMuted} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search tournaments..."
-            placeholderTextColor="#444"
+            placeholderTextColor={colors.textDisabled}
             value={search}
             onChangeText={setSearch}
           />
           {search.length > 0 && (
             <TouchableOpacity onPress={() => setSearch('')}>
-              <Ionicons name="close-circle" size={18} color="#555" />
+              <Ionicons name="close-circle" size={18} color={colors.textFaint} />
             </TouchableOpacity>
           )}
         </View>
@@ -239,7 +243,7 @@ export default function EventsScreen() {
           style={[styles.sortBtn, isSortActive && styles.sortBtnActive]}
           onPress={() => setSortModalVisible(true)}
         >
-          <Ionicons name="swap-vertical" size={15} color={isSortActive ? '#7C3AED' : '#aaa'} />
+          <Ionicons name="swap-vertical" size={15} color={isSortActive ? colors.accent : colors.textSecondary} />
           <Text style={[styles.sortBtnText, isSortActive && styles.sortBtnTextActive]}>
             {isSortActive ? activeSortOption?.shortLabel : 'Sort'}
           </Text>
@@ -262,7 +266,7 @@ export default function EventsScreen() {
               <Ionicons
                 name={game.icon}
                 size={13}
-                color={selectedGame === game.label ? '#fff' : '#888'}
+                color={selectedGame === game.label ? '#fff' : colors.textTertiary}
               />
               <Text style={[styles.filterChipText, selectedGame === game.label && styles.filterChipTextActive]}>
                 {game.label}
@@ -281,7 +285,7 @@ export default function EventsScreen() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconCircle}>
-              <Ionicons name="search" size={28} color="#444" />
+              <Ionicons name="search" size={28} color={colors.textDisabled} />
             </View>
             <Text style={styles.emptyText}>No tournaments found.</Text>
             <Text style={styles.emptySubText}>Try a different search or game filter.</Text>
@@ -325,7 +329,7 @@ export default function EventsScreen() {
                         styles.statusUpcoming
                   ]}>
                     {(item.status === 'ongoing' || item.status === 'upcoming') && <View style={[styles.liveDot, {
-                      backgroundColor: item.status === 'upcoming' ? '#00D4AA' : '#FFB800'
+                      backgroundColor: item.status === 'upcoming' ? colors.success : colors.warning
                     }]} />}
                     <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
                   </View>
@@ -337,29 +341,29 @@ export default function EventsScreen() {
                 </View>
 
                 <View style={styles.cardDateRow}>
-                  <Ionicons name="calendar-outline" size={12} color="#666" />
+                  <Ionicons name="calendar-outline" size={12} color={colors.textMuted} />
                   <Text style={styles.cardDate}>{formatDate(item.start_time)}</Text>
                 </View>
 
                 <View style={styles.cardStats}>
                   <View style={[styles.statChip, { backgroundColor: '#FFB80014' }]}>
-                    <Ionicons name="cash" size={14} color="#FFB800" />
+                    <Ionicons name="cash" size={14} color={colors.warning} />
                     <View>
-                      <Text style={[styles.statChipValue, { color: '#FFB800' }]}>₹{item.prize_pool}</Text>
+                      <Text style={[styles.statChipValue, { color: colors.warning }]}>₹{item.prize_pool}</Text>
                       <Text style={styles.statChipLabel}>PRIZE</Text>
                     </View>
                   </View>
                   <View style={[styles.statChip, { backgroundColor: '#00D4AA14' }]}>
-                    <Ionicons name="ticket" size={14} color="#00D4AA" />
+                    <Ionicons name="ticket" size={14} color={colors.success} />
                     <View>
-                      <Text style={[styles.statChipValue, { color: '#00D4AA' }]}>₹{item.entry_fee}</Text>
+                      <Text style={[styles.statChipValue, { color: colors.success }]}>₹{item.entry_fee}</Text>
                       <Text style={styles.statChipLabel}>ENTRY</Text>
                     </View>
                   </View>
                   <View style={[styles.statChip, { backgroundColor: '#7C3AED14' }]}>
-                    <Ionicons name="people" size={14} color="#7C3AED" />
+                    <Ionicons name="people" size={14} color={colors.accent} />
                     <View>
-                      <Text style={[styles.statChipValue, { color: '#7C3AED' }]}>{item.max_teams}</Text>
+                      <Text style={[styles.statChipValue, { color: colors.accent }]}>{item.max_teams}</Text>
                       <Text style={styles.statChipLabel}>SLOTS</Text>
                     </View>
                   </View>
@@ -425,153 +429,155 @@ export default function EventsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' },
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', padding: 24, paddingTop: 60, paddingBottom: 12,
-  },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  headerIconBadge: {
-    width: 40, height: 40, borderRadius: 12,
-    backgroundColor: '#FFB80018', justifyContent: 'center', alignItems: 'center',
-  },
-  headerTitle: { fontSize: 24, fontWeight: '800', color: '#fff' },
-  headerSub: { fontSize: 12, color: '#888', marginTop: 2 },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  eventTabRow: {
-    flexDirection: 'row', marginHorizontal: 24, marginBottom: 12,
-    backgroundColor: '#1a1a1a', borderRadius: 12, padding: 4,
-    borderWidth: 1, borderColor: '#2a2a2a', gap: 4,
-  },
-  eventTabBtnWrap: { flex: 1 },
-  eventTabBtnInner: { paddingVertical: 10, borderRadius: 9, alignItems: 'center' },
-  eventTabText: { color: '#aaa', fontSize: 14, fontWeight: '700' },
-  eventTabTextActive: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  lobbyFilterRow: {
-    flexDirection: 'row', gap: 8, marginHorizontal: 24, marginBottom: 14,
-  },
-  lobbyChip: {
-    flex: 1, paddingVertical: 8, borderRadius: 20, alignItems: 'center',
-    backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a',
-  },
-  lobbyChipActive: { backgroundColor: '#FFB80022', borderColor: '#FFB800' },
-  lobbyChipText: { color: '#aaa', fontSize: 12, fontWeight: '600' },
-  lobbyChipTextActive: { color: '#FFB800', fontWeight: '700' },
-  searchRow: {
-    flexDirection: 'row', alignItems: 'center',
-    marginHorizontal: 24, marginBottom: 14, gap: 10,
-  },
-  searchContainer: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12, paddingHorizontal: 14,
-    borderWidth: 1, borderColor: '#2a2a2a',
-  },
-  searchInput: { flex: 1, color: '#fff', fontSize: 15, paddingVertical: 12 },
-  sortBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, height: 46, borderRadius: 12,
-    backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a',
-  },
-  sortBtnActive: { backgroundColor: '#7C3AED22', borderColor: '#7C3AED' },
-  sortBtnText: { color: '#aaa', fontSize: 13, fontWeight: '600' },
-  sortBtnTextActive: { color: '#7C3AED', fontWeight: '700' },
-  filterWrapper: { marginBottom: 4 },
-  filterContainer: { paddingHorizontal: 24, gap: 8, paddingVertical: 8 },
-  filterChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 16, paddingVertical: 10,
-    borderRadius: 20, backgroundColor: '#1a1a1a',
-    borderWidth: 1, borderColor: '#2a2a2a',
-  },
-  filterChipActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
-  filterChipText: { color: '#aaa', fontSize: 13, fontWeight: '600' },
-  filterChipTextActive: { color: '#fff' },
-  listContent: { padding: 24, paddingTop: 4 },
-  emptyContainer: { alignItems: 'center', marginTop: 60 },
-  emptyIconCircle: {
-    width: 64, height: 64, borderRadius: 32, backgroundColor: '#1a1a1a',
-    justifyContent: 'center', alignItems: 'center', marginBottom: 16,
-    borderWidth: 1, borderColor: '#2a2a2a',
-  },
-  emptyText: { color: '#fff', fontSize: 16, fontWeight: '700', marginBottom: 4 },
-  emptySubText: { color: '#555', fontSize: 13 },
-  card: {
-    backgroundColor: '#161616', borderRadius: 18,
-    marginBottom: 16, borderWidth: 1, borderColor: '#262626', overflow: 'hidden',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4, shadowRadius: 12, elevation: 6,
-  },
-  cardHero: { height: 130, position: 'relative' },
-  cardBanner: { width: '100%', height: '100%' },
-  cardBannerFallback: {
-    width: '100%', height: '100%',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  cardHeroOverlay: {
-    position: 'absolute', top: 12, left: 12, right: 12,
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
-  },
-  cardBody: { padding: 16 },
-  gameTag: {
-    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 3, elevation: 3,
-  },
-  gameTagText: { fontSize: 11, fontWeight: '800', color: '#fff' },
-  statusBadge: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, gap: 4,
-  },
-  statusUpcoming: { backgroundColor: '#0d2e2ae6' },
-  statusLive: { backgroundColor: '#3a2a00e6' },
-  statusCompleted: { backgroundColor: '#3a1414e6' },
-  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#FFB800' },
-  statusText: { fontSize: 11, fontWeight: '700', color: '#fff' },
-  cardTitleRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    gap: 8, marginBottom: 8,
-  },
-  cardTitle: { flex: 1, fontSize: 18, fontWeight: '800', color: '#fff' },
-  hostRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  hostName: { fontSize: 12, color: '#888', fontWeight: '600' },
-  cardDateRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 14 },
-  cardDate: { fontSize: 12, color: '#666', fontWeight: '600' },
-  cardStats: { flexDirection: 'row', gap: 8 },
-  statChip: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10,
-  },
-  statChipValue: { fontSize: 13, fontWeight: '800' },
-  statChipLabel: { fontSize: 9, color: '#666', fontWeight: '700', marginTop: 1 },
-  modalOverlay: {
-    flex: 1, backgroundColor: '#000000aa',
-    justifyContent: 'flex-end',
-  },
-  sortSheet: {
-    backgroundColor: '#141414', borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    paddingHorizontal: 20, paddingTop: 12, paddingBottom: 34,
-    maxHeight: '70%', borderWidth: 1, borderColor: '#2a2a2a', borderBottomWidth: 0,
-  },
-  sheetHandle: {
-    width: 40, height: 4, borderRadius: 2, backgroundColor: '#333',
-    alignSelf: 'center', marginBottom: 16,
-  },
-  sheetTitleRow: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 12,
-  },
-  sheetTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
-  sheetReset: { color: '#7C3AED', fontSize: 13, fontWeight: '700' },
-  sortOptionRow: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingVertical: 14, paddingHorizontal: 12,
-    borderRadius: 10, marginBottom: 4,
-  },
-  sortOptionRowActive: { backgroundColor: '#7C3AED18' },
-  sortOptionIcon: { fontSize: 16, marginRight: 12, width: 20 },
-  sortOptionText: { flex: 1, color: '#ccc', fontSize: 14, fontWeight: '600' },
-  sortOptionTextActive: { color: '#fff', fontWeight: '700' },
-  sortOptionCheck: { color: '#7C3AED', fontSize: 16, fontWeight: '800' },
-});
+function getStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+    header: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', padding: 24, paddingTop: 60, paddingBottom: 12,
+    },
+    headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    headerIconBadge: {
+      width: 40, height: 40, borderRadius: 12,
+      backgroundColor: '#FFB80018', justifyContent: 'center', alignItems: 'center',
+    },
+    headerTitle: { fontSize: 24, fontWeight: '800', color: colors.textPrimary },
+    headerSub: { fontSize: 12, color: colors.textTertiary, marginTop: 2 },
+    headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    eventTabRow: {
+      flexDirection: 'row', marginHorizontal: 24, marginBottom: 12,
+      backgroundColor: colors.surfaceAlt, borderRadius: 12, padding: 4,
+      borderWidth: 1, borderColor: colors.border, gap: 4,
+    },
+    eventTabBtnWrap: { flex: 1 },
+    eventTabBtnInner: { paddingVertical: 10, borderRadius: 9, alignItems: 'center' },
+    eventTabText: { color: colors.textSecondary, fontSize: 14, fontWeight: '700' },
+    eventTabTextActive: { color: '#fff', fontSize: 14, fontWeight: '700' },
+    lobbyFilterRow: {
+      flexDirection: 'row', gap: 8, marginHorizontal: 24, marginBottom: 14,
+    },
+    lobbyChip: {
+      flex: 1, paddingVertical: 8, borderRadius: 20, alignItems: 'center',
+      backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border,
+    },
+    lobbyChipActive: { backgroundColor: colors.warningMuted, borderColor: colors.warning },
+    lobbyChipText: { color: colors.textSecondary, fontSize: 12, fontWeight: '600' },
+    lobbyChipTextActive: { color: colors.warning, fontWeight: '700' },
+    searchRow: {
+      flexDirection: 'row', alignItems: 'center',
+      marginHorizontal: 24, marginBottom: 14, gap: 10,
+    },
+    searchContainer: {
+      flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8,
+      backgroundColor: colors.surfaceAlt,
+      borderRadius: 12, paddingHorizontal: 14,
+      borderWidth: 1, borderColor: colors.border,
+    },
+    searchInput: { flex: 1, color: colors.textPrimary, fontSize: 15, paddingVertical: 12 },
+    sortBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      paddingHorizontal: 14, height: 46, borderRadius: 12,
+      backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border,
+    },
+    sortBtnActive: { backgroundColor: colors.accentMutedStrong, borderColor: colors.accent },
+    sortBtnText: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
+    sortBtnTextActive: { color: colors.accent, fontWeight: '700' },
+    filterWrapper: { marginBottom: 4 },
+    filterContainer: { paddingHorizontal: 24, gap: 8, paddingVertical: 8 },
+    filterChip: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      paddingHorizontal: 16, paddingVertical: 10,
+      borderRadius: 20, backgroundColor: colors.surfaceAlt,
+      borderWidth: 1, borderColor: colors.border,
+    },
+    filterChipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+    filterChipText: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
+    filterChipTextActive: { color: '#fff' },
+    listContent: { padding: 24, paddingTop: 4 },
+    emptyContainer: { alignItems: 'center', marginTop: 60 },
+    emptyIconCircle: {
+      width: 64, height: 64, borderRadius: 32, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center', marginBottom: 16,
+      borderWidth: 1, borderColor: colors.border,
+    },
+    emptyText: { color: colors.textPrimary, fontSize: 16, fontWeight: '700', marginBottom: 4 },
+    emptySubText: { color: colors.textFaint, fontSize: 13 },
+    card: {
+      backgroundColor: colors.surface, borderRadius: 18,
+      marginBottom: 16, borderWidth: 1, borderColor: colors.borderMuted, overflow: 'hidden',
+      shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.4, shadowRadius: 12, elevation: 6,
+    },
+    cardHero: { height: 130, position: 'relative' },
+    cardBanner: { width: '100%', height: '100%' },
+    cardBannerFallback: {
+      width: '100%', height: '100%',
+      justifyContent: 'center', alignItems: 'center',
+    },
+    cardHeroOverlay: {
+      position: 'absolute', top: 12, left: 12, right: 12,
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
+    },
+    cardBody: { padding: 16 },
+    gameTag: {
+      paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 3, elevation: 3,
+    },
+    gameTagText: { fontSize: 11, fontWeight: '800', color: '#fff' },
+    statusBadge: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, gap: 4,
+    },
+    statusUpcoming: { backgroundColor: '#0d2e2ae6' },
+    statusLive: { backgroundColor: '#3a2a00e6' },
+    statusCompleted: { backgroundColor: '#3a1414e6' },
+    liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#FFB800' },
+    statusText: { fontSize: 11, fontWeight: '700', color: '#fff' },
+    cardTitleRow: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      gap: 8, marginBottom: 8,
+    },
+    cardTitle: { flex: 1, fontSize: 18, fontWeight: '800', color: colors.textPrimary },
+    hostRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+    hostName: { fontSize: 12, color: colors.textTertiary, fontWeight: '600' },
+    cardDateRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 14 },
+    cardDate: { fontSize: 12, color: colors.textMuted, fontWeight: '600' },
+    cardStats: { flexDirection: 'row', gap: 8 },
+    statChip: {
+      flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6,
+      paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10,
+    },
+    statChipValue: { fontSize: 13, fontWeight: '800' },
+    statChipLabel: { fontSize: 9, color: colors.textMuted, fontWeight: '700', marginTop: 1 },
+    modalOverlay: {
+      flex: 1, backgroundColor: colors.overlay,
+      justifyContent: 'flex-end',
+    },
+    sortSheet: {
+      backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+      paddingHorizontal: 20, paddingTop: 12, paddingBottom: 34,
+      maxHeight: '70%', borderWidth: 1, borderColor: colors.border, borderBottomWidth: 0,
+    },
+    sheetHandle: {
+      width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border,
+      alignSelf: 'center', marginBottom: 16,
+    },
+    sheetTitleRow: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', marginBottom: 12,
+    },
+    sheetTitle: { fontSize: 18, fontWeight: '800', color: colors.textPrimary },
+    sheetReset: { color: colors.accent, fontSize: 13, fontWeight: '700' },
+    sortOptionRow: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingVertical: 14, paddingHorizontal: 12,
+      borderRadius: 10, marginBottom: 4,
+    },
+    sortOptionRowActive: { backgroundColor: colors.accentMuted },
+    sortOptionIcon: { fontSize: 16, marginRight: 12, width: 20 },
+    sortOptionText: { flex: 1, color: colors.textSecondary, fontSize: 14, fontWeight: '600' },
+    sortOptionTextActive: { color: colors.textPrimary, fontWeight: '700' },
+    sortOptionCheck: { color: colors.accent, fontSize: 16, fontWeight: '800' },
+  });
+}

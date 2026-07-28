@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   ScrollView, ActivityIndicator, Alert
@@ -6,6 +6,8 @@ import {
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
+import { useAppTheme } from '@/lib/ThemeContext';
+import { ThemeColors } from '@/constants/theme';
 
 const GAMES: { name: string; icon: keyof typeof Ionicons.glyphMap; color: string }[] = [
   { name: 'Free Fire', icon: 'flame', color: '#FF6B35' },
@@ -17,6 +19,8 @@ const GAMES: { name: string; icon: keyof typeof Ionicons.glyphMap; color: string
 type GameEntry = { in_game_name: string; game_uid: string };
 
 export default function GameDetailsScreen() {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [entries, setEntries] = useState<Record<string, GameEntry>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [fetching, setFetching] = useState(true);
@@ -115,7 +119,7 @@ export default function GameDetailsScreen() {
   if (fetching) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#7C3AED" />
+        <ActivityIndicator size="large" color={colors.accent} />
       </View>
     );
   }
@@ -124,7 +128,7 @@ export default function GameDetailsScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       {router.canGoBack() && (
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={20} color="#fff" />
+          <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
         </TouchableOpacity>
       )}
 
@@ -147,7 +151,7 @@ export default function GameDetailsScreen() {
               <Ionicons
                 name={isExpanded ? 'checkmark-circle' : 'add-circle-outline'}
                 size={24}
-                color={isExpanded ? '#00D4AA' : '#555'}
+                color={isExpanded ? colors.success : colors.textFaint}
               />
             </TouchableOpacity>
 
@@ -156,14 +160,14 @@ export default function GameDetailsScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="In-Game Name"
-                  placeholderTextColor="#444"
+                  placeholderTextColor={colors.textDisabled}
                   value={entry.in_game_name}
                   onChangeText={(v) => updateEntry(game.name, 'in_game_name', v)}
                 />
                 <TextInput
                   style={styles.input}
                   placeholder="Game UID"
-                  placeholderTextColor="#444"
+                  placeholderTextColor={colors.textDisabled}
                   value={entry.game_uid}
                   onChangeText={(v) => updateEntry(game.name, 'game_uid', v)}
                   keyboardType="number-pad"
@@ -188,41 +192,43 @@ export default function GameDetailsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
-  content: { padding: 24, paddingTop: 60, paddingBottom: 48 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' },
-  backBtn: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
-    justifyContent: 'center', alignItems: 'center', marginBottom: 20,
-  },
-  title: { fontSize: 24, fontWeight: '900', color: '#fff', marginBottom: 8 },
-  subtitle: { fontSize: 13, color: '#aaa', marginBottom: 28, lineHeight: 20 },
-  gameCard: {
-    backgroundColor: '#161616', borderRadius: 14, marginBottom: 14,
-    borderWidth: 1, borderColor: '#262626', overflow: 'hidden',
-  },
-  gameHeader: {
-    flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14,
-  },
-  gameLogo: {
-    width: 40, height: 40, borderRadius: 12,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  gameName: { flex: 1, color: '#fff', fontSize: 15, fontWeight: '700' },
-  gameFields: { paddingHorizontal: 14, paddingBottom: 14, gap: 10 },
-  input: {
-    backgroundColor: '#0a0a0a', color: '#fff', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 12, fontSize: 15,
-    borderWidth: 1, borderColor: '#2a2a2a',
-  },
-  button: {
-    backgroundColor: '#7C3AED', paddingVertical: 16,
-    borderRadius: 12, alignItems: 'center', marginTop: 8,
-    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4, shadowRadius: 10, elevation: 6,
-  },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
-  skipBtn: { alignItems: 'center', marginTop: 16, padding: 8 },
-  skipBtnText: { color: '#7C3AED', fontSize: 13, fontWeight: '600' },
-});
+function getStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { padding: 24, paddingTop: 60, paddingBottom: 48 },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+    backBtn: {
+      width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center', marginBottom: 20,
+    },
+    title: { fontSize: 24, fontWeight: '900', color: colors.textPrimary, marginBottom: 8 },
+    subtitle: { fontSize: 13, color: colors.textSecondary, marginBottom: 28, lineHeight: 20 },
+    gameCard: {
+      backgroundColor: colors.surface, borderRadius: 14, marginBottom: 14,
+      borderWidth: 1, borderColor: colors.borderMuted, overflow: 'hidden',
+    },
+    gameHeader: {
+      flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14,
+    },
+    gameLogo: {
+      width: 40, height: 40, borderRadius: 12,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    gameName: { flex: 1, color: colors.textPrimary, fontSize: 15, fontWeight: '700' },
+    gameFields: { paddingHorizontal: 14, paddingBottom: 14, gap: 10 },
+    input: {
+      backgroundColor: colors.background, color: colors.textPrimary, borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 12, fontSize: 15,
+      borderWidth: 1, borderColor: colors.border,
+    },
+    button: {
+      backgroundColor: colors.accent, paddingVertical: 16,
+      borderRadius: 12, alignItems: 'center', marginTop: 8,
+      shadowColor: colors.accent, shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.4, shadowRadius: 10, elevation: 6,
+    },
+    buttonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+    skipBtn: { alignItems: 'center', marginTop: 16, padding: 8 },
+    skipBtnText: { color: colors.accent, fontSize: 13, fontWeight: '600' },
+  });
+}

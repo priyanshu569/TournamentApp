@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
   TouchableOpacity, Alert, ScrollView
@@ -8,10 +8,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import Avatar from '@/components/Avatar';
 import VerifiedBadge from '@/components/VerifiedBadge';
+import { useAppTheme } from '@/lib/ThemeContext';
+import { ThemeColors } from '@/constants/theme';
 
 export default function UserProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [profile, setProfile] = useState<any>(null);
   const [myId, setMyId] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -159,7 +163,7 @@ export default function UserProfileScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#7C3AED" />
+        <ActivityIndicator size="large" color={colors.accent} />
       </View>
     );
   }
@@ -179,7 +183,7 @@ export default function UserProfileScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={20} color="#fff" />
+          <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
         </TouchableOpacity>
         <View style={{ width: 36 }} />
       </View>
@@ -247,8 +251,8 @@ export default function UserProfileScreen() {
       {!isOwnProfile && (
         <View style={styles.menu}>
           <TouchableOpacity style={styles.menuItem} onPress={handleBlockToggle} disabled={actionLoading}>
-            <View style={[styles.menuIconCircle, { backgroundColor: '#ff444422' }]}>
-              <Ionicons name="ban" size={16} color="#ff4444" />
+            <View style={[styles.menuIconCircle, { backgroundColor: colors.errorMuted }]}>
+              <Ionicons name="ban" size={16} color={colors.error} />
             </View>
             <Text style={styles.menuText}>{isBlocked ? 'Unblock User' : 'Block User'}</Text>
           </TouchableOpacity>
@@ -256,8 +260,8 @@ export default function UserProfileScreen() {
             style={styles.menuItem}
             onPress={() => router.push(`/report-user?target_user_id=${id}`)}
           >
-            <View style={[styles.menuIconCircle, { backgroundColor: '#FFB80022' }]}>
-              <Ionicons name="warning" size={16} color="#FFB800" />
+            <View style={[styles.menuIconCircle, { backgroundColor: colors.warningMuted }]}>
+              <Ionicons name="warning" size={16} color={colors.warning} />
             </View>
             <Text style={styles.menuText}>Report User</Text>
           </TouchableOpacity>
@@ -267,54 +271,56 @@ export default function UserProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
-  content: { padding: 24, paddingTop: 60, paddingBottom: 48 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' },
-  errorText: { color: '#fff', fontSize: 16 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  backBtn: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  profileTop: { alignItems: 'center', marginBottom: 24 },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14 },
-  username: { fontSize: 22, fontWeight: '900', color: '#fff' },
-  handle: { fontSize: 13, color: '#888', marginTop: 2, fontWeight: '600' },
-  roleBadge: {
-    marginTop: 8, backgroundColor: '#7C3AED22', paddingHorizontal: 12,
-    paddingVertical: 4, borderRadius: 20, borderWidth: 1, borderColor: '#7C3AED',
-  },
-  roleText: { color: '#7C3AED', fontSize: 11, fontWeight: '700' },
-  statsRow: { flexDirection: 'row', justifyContent: 'center', gap: 40, marginBottom: 6 },
-  statBox: { alignItems: 'center' },
-  statValue: { color: '#fff', fontSize: 20, fontWeight: '800' },
-  statLabel: { color: '#aaa', fontSize: 12, marginTop: 2 },
-  privateHint: { color: '#555', fontSize: 12, textAlign: 'center', marginBottom: 20 },
-  actionsRow: { flexDirection: 'row', gap: 12, marginTop: 16, marginBottom: 24 },
-  actionBtn: {
-    flex: 1, backgroundColor: '#7C3AED', paddingVertical: 14,
-    borderRadius: 12, alignItems: 'center',
-    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4, shadowRadius: 10, elevation: 6,
-  },
-  actionBtnActive: { backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#7C3AED', shadowOpacity: 0 },
-  actionBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  actionBtnTextActive: { color: '#7C3AED' },
-  actionBtnOutline: {
-    flex: 1, backgroundColor: '#1a1a1a', paddingVertical: 14,
-    borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#2a2a2a',
-  },
-  actionBtnOutlineText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  menu: { gap: 8 },
-  menuItem: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#161616', borderRadius: 14,
-    padding: 14, borderWidth: 1, borderColor: '#262626',
-  },
-  menuIconCircle: {
-    width: 34, height: 34, borderRadius: 17,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  menuText: { flex: 1, color: '#fff', fontSize: 15, fontWeight: '600' },
-});
+function getStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { padding: 24, paddingTop: 60, paddingBottom: 48 },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+    errorText: { color: colors.textPrimary, fontSize: 16 },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+    backBtn: {
+      width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    profileTop: { alignItems: 'center', marginBottom: 24 },
+    nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14 },
+    username: { fontSize: 22, fontWeight: '900', color: colors.textPrimary },
+    handle: { fontSize: 13, color: colors.textTertiary, marginTop: 2, fontWeight: '600' },
+    roleBadge: {
+      marginTop: 8, backgroundColor: colors.accentMutedStrong, paddingHorizontal: 12,
+      paddingVertical: 4, borderRadius: 20, borderWidth: 1, borderColor: colors.accent,
+    },
+    roleText: { color: colors.accent, fontSize: 11, fontWeight: '700' },
+    statsRow: { flexDirection: 'row', justifyContent: 'center', gap: 40, marginBottom: 6 },
+    statBox: { alignItems: 'center' },
+    statValue: { color: colors.textPrimary, fontSize: 20, fontWeight: '800' },
+    statLabel: { color: colors.textSecondary, fontSize: 12, marginTop: 2 },
+    privateHint: { color: colors.textFaint, fontSize: 12, textAlign: 'center', marginBottom: 20 },
+    actionsRow: { flexDirection: 'row', gap: 12, marginTop: 16, marginBottom: 24 },
+    actionBtn: {
+      flex: 1, backgroundColor: colors.accent, paddingVertical: 14,
+      borderRadius: 12, alignItems: 'center',
+      shadowColor: colors.accent, shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.4, shadowRadius: 10, elevation: 6,
+    },
+    actionBtnActive: { backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.accent, shadowOpacity: 0 },
+    actionBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+    actionBtnTextActive: { color: colors.accent },
+    actionBtnOutline: {
+      flex: 1, backgroundColor: colors.surfaceAlt, paddingVertical: 14,
+      borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: colors.border,
+    },
+    actionBtnOutlineText: { color: colors.textPrimary, fontSize: 15, fontWeight: '700' },
+    menu: { gap: 8 },
+    menuItem: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      backgroundColor: colors.surface, borderRadius: 14,
+      padding: 14, borderWidth: 1, borderColor: colors.borderMuted,
+    },
+    menuIconCircle: {
+      width: 34, height: 34, borderRadius: 17,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    menuText: { flex: 1, color: colors.textPrimary, fontSize: 15, fontWeight: '600' },
+  });
+}

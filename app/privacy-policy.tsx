@@ -1,6 +1,9 @@
+import { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useAppTheme } from '@/lib/ThemeContext';
+import { ThemeColors } from '@/constants/theme';
 
 const SECTIONS = [
   {
@@ -56,12 +59,14 @@ const SECTIONS = [
 
 export default function PrivacyPolicyScreen() {
   const router = useRouter();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={20} color="#fff" />
+          <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Privacy Policy</Text>
         <View style={{ width: 36 }} />
@@ -92,21 +97,23 @@ export default function PrivacyPolicyScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
-  content: { padding: 24, paddingTop: 60, paddingBottom: 48 },
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 4,
-  },
-  backBtn: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
-  lastUpdated: { color: '#555', fontSize: 12, marginBottom: 16 },
-  intro: { color: '#aaa', fontSize: 14, lineHeight: 21, marginBottom: 28 },
-  section: { marginBottom: 24 },
-  sectionTitle: { color: '#7C3AED', fontSize: 15, fontWeight: '800', marginBottom: 8 },
-  sectionBody: { color: '#ccc', fontSize: 14, lineHeight: 22 },
-});
+function getStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { padding: 24, paddingTop: 60, paddingBottom: 48 },
+    header: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', marginBottom: 4,
+    },
+    backBtn: {
+      width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    headerTitle: { fontSize: 20, fontWeight: '800', color: colors.textPrimary },
+    lastUpdated: { color: colors.textFaint, fontSize: 12, marginBottom: 16 },
+    intro: { color: colors.textSecondary, fontSize: 14, lineHeight: 21, marginBottom: 28 },
+    section: { marginBottom: 24 },
+    sectionTitle: { color: colors.accent, fontSize: 15, fontWeight: '800', marginBottom: 8 },
+    sectionBody: { color: colors.textSecondary, fontSize: 14, lineHeight: 22 },
+  });
+}

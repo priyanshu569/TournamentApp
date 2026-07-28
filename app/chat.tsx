@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList,
   TouchableOpacity, ActivityIndicator
@@ -9,9 +9,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '@/lib/supabase';
 import Avatar from '@/components/Avatar';
 import { formatRelativeTime } from '@/lib/time';
+import { useAppTheme } from '@/lib/ThemeContext';
+import { ThemeColors } from '@/constants/theme';
 
 export default function ChatInboxScreen() {
   const router = useRouter();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [conversations, setConversations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [myId, setMyId] = useState<string | null>(null);
@@ -122,22 +126,22 @@ export default function ChatInboxScreen() {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.headerIconBadge}>
-            <Ionicons name="chatbubbles" size={20} color="#7C3AED" />
+            <Ionicons name="chatbubbles" size={20} color={colors.accent} />
           </View>
           <Text style={styles.headerTitle}>Chats</Text>
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity onPress={() => router.push('/search-users')} style={styles.newGroupBtn}>
-            <Ionicons name="search" size={18} color="#7C3AED" />
+            <Ionicons name="search" size={18} color={colors.accent} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push('/new-group')} style={styles.newGroupBtn}>
-            <Ionicons name="people" size={20} color="#7C3AED" />
+            <Ionicons name="people" size={20} color={colors.accent} />
           </TouchableOpacity>
         </View>
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#7C3AED" style={{ marginTop: 40 }} />
+        <ActivityIndicator size="large" color={colors.accent} style={{ marginTop: 40 }} />
       ) : (
         <FlatList
           data={conversations}
@@ -147,7 +151,7 @@ export default function ChatInboxScreen() {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <View style={styles.emptyIconCircle}>
-                <Ionicons name="chatbubble-ellipses-outline" size={28} color="#444" />
+                <Ionicons name="chatbubble-ellipses-outline" size={28} color={colors.textDisabled} />
               </View>
               <Text style={styles.emptyText}>
                 No conversations yet. Message someone from their profile, or start a group.
@@ -196,52 +200,54 @@ export default function ChatInboxScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', paddingHorizontal: 24, paddingTop: 60, paddingBottom: 16,
-  },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerIconBadge: {
-    width: 40, height: 40, borderRadius: 12,
-    backgroundColor: '#7C3AED18', justifyContent: 'center', alignItems: 'center',
-  },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  newGroupBtn: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: '#7C3AED18',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  listContent: { padding: 24, paddingTop: 4 },
-  emptyContainer: { alignItems: 'center', marginTop: 60, paddingHorizontal: 20 },
-  emptyIconCircle: {
-    width: 64, height: 64, borderRadius: 32, backgroundColor: '#1a1a1a',
-    justifyContent: 'center', alignItems: 'center', marginBottom: 16,
-    borderWidth: 1, borderColor: '#2a2a2a',
-  },
-  emptyText: { color: '#555', textAlign: 'center' },
-  row: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#161616', borderRadius: 14, padding: 14,
-    marginBottom: 10, borderWidth: 1, borderColor: '#262626',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
-  },
-  groupIcon: {
-    width: 50, height: 50, borderRadius: 25,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  rowInfo: { flex: 1 },
-  rowTitle: { color: '#fff', fontSize: 15, fontWeight: '700', marginBottom: 2 },
-  rowPreview: { color: '#888', fontSize: 13 },
-  rowPreviewUnread: { color: '#eee', fontWeight: '700' },
-  rowRight: { alignItems: 'flex-end', gap: 6 },
-  rowTime: { color: '#555', fontSize: 11, fontWeight: '600' },
-  rowTimeUnread: { color: '#7C3AED' },
-  unreadBadge: {
-    minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 6,
-    backgroundColor: '#7C3AED', justifyContent: 'center', alignItems: 'center',
-  },
-  unreadBadgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
-});
+function getStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    header: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', paddingHorizontal: 24, paddingTop: 60, paddingBottom: 16,
+    },
+    headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    headerIconBadge: {
+      width: 40, height: 40, borderRadius: 12,
+      backgroundColor: colors.accentMuted, justifyContent: 'center', alignItems: 'center',
+    },
+    headerTitle: { fontSize: 22, fontWeight: '800', color: colors.textPrimary },
+    newGroupBtn: {
+      width: 36, height: 36, borderRadius: 18, backgroundColor: colors.accentMuted,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    listContent: { padding: 24, paddingTop: 4 },
+    emptyContainer: { alignItems: 'center', marginTop: 60, paddingHorizontal: 20 },
+    emptyIconCircle: {
+      width: 64, height: 64, borderRadius: 32, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center', marginBottom: 16,
+      borderWidth: 1, borderColor: colors.border,
+    },
+    emptyText: { color: colors.textFaint, textAlign: 'center' },
+    row: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      backgroundColor: colors.surface, borderRadius: 14, padding: 14,
+      marginBottom: 10, borderWidth: 1, borderColor: colors.borderMuted,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
+    },
+    groupIcon: {
+      width: 50, height: 50, borderRadius: 25,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    rowInfo: { flex: 1 },
+    rowTitle: { color: colors.textPrimary, fontSize: 15, fontWeight: '700', marginBottom: 2 },
+    rowPreview: { color: colors.textTertiary, fontSize: 13 },
+    rowPreviewUnread: { color: colors.textPrimary, fontWeight: '700' },
+    rowRight: { alignItems: 'flex-end', gap: 6 },
+    rowTime: { color: colors.textFaint, fontSize: 11, fontWeight: '600' },
+    rowTimeUnread: { color: colors.accent },
+    unreadBadge: {
+      minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 6,
+      backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center',
+    },
+    unreadBadgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
+  });
+}

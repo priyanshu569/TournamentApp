@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import PagerView from 'react-native-pager-view';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,6 +10,8 @@ import HistoryScreen from './history';
 import ChatScreen from '../chat';
 import ProfileScreen from './profile';
 import { TabNavigationContext } from '@/lib/tabNavigation';
+import { useAppTheme } from '@/lib/ThemeContext';
+import { ThemeColors } from '@/constants/theme';
 
 const TABS = [
   { key: 'index', label: 'Home', icon: 'home' as const },
@@ -20,6 +22,8 @@ const TABS = [
 ];
 
 export default function TabLayout() {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const pagerRef = useRef<PagerView>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const insets = useSafeAreaInsets();
@@ -84,7 +88,7 @@ export default function TabLayout() {
                 <Ionicons
                   name={tab.icon}
                   size={21}
-                  color={isActive ? '#fff' : '#666'}
+                  color={isActive ? '#fff' : colors.textMuted}
                 />
               </View>
               <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
@@ -98,44 +102,46 @@ export default function TabLayout() {
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#0a0a0a' },
-  page: { flex: 1, backgroundColor: '#0a0a0a' },
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: '#0d0d0d',
-    borderTopColor: '#1a1a1a',
-    borderTopWidth: 1,
-    paddingTop: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 12,
-  },
-  tabItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 4,
-  },
-  tabIconWrap: {
-    width: 40,
-    height: 30,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tabIconWrapActive: {
-    backgroundColor: '#7C3AED',
-  },
-  tabLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    marginTop: 3,
-    color: '#666',
-  },
-  tabLabelActive: {
-    color: '#7C3AED',
-  },
-});
+function getStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    flex: { flex: 1, backgroundColor: colors.background },
+    page: { flex: 1, backgroundColor: colors.background },
+    tabBar: {
+      flexDirection: 'row',
+      backgroundColor: colors.surface,
+      borderTopColor: colors.surfaceAlt,
+      borderTopWidth: 1,
+      paddingTop: 10,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -4 },
+      shadowOpacity: 0.4,
+      shadowRadius: 10,
+      elevation: 12,
+    },
+    tabItem: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 4,
+    },
+    tabIconWrap: {
+      width: 40,
+      height: 30,
+      borderRadius: 12,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    tabIconWrapActive: {
+      backgroundColor: colors.accent,
+    },
+    tabLabel: {
+      fontSize: 11,
+      fontWeight: '600',
+      marginTop: 3,
+      color: colors.textMuted,
+    },
+    tabLabelActive: {
+      color: colors.accent,
+    },
+  });
+}

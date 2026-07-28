@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator, ScrollView, StyleSheet,
   Text, TouchableOpacity, View
@@ -14,6 +14,8 @@ import FragifyLogo from '@/components/FragifyLogo';
 import LeaderboardIcon from '@/components/LeaderboardIcon';
 import GradientIconBadge from '@/components/GradientIconBadge';
 import { useTabNavigation } from '@/lib/tabNavigation';
+import { useAppTheme } from '@/lib/ThemeContext';
+import { ThemeColors } from '@/constants/theme';
 
 const GAME_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   'free fire': 'flame',
@@ -23,6 +25,8 @@ const GAME_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
 };
 
 export default function HomeScreen() {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [role, setRole] = useState<string | null>(null);
   const [hostStatus, setHostStatus] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState('');
@@ -171,7 +175,7 @@ export default function HomeScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#7C3AED" />
+        <ActivityIndicator size="large" color={colors.accent} />
       </View>
     );
   }
@@ -219,7 +223,7 @@ export default function HomeScreen() {
 
         {isHost && (
           <TouchableOpacity style={styles.createButton} onPress={() => router.push('/create-tournament')}>
-            <Ionicons name="add-circle" size={18} color="#7C3AED" />
+            <Ionicons name="add-circle" size={18} color={colors.accent} />
             <Text style={styles.createButtonText}>Create Tournament</Text>
           </TouchableOpacity>
         )}
@@ -285,71 +289,73 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
-  content: { paddingBottom: 32 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' },
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', padding: 24, paddingTop: 60, paddingBottom: 16,
-  },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  appName: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 2 },
-  appTagline: { color: '#555', fontSize: 9, letterSpacing: 1.5, marginTop: 1 },
+function getStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { paddingBottom: 32 },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+    header: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', padding: 24, paddingTop: 60, paddingBottom: 16,
+    },
+    headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    headerRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    appName: { color: colors.textPrimary, fontSize: 16, fontWeight: '800', letterSpacing: 2 },
+    appTagline: { color: colors.textFaint, fontSize: 9, letterSpacing: 1.5, marginTop: 1 },
 
-  hero: {
-    marginHorizontal: 24, borderRadius: 20, padding: 22, marginBottom: 20,
-  },
-  heroGreeting: { color: '#fff', fontSize: 21, fontWeight: '800', marginBottom: 4 },
-  heroSub: { color: '#E9DDFF', fontSize: 13, marginBottom: 14 },
-  heroPill: {
-    flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start',
-    backgroundColor: '#00000033', paddingHorizontal: 12, paddingVertical: 7,
-    borderRadius: 20, gap: 6,
-  },
-  heroLiveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#00D4AA' },
-  heroPillText: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  createButton: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    backgroundColor: '#fff', paddingVertical: 13, borderRadius: 12, marginTop: 16,
-  },
-  createButtonText: { color: '#7C3AED', fontSize: 15, fontWeight: '800' },
+    hero: {
+      marginHorizontal: 24, borderRadius: 20, padding: 22, marginBottom: 20,
+    },
+    heroGreeting: { color: '#fff', fontSize: 21, fontWeight: '800', marginBottom: 4 },
+    heroSub: { color: '#E9DDFF', fontSize: 13, marginBottom: 14 },
+    heroPill: {
+      flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start',
+      backgroundColor: '#00000033', paddingHorizontal: 12, paddingVertical: 7,
+      borderRadius: 20, gap: 6,
+    },
+    heroLiveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#00D4AA' },
+    heroPillText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+    createButton: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+      backgroundColor: '#fff', paddingVertical: 13, borderRadius: 12, marginTop: 16,
+    },
+    createButtonText: { color: colors.accent, fontSize: 15, fontWeight: '800' },
 
-  quickActionsRow: { paddingHorizontal: 24, gap: 18, paddingTop: 12, paddingBottom: 24 },
-  quickAction: { alignItems: 'center', width: 80 },
-  quickActionBadge: { marginBottom: 6 },
-  quickActionLabel: { color: '#aaa', fontSize: 11, fontWeight: '600', textAlign: 'center' },
+    quickActionsRow: { paddingHorizontal: 24, gap: 18, paddingTop: 12, paddingBottom: 24 },
+    quickAction: { alignItems: 'center', width: 80 },
+    quickActionBadge: { marginBottom: 6 },
+    quickActionLabel: { color: colors.textSecondary, fontSize: 11, fontWeight: '600', textAlign: 'center' },
 
-  section: { marginBottom: 24 },
-  sectionHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 24, marginBottom: 12,
-  },
-  sectionTitle: { color: '#fff', fontSize: 16, fontWeight: '800' },
-  sectionSeeAll: { color: '#7C3AED', fontSize: 12, fontWeight: '700' },
-  horizontalList: { paddingHorizontal: 24, gap: 12 },
+    section: { marginBottom: 24 },
+    sectionHeader: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      paddingHorizontal: 24, marginBottom: 12,
+    },
+    sectionTitle: { color: colors.textPrimary, fontSize: 16, fontWeight: '800' },
+    sectionSeeAll: { color: colors.accent, fontSize: 12, fontWeight: '700' },
+    horizontalList: { paddingHorizontal: 24, gap: 12 },
 
-  compactCard: {
-    width: 220, backgroundColor: '#1a1a1a', borderRadius: 14,
-    borderWidth: 1, borderColor: '#2a2a2a', overflow: 'hidden',
-  },
-  compactBanner: { width: '100%', height: 90 },
-  compactBannerFallback: { width: '100%', height: 90, justifyContent: 'center', alignItems: 'center' },
-  compactBody: { padding: 12 },
-  gameTag: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, marginBottom: 6 },
-  gameTagText: { fontSize: 9, fontWeight: '800' },
-  compactTitle: { color: '#fff', fontSize: 14, fontWeight: '800', marginBottom: 4 },
-  hostRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 },
-  hostName: { fontSize: 11, color: '#888', fontWeight: '600' },
-  compactMeta: { color: '#666', fontSize: 11, fontWeight: '600' },
-  compactPrize: { color: '#FFB800', fontSize: 12, fontWeight: '800' },
-  liveBadge: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#00D4AA' },
-  liveBadgeText: { color: '#00D4AA', fontSize: 11, fontWeight: '800' },
+    compactCard: {
+      width: 220, backgroundColor: colors.surfaceAlt, borderRadius: 14,
+      borderWidth: 1, borderColor: colors.border, overflow: 'hidden',
+    },
+    compactBanner: { width: '100%', height: 90 },
+    compactBannerFallback: { width: '100%', height: 90, justifyContent: 'center', alignItems: 'center' },
+    compactBody: { padding: 12 },
+    gameTag: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, marginBottom: 6 },
+    gameTagText: { fontSize: 9, fontWeight: '800' },
+    compactTitle: { color: colors.textPrimary, fontSize: 14, fontWeight: '800', marginBottom: 4 },
+    hostRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 },
+    hostName: { fontSize: 11, color: colors.textTertiary, fontWeight: '600' },
+    compactMeta: { color: colors.textMuted, fontSize: 11, fontWeight: '600' },
+    compactPrize: { color: colors.warning, fontSize: 12, fontWeight: '800' },
+    liveBadge: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+    liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.success },
+    liveBadgeText: { color: colors.success, fontSize: 11, fontWeight: '800' },
 
-  emptyContainer: { alignItems: 'center', marginTop: 40, paddingHorizontal: 24 },
-  emptyText: { color: '#555', textAlign: 'center', marginTop: 12, fontSize: 14 },
-  emptyBtn: { marginTop: 16, backgroundColor: '#7C3AED', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12 },
-  emptyBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-});
+    emptyContainer: { alignItems: 'center', marginTop: 40, paddingHorizontal: 24 },
+    emptyText: { color: colors.textFaint, textAlign: 'center', marginTop: 12, fontSize: 14 },
+    emptyBtn: { marginTop: 16, backgroundColor: colors.accent, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12 },
+    emptyBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  });
+}

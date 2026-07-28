@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
   TouchableOpacity, Alert, ScrollView
@@ -6,6 +6,8 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
+import { useAppTheme } from '@/lib/ThemeContext';
+import { ThemeColors } from '@/constants/theme';
 
 type RosterMember = {
   team_member_id: string;
@@ -28,6 +30,8 @@ type MatchTeamState = {
 export default function LiveScoreboard() {
   const { tournament_id } = useLocalSearchParams();
   const router = useRouter();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [tournament, setTournament] = useState<any>(null);
   const [roster, setRoster] = useState<RosterTeam[]>([]);
   const [selectedMatch, setSelectedMatch] = useState(1);
@@ -229,7 +233,7 @@ export default function LiveScoreboard() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#7C3AED" />
+        <ActivityIndicator size="large" color={colors.accent} />
       </View>
     );
   }
@@ -240,7 +244,7 @@ export default function LiveScoreboard() {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={20} color="#fff" />
+          <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
         </TouchableOpacity>
         <View style={styles.liveBadge}>
           <View style={styles.liveDot} />
@@ -271,7 +275,7 @@ export default function LiveScoreboard() {
         {roster.length === 0 ? (
           <Text style={styles.emptyText}>No confirmed teams yet.</Text>
         ) : loadingMatch || roster.some((t) => !matchState[t.team_id]) ? (
-          <ActivityIndicator size="large" color="#7C3AED" style={{ marginTop: 40 }} />
+          <ActivityIndicator size="large" color={colors.accent} style={{ marginTop: 40 }} />
         ) : (
           roster
             .slice()
@@ -343,7 +347,7 @@ export default function LiveScoreboard() {
                             onPress={() => updateMemberKills(team.team_id, member, -1)}
                             disabled={updatingId === member.team_member_id}
                           >
-                            <Text style={styles.stepBtnText}>−</Text>
+                            <Text style={styles.stepBtnTextNeutral}>−</Text>
                           </TouchableOpacity>
                           <Text style={styles.killCount}>{state.kills[member.team_member_id] ?? 0}</Text>
                           <TouchableOpacity
@@ -351,7 +355,7 @@ export default function LiveScoreboard() {
                             onPress={() => updateMemberKills(team.team_id, member, 1)}
                             disabled={updatingId === member.team_member_id}
                           >
-                            <Text style={styles.stepBtnText}>+</Text>
+                            <Text style={styles.stepBtnTextAccent}>+</Text>
                           </TouchableOpacity>
                         </View>
                       </View>
@@ -373,85 +377,88 @@ export default function LiveScoreboard() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' },
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', paddingHorizontal: 24, paddingTop: 60, paddingBottom: 8,
-  },
-  backBtn: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  liveBadge: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#3a0a0a', paddingHorizontal: 10,
-    paddingVertical: 4, borderRadius: 20, gap: 6,
-  },
-  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#ff4444' },
-  liveText: { color: '#ff4444', fontSize: 11, fontWeight: '800' },
-  heading: { fontSize: 24, fontWeight: '900', color: '#fff', paddingHorizontal: 24, marginTop: 8 },
-  sub: { fontSize: 13, color: '#aaa', paddingHorizontal: 24, marginTop: 4, marginBottom: 12 },
-  matchRow: { marginBottom: 12, flexGrow: 0 },
-  matchChip: {
-    paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20,
-    backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a', marginRight: 8,
-  },
-  matchChipActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
-  matchChipText: { color: '#aaa', fontSize: 13, fontWeight: '700' },
-  matchChipTextActive: { color: '#fff' },
-  list: { paddingHorizontal: 24, paddingBottom: 16 },
-  emptyText: { color: '#555', textAlign: 'center', marginTop: 40 },
-  teamCard: {
-    backgroundColor: '#161616', borderRadius: 14, padding: 16,
-    marginBottom: 12, borderWidth: 1, borderColor: '#262626',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
-  },
-  teamHeader: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 12,
-  },
-  teamName: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  totalKillsBadge: {
-    backgroundColor: '#7C3AED22', paddingHorizontal: 10,
-    paddingVertical: 4, borderRadius: 20, borderWidth: 1, borderColor: '#7C3AED',
-  },
-  totalKillsText: { color: '#7C3AED', fontSize: 13, fontWeight: '800' },
-  benchRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
-  benchChip: {
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16,
-    backgroundColor: '#0a0a0a', borderWidth: 1, borderColor: '#2a2a2a',
-  },
-  benchChipActive: { backgroundColor: '#FF444422', borderColor: '#FF4444' },
-  benchChipText: { color: '#aaa', fontSize: 11, fontWeight: '600' },
-  benchChipTextActive: { color: '#FF4444', fontWeight: '700' },
-  memberRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingVertical: 8, borderTopWidth: 1, borderTopColor: '#2a2a2a',
-  },
-  memberRowBenched: { opacity: 0.5 },
-  memberInfo: { flex: 1, marginRight: 12 },
-  memberName: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  memberUid: { color: '#555', fontSize: 11, marginTop: 1 },
-  benchedTag: { color: '#FF4444', fontSize: 12, fontWeight: '700' },
-  controls: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  stepBtn: {
-    width: 30, height: 30, borderRadius: 15,
-    backgroundColor: '#2a2a2a', justifyContent: 'center', alignItems: 'center',
-  },
-  stepBtnPlus: {
-    backgroundColor: '#7C3AED',
-    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.5, shadowRadius: 6, elevation: 4,
-  },
-  stepBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
-  killCount: { color: '#fff', fontSize: 16, fontWeight: '800', minWidth: 24, textAlign: 'center' },
-  finishBtn: {
-    backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a',
-    paddingVertical: 16, borderRadius: 12, alignItems: 'center',
-    marginHorizontal: 24, marginBottom: 24,
-  },
-  finishBtnText: { color: '#7C3AED', fontSize: 14, fontWeight: '700' },
-});
+function getStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+    header: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', paddingHorizontal: 24, paddingTop: 60, paddingBottom: 8,
+    },
+    backBtn: {
+      width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    liveBadge: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: '#3a0a0a', paddingHorizontal: 10,
+      paddingVertical: 4, borderRadius: 20, gap: 6,
+    },
+    liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.error },
+    liveText: { color: colors.error, fontSize: 11, fontWeight: '800' },
+    heading: { fontSize: 24, fontWeight: '900', color: colors.textPrimary, paddingHorizontal: 24, marginTop: 8 },
+    sub: { fontSize: 13, color: colors.textSecondary, paddingHorizontal: 24, marginTop: 4, marginBottom: 12 },
+    matchRow: { marginBottom: 12, flexGrow: 0 },
+    matchChip: {
+      paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20,
+      backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border, marginRight: 8,
+    },
+    matchChipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+    matchChipText: { color: colors.textSecondary, fontSize: 13, fontWeight: '700' },
+    matchChipTextActive: { color: '#fff' },
+    list: { paddingHorizontal: 24, paddingBottom: 16 },
+    emptyText: { color: colors.textFaint, textAlign: 'center', marginTop: 40 },
+    teamCard: {
+      backgroundColor: colors.surface, borderRadius: 14, padding: 16,
+      marginBottom: 12, borderWidth: 1, borderColor: colors.borderMuted,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
+    },
+    teamHeader: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', marginBottom: 12,
+    },
+    teamName: { color: colors.textPrimary, fontSize: 15, fontWeight: '700' },
+    totalKillsBadge: {
+      backgroundColor: colors.accentMutedStrong, paddingHorizontal: 10,
+      paddingVertical: 4, borderRadius: 20, borderWidth: 1, borderColor: colors.accent,
+    },
+    totalKillsText: { color: colors.accent, fontSize: 13, fontWeight: '800' },
+    benchRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
+    benchChip: {
+      paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16,
+      backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border,
+    },
+    benchChipActive: { backgroundColor: colors.errorMuted, borderColor: colors.error },
+    benchChipText: { color: colors.textSecondary, fontSize: 11, fontWeight: '600' },
+    benchChipTextActive: { color: colors.error, fontWeight: '700' },
+    memberRow: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      paddingVertical: 8, borderTopWidth: 1, borderTopColor: colors.border,
+    },
+    memberRowBenched: { opacity: 0.5 },
+    memberInfo: { flex: 1, marginRight: 12 },
+    memberName: { color: colors.textPrimary, fontSize: 14, fontWeight: '600' },
+    memberUid: { color: colors.textFaint, fontSize: 11, marginTop: 1 },
+    benchedTag: { color: colors.error, fontSize: 12, fontWeight: '700' },
+    controls: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    stepBtn: {
+      width: 30, height: 30, borderRadius: 15,
+      backgroundColor: colors.surfaceAlt, justifyContent: 'center', alignItems: 'center',
+    },
+    stepBtnPlus: {
+      backgroundColor: colors.accent,
+      shadowColor: colors.accent, shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.5, shadowRadius: 6, elevation: 4,
+    },
+    stepBtnTextNeutral: { color: colors.textPrimary, fontSize: 16, fontWeight: '800' },
+    stepBtnTextAccent: { color: '#fff', fontSize: 16, fontWeight: '800' },
+    killCount: { color: colors.textPrimary, fontSize: 16, fontWeight: '800', minWidth: 24, textAlign: 'center' },
+    finishBtn: {
+      backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border,
+      paddingVertical: 16, borderRadius: 12, alignItems: 'center',
+      marginHorizontal: 24, marginBottom: 24,
+    },
+    finishBtnText: { color: colors.accent, fontSize: 14, fontWeight: '700' },
+  });
+}

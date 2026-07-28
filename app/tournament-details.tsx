@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
   TouchableOpacity, Alert, ScrollView, TextInput, Share
@@ -10,10 +10,14 @@ import { supabase } from '../lib/supabase';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import { notifyAndLog } from '@/lib/notifications';
 import * as Clipboard from 'expo-clipboard';
+import { useAppTheme } from '@/lib/ThemeContext';
+import { ThemeColors } from '@/constants/theme';
 
 export default function TournamentDetails() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [tournament, setTournament] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<string | null>(null);
@@ -280,18 +284,18 @@ export default function TournamentDetails() {
 
   function getPlayerStatusMessage() {
     if (!isConfirmed) {
-      return { icon: '⏳', text: 'Registration pending payment confirmation.', color: '#FFB800' };
+      return { icon: '⏳', text: 'Registration pending payment confirmation.', color: colors.warning };
     }
     if (tournament.status === 'completed') {
-      return { icon: '🏁', text: 'Tournament has ended — check the final standings above!', color: '#aaa' };
+      return { icon: '🏁', text: 'Tournament has ended — check the final standings above!', color: colors.textSecondary };
     }
     if (tournament.status === 'ongoing') {
-      return { icon: '🔴', text: 'Tournament is live right now — good luck out there!', color: '#FFB800' };
+      return { icon: '🔴', text: 'Tournament is live right now — good luck out there!', color: colors.warning };
     }
     if (tournament.room_code) {
-      return { icon: '✅', text: 'Confirmed! Your room code is ready below.', color: '#00D4AA' };
+      return { icon: '✅', text: 'Confirmed! Your room code is ready below.', color: colors.success };
     }
-    return { icon: '✅', text: "Confirmed! We'll notify you when the room code is published.", color: '#00D4AA' };
+    return { icon: '✅', text: "Confirmed! We'll notify you when the room code is published.", color: colors.success };
   }
 
   function medal(placement: number | null) {
@@ -305,7 +309,7 @@ export default function TournamentDetails() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#7C3AED" />
+        <ActivityIndicator size="large" color={colors.accent} />
       </View>
     );
   }
@@ -319,10 +323,10 @@ export default function TournamentDetails() {
   }
 
   const getStatusColor = (status: string) => {
-    if (status === 'upcoming') return '#00D4AA';
-    if (status === 'ongoing') return '#FFB800';
-    if (status === 'completed') return '#FF4444';
-    return '#888';
+    if (status === 'upcoming') return colors.success;
+    if (status === 'ongoing') return colors.warning;
+    if (status === 'completed') return colors.error;
+    return colors.textTertiary;
   };
 
   const gameColor = getGameColor(tournament.game);
@@ -334,14 +338,14 @@ export default function TournamentDetails() {
       {/* Header Bar */}
       <View style={styles.headerBar}>
         <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={20} color="#fff" />
+          <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
         </TouchableOpacity>
         <View style={styles.shareRow}>
           <TouchableOpacity style={styles.iconBtn} onPress={handleCopyLink}>
-            <Ionicons name="link" size={16} color="#aaa" />
+            <Ionicons name="link" size={16} color={colors.textSecondary} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconBtn} onPress={handleShare}>
-            <Ionicons name="share-social" size={16} color="#aaa" />
+            <Ionicons name="share-social" size={16} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -407,7 +411,7 @@ export default function TournamentDetails() {
       )}
       {tournament.status === 'completed' && (
         <View style={styles.completedBanner}>
-          <Ionicons name="checkmark-done-circle" size={18} color="#888" />
+          <Ionicons name="checkmark-done-circle" size={18} color={colors.textTertiary} />
           <Text style={styles.completedBannerText}>This tournament has ended</Text>
         </View>
       )}
@@ -542,14 +546,14 @@ export default function TournamentDetails() {
               <TextInput
                 style={styles.input}
                 placeholder="Room ID / Code"
-                placeholderTextColor="#444"
+                placeholderTextColor={colors.textDisabled}
                 value={roomCode}
                 onChangeText={setRoomCode}
               />
               <TextInput
                 style={styles.input}
                 placeholder="Password (optional)"
-                placeholderTextColor="#444"
+                placeholderTextColor={colors.textDisabled}
                 value={roomPassword}
                 onChangeText={setRoomPassword}
               />
@@ -653,7 +657,7 @@ export default function TournamentDetails() {
               disabled={cancelling}
             >
               {cancelling
-                ? <ActivityIndicator color="#ff4444" size="small" />
+                ? <ActivityIndicator color={colors.error} size="small" />
                 : <Text style={styles.cancelRegBtnText}>Cancel Registration</Text>
               }
             </TouchableOpacity>
@@ -667,8 +671,8 @@ export default function TournamentDetails() {
           <Text style={styles.actionButtonText}>Register Team →</Text>
         </TouchableOpacity>
       ) : (
-        <View style={[styles.actionButton, { backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a' }]}>
-          <Text style={{ color: '#555', fontSize: 15, fontWeight: '700' }}>
+        <View style={[styles.actionButton, { backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border }]}>
+          <Text style={{ color: colors.textFaint, fontSize: 15, fontWeight: '700' }}>
             {tournament.status === 'ongoing' ? '🔒 Tournament In Progress' : '🏁 Tournament Ended'}
           </Text>
         </View>
@@ -686,174 +690,176 @@ const cardShadow = {
   elevation: 4,
 };
 
-const styles = StyleSheet.create({
-  headerBar: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginTop: 4, marginBottom: 16,
-  },
-  banner: {
-    width: '100%', height: 180, borderRadius: 14, marginBottom: 16,
-    ...cardShadow,
-  },
-  topRow: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 16,
-  },
-  shareRow: { flexDirection: 'row', gap: 8 },
-  iconBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a',
-    justifyContent: 'center', alignItems: 'center',
-  },
+function getStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    headerBar: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', marginTop: 4, marginBottom: 16,
+    },
+    banner: {
+      width: '100%', height: 180, borderRadius: 14, marginBottom: 16,
+      ...cardShadow,
+    },
+    topRow: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', marginBottom: 16,
+    },
+    shareRow: { flexDirection: 'row', gap: 8 },
+    iconBtn: {
+      width: 36, height: 36, borderRadius: 18,
+      backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border,
+      justifyContent: 'center', alignItems: 'center',
+    },
 
-  descriptionText: { color: '#ccc', fontSize: 14, lineHeight: 22 },
-  rulesBox: {
-    backgroundColor: '#161616', borderRadius: 14,
-    padding: 16, borderWidth: 1, borderColor: '#262626',
-    ...cardShadow,
-  },
-  rulesText: { color: '#ccc', fontSize: 14, lineHeight: 24 },
+    descriptionText: { color: colors.textSecondary, fontSize: 14, lineHeight: 22 },
+    rulesBox: {
+      backgroundColor: colors.surface, borderRadius: 14,
+      padding: 16, borderWidth: 1, borderColor: colors.borderMuted,
+      ...cardShadow,
+    },
+    rulesText: { color: colors.textSecondary, fontSize: 14, lineHeight: 24 },
 
-  resultsBox: {
-    backgroundColor: '#161616', borderRadius: 14,
-    padding: 16, borderWidth: 1, borderColor: '#262626',
-    ...cardShadow,
-  },
-  resultRow: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#2a2a2a',
-  },
-  resultMedal: { width: 32, fontSize: 14, fontWeight: '800', color: '#fff' },
-  resultTeam: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  resultKills: { color: '#7C3AED', fontSize: 13, fontWeight: '700' },
-  resultSub: { color: '#555', fontSize: 11, marginTop: 2 },
-  resultPoints: { color: '#FFB800', fontSize: 14, fontWeight: '800' },
+    resultsBox: {
+      backgroundColor: colors.surface, borderRadius: 14,
+      padding: 16, borderWidth: 1, borderColor: colors.borderMuted,
+      ...cardShadow,
+    },
+    resultRow: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border,
+    },
+    resultMedal: { width: 32, fontSize: 14, fontWeight: '800', color: colors.textPrimary },
+    resultTeam: { color: colors.textPrimary, fontSize: 14, fontWeight: '600' },
+    resultKills: { color: colors.accent, fontSize: 13, fontWeight: '700' },
+    resultSub: { color: colors.textFaint, fontSize: 11, marginTop: 2 },
+    resultPoints: { color: colors.warning, fontSize: 14, fontWeight: '800' },
 
-  resultsTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  liveBadge: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#3a0a0a', paddingHorizontal: 8,
-    paddingVertical: 2, borderRadius: 20, gap: 4,
-  },
-  liveDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#ff4444' },
-  liveBadgeText: { color: '#ff4444', fontSize: 10, fontWeight: '800' },
-  resultsActions: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  liveScoreBtn: { color: '#ff4444', fontSize: 13, fontWeight: '700' },
+    resultsTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    liveBadge: {
+      flexDirection: 'row', alignItems: 'center',
+      backgroundColor: '#3a0a0a', paddingHorizontal: 8,
+      paddingVertical: 2, borderRadius: 20, gap: 4,
+    },
+    liveDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.error },
+    liveBadgeText: { color: colors.error, fontSize: 10, fontWeight: '800' },
+    resultsActions: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+    liveScoreBtn: { color: colors.error, fontSize: 13, fontWeight: '700' },
 
-  sectionHeader: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 12,
-  },
-  editBtn: { color: '#7C3AED', fontSize: 13, fontWeight: '600' },
+    sectionHeader: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', marginBottom: 12,
+    },
+    editBtn: { color: colors.accent, fontSize: 13, fontWeight: '600' },
 
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
-  content: { padding: 24, paddingTop: 60, paddingBottom: 48 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' },
-  errorText: { color: '#fff', fontSize: 16 },
-  gameTag: {
-    alignSelf: 'flex-start', paddingHorizontal: 12,
-    paddingVertical: 6, borderRadius: 8, marginBottom: 16,
-  },
-  gameTagText: { fontSize: 12, fontWeight: '800', letterSpacing: 1 },
-  title: { fontSize: 30, fontWeight: '900', color: '#fff', marginBottom: 6, lineHeight: 36 },
-  hostRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  hostedBy: { fontSize: 13, color: '#888', fontWeight: '600' },
-  statusRow: {
-    flexDirection: 'row', alignItems: 'center',
-    gap: 12, marginBottom: 24,
-  },
-  statusBadge: {
-    paddingHorizontal: 12, paddingVertical: 4,
-    borderRadius: 20, borderWidth: 1,
-  },
-  statusText: { fontSize: 12, fontWeight: '700' },
-  dateText: { color: '#aaa', fontSize: 13 },
-  statsRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
-  statBox: {
-    flex: 1, backgroundColor: '#161616', borderRadius: 14,
-    padding: 16, alignItems: 'center', borderWidth: 1,
-    borderColor: '#262626', borderTopWidth: 3,
-    ...cardShadow,
-  },
-  statValue: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 4 },
-  statLabel: { fontSize: 11, color: '#aaa' },
-  liveBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#3a2a00', borderWidth: 1, borderColor: '#FFB800',
-    borderRadius: 14, padding: 16, marginBottom: 24,
-  },
-  livePulseDot: { width: 9, height: 9, borderRadius: 4.5, backgroundColor: '#FFB800' },
-  liveBannerText: { color: '#FFB800', fontSize: 14, fontWeight: '700' },
-  completedBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#161616', borderWidth: 1, borderColor: '#2a2a2a',
-    borderRadius: 14, padding: 16, marginBottom: 24,
-  },
-  completedBannerText: { color: '#888', fontSize: 14, fontWeight: '700' },
-  divider: { height: 1, backgroundColor: '#1a1a1a', marginBottom: 24 },
-  section: { marginBottom: 24 },
-  sectionTitle: {
-    color: '#555', fontSize: 11, fontWeight: '800',
-    letterSpacing: 2, marginBottom: 12,
-  },
-  roomCodeBox: {
-    backgroundColor: '#161616', borderRadius: 14,
-    padding: 16, borderWidth: 1, borderColor: '#262626',
-    ...cardShadow,
-  },
-  roomRow: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 8,
-  },
-  roomLabel: { color: '#aaa', fontSize: 13 },
-  roomValue: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  editRoomBtn: { marginTop: 8 },
-  editRoomBtnText: { color: '#7C3AED', fontSize: 13, fontWeight: '600' },
-  roomForm: { marginTop: 16 },
-  input: {
-    backgroundColor: '#1a1a1a', color: '#fff', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 14, fontSize: 15,
-    borderWidth: 1, borderColor: '#2a2a2a', marginBottom: 10,
-  },
-  roomFormBtns: { flexDirection: 'row', gap: 10 },
-  cancelBtn: {
-    flex: 1, paddingVertical: 14, borderRadius: 12,
-    alignItems: 'center', backgroundColor: '#1a1a1a',
-    borderWidth: 1, borderColor: '#2a2a2a',
-  },
-  cancelBtnText: { color: '#aaa', fontSize: 14, fontWeight: '600' },
-  saveBtn: {
-    flex: 1, paddingVertical: 14,
-    borderRadius: 12, alignItems: 'center',
-  },
-  saveBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
-  statusChipRow: { flexDirection: 'row', gap: 8 },
-  statusChip: {
-    flex: 1, paddingVertical: 10, borderRadius: 10,
-    backgroundColor: '#1a1a1a', borderWidth: 1,
-    borderColor: '#2a2a2a', alignItems: 'center',
-  },
-  statusChipText: { color: '#aaa', fontSize: 12, fontWeight: '600' },
-  statusHint: { color: '#FFB800', fontSize: 12, marginTop: 10, fontWeight: '600' },
-  waitingBox: {
-    backgroundColor: '#1a1a00', borderRadius: 12, padding: 16,
-    borderWidth: 1, borderColor: '#3a3a00', marginBottom: 24,
-  },
-  waitingText: { color: '#FFB800', fontSize: 13, fontWeight: '600' },
-  actionButton: {
-    paddingVertical: 16, borderRadius: 14, alignItems: 'center',
-    ...cardShadow,
-  },
-  actionButtonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
-  alreadyRegistered: {
-    backgroundColor: '#0a1a0a', borderRadius: 12, padding: 16,
-    borderWidth: 1, borderColor: '#1a3a1a',
-  },
-  alreadyRegisteredText: { color: '#00D4AA', fontSize: 14, fontWeight: '600', textAlign: 'center' },
-  cancelRegBtn: {
-    marginTop: 12, paddingVertical: 14, borderRadius: 12,
-    alignItems: 'center', backgroundColor: '#1a0a0a',
-    borderWidth: 1, borderColor: '#3a1a1a',
-  },
-  cancelRegBtnText: { color: '#ff4444', fontSize: 14, fontWeight: '700' },
-});
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { padding: 24, paddingTop: 60, paddingBottom: 48 },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+    errorText: { color: colors.textPrimary, fontSize: 16 },
+    gameTag: {
+      alignSelf: 'flex-start', paddingHorizontal: 12,
+      paddingVertical: 6, borderRadius: 8, marginBottom: 16,
+    },
+    gameTagText: { fontSize: 12, fontWeight: '800', letterSpacing: 1 },
+    title: { fontSize: 30, fontWeight: '900', color: colors.textPrimary, marginBottom: 6, lineHeight: 36 },
+    hostRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+    hostedBy: { fontSize: 13, color: colors.textTertiary, fontWeight: '600' },
+    statusRow: {
+      flexDirection: 'row', alignItems: 'center',
+      gap: 12, marginBottom: 24,
+    },
+    statusBadge: {
+      paddingHorizontal: 12, paddingVertical: 4,
+      borderRadius: 20, borderWidth: 1,
+    },
+    statusText: { fontSize: 12, fontWeight: '700' },
+    dateText: { color: colors.textSecondary, fontSize: 13 },
+    statsRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
+    statBox: {
+      flex: 1, backgroundColor: colors.surface, borderRadius: 14,
+      padding: 16, alignItems: 'center', borderWidth: 1,
+      borderColor: colors.borderMuted, borderTopWidth: 3,
+      ...cardShadow,
+    },
+    statValue: { fontSize: 18, fontWeight: '800', color: colors.textPrimary, marginBottom: 4 },
+    statLabel: { fontSize: 11, color: colors.textSecondary },
+    liveBanner: {
+      flexDirection: 'row', alignItems: 'center', gap: 10,
+      backgroundColor: '#3a2a00', borderWidth: 1, borderColor: colors.warning,
+      borderRadius: 14, padding: 16, marginBottom: 24,
+    },
+    livePulseDot: { width: 9, height: 9, borderRadius: 4.5, backgroundColor: colors.warning },
+    liveBannerText: { color: colors.warning, fontSize: 14, fontWeight: '700' },
+    completedBanner: {
+      flexDirection: 'row', alignItems: 'center', gap: 10,
+      backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
+      borderRadius: 14, padding: 16, marginBottom: 24,
+    },
+    completedBannerText: { color: colors.textTertiary, fontSize: 14, fontWeight: '700' },
+    divider: { height: 1, backgroundColor: colors.surfaceAlt, marginBottom: 24 },
+    section: { marginBottom: 24 },
+    sectionTitle: {
+      color: colors.textFaint, fontSize: 11, fontWeight: '800',
+      letterSpacing: 2, marginBottom: 12,
+    },
+    roomCodeBox: {
+      backgroundColor: colors.surface, borderRadius: 14,
+      padding: 16, borderWidth: 1, borderColor: colors.borderMuted,
+      ...cardShadow,
+    },
+    roomRow: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', marginBottom: 8,
+    },
+    roomLabel: { color: colors.textSecondary, fontSize: 13 },
+    roomValue: { color: colors.textPrimary, fontSize: 18, fontWeight: '800' },
+    editRoomBtn: { marginTop: 8 },
+    editRoomBtnText: { color: colors.accent, fontSize: 13, fontWeight: '600' },
+    roomForm: { marginTop: 16 },
+    input: {
+      backgroundColor: colors.surfaceAlt, color: colors.textPrimary, borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 14, fontSize: 15,
+      borderWidth: 1, borderColor: colors.border, marginBottom: 10,
+    },
+    roomFormBtns: { flexDirection: 'row', gap: 10 },
+    cancelBtn: {
+      flex: 1, paddingVertical: 14, borderRadius: 12,
+      alignItems: 'center', backgroundColor: colors.surfaceAlt,
+      borderWidth: 1, borderColor: colors.border,
+    },
+    cancelBtnText: { color: colors.textSecondary, fontSize: 14, fontWeight: '600' },
+    saveBtn: {
+      flex: 1, paddingVertical: 14,
+      borderRadius: 12, alignItems: 'center', 
+    },
+    saveBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+    statusChipRow: { flexDirection: 'row', gap: 8 },
+    statusChip: {
+      flex: 1, paddingVertical: 10, borderRadius: 10,
+      backgroundColor: colors.surfaceAlt, borderWidth: 1,
+      borderColor: colors.border, alignItems: 'center',
+    },
+    statusChipText: { color: colors.textSecondary, fontSize: 12, fontWeight: '600' },
+    statusHint: { color: colors.warning, fontSize: 12, marginTop: 10, fontWeight: '600' },
+    waitingBox: {
+      backgroundColor: '#1a1a00', borderRadius: 12, padding: 16,
+      borderWidth: 1, borderColor: '#3a3a00', marginBottom: 24,
+    },
+    waitingText: { color: colors.warning, fontSize: 13, fontWeight: '600' },
+    actionButton: {
+      paddingVertical: 16, borderRadius: 14, alignItems: 'center',
+      ...cardShadow,
+    },
+    actionButtonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+    alreadyRegistered: {
+      backgroundColor: '#0a1a0a', borderRadius: 12, padding: 16,
+      borderWidth: 1, borderColor: '#1a3a1a',
+    },
+    alreadyRegisteredText: { color: colors.success, fontSize: 14, fontWeight: '600', textAlign: 'center' },
+    cancelRegBtn: {
+      marginTop: 12, paddingVertical: 14, borderRadius: 12,
+      alignItems: 'center', backgroundColor: '#1a0a0a',
+      borderWidth: 1, borderColor: '#3a1a1a',
+    },
+    cancelRegBtnText: { color: colors.error, fontSize: 14, fontWeight: '700' },
+  });
+}

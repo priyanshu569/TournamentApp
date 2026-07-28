@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, Alert, ActivityIndicator, ScrollView
@@ -6,6 +6,8 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
+import { useAppTheme } from '@/lib/ThemeContext';
+import { ThemeColors } from '@/constants/theme';
 
 const REASONS = ['Spam', 'Harassment', 'Inappropriate content', 'Impersonation', 'Other'];
 
@@ -15,6 +17,8 @@ export default function ReportUserScreen() {
     target_message_id?: string;
   }>();
   const router = useRouter();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [reason, setReason] = useState('');
   const [details, setDetails] = useState('');
   const [loading, setLoading] = useState(false);
@@ -55,7 +59,7 @@ export default function ReportUserScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-        <Ionicons name="chevron-back" size={20} color="#fff" />
+        <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
       </TouchableOpacity>
 
       <Text style={styles.heading}>Report</Text>
@@ -78,7 +82,7 @@ export default function ReportUserScreen() {
       <TextInput
         style={styles.input}
         placeholder="Anything else we should know?"
-        placeholderTextColor="#444"
+        placeholderTextColor={colors.textDisabled}
         multiline
         numberOfLines={4}
         value={details}
@@ -95,35 +99,37 @@ export default function ReportUserScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
-  content: { padding: 24, paddingTop: 60, paddingBottom: 48 },
-  backBtn: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
-    justifyContent: 'center', alignItems: 'center', marginBottom: 16,
-  },
-  heading: { fontSize: 26, fontWeight: '900', color: '#fff', marginBottom: 4 },
-  sub: { fontSize: 14, color: '#aaa', marginBottom: 24 },
-  label: { color: '#aaa', fontSize: 13, marginBottom: 10, fontWeight: '600' },
-  reasonGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 },
-  reasonChip: {
-    paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20,
-    backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a',
-  },
-  reasonChipActive: { backgroundColor: '#ff444422', borderColor: '#ff4444' },
-  reasonChipText: { color: '#aaa', fontSize: 13, fontWeight: '600' },
-  reasonChipTextActive: { color: '#ff4444', fontWeight: '700' },
-  input: {
-    backgroundColor: '#1a1a1a', color: '#fff', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 14, fontSize: 15,
-    borderWidth: 1, borderColor: '#2a2a2a', height: 100, textAlignVertical: 'top',
-    marginBottom: 24,
-  },
-  button: {
-    backgroundColor: '#ff4444', paddingVertical: 16,
-    borderRadius: 12, alignItems: 'center',
-    shadowColor: '#ff4444', shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3, shadowRadius: 10, elevation: 6,
-  },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
-});
+function getStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { padding: 24, paddingTop: 60, paddingBottom: 48 },
+    backBtn: {
+      width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center', marginBottom: 16,
+    },
+    heading: { fontSize: 26, fontWeight: '900', color: colors.textPrimary, marginBottom: 4 },
+    sub: { fontSize: 14, color: colors.textSecondary, marginBottom: 24 },
+    label: { color: colors.textSecondary, fontSize: 13, marginBottom: 10, fontWeight: '600' },
+    reasonGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 },
+    reasonChip: {
+      paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20,
+      backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border,
+    },
+    reasonChipActive: { backgroundColor: colors.errorMuted, borderColor: colors.error },
+    reasonChipText: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
+    reasonChipTextActive: { color: colors.error, fontWeight: '700' },
+    input: {
+      backgroundColor: colors.surfaceAlt, color: colors.textPrimary, borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 14, fontSize: 15,
+      borderWidth: 1, borderColor: colors.border, height: 100, textAlignVertical: 'top',
+      marginBottom: 24,
+    },
+    button: {
+      backgroundColor: colors.error, paddingVertical: 16,
+      borderRadius: 12, alignItems: 'center',
+      shadowColor: colors.error, shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.3, shadowRadius: 10, elevation: 6,
+    },
+    buttonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  });
+}

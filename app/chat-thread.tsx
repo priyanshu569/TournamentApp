@@ -11,14 +11,17 @@ import Animated, { useAnimatedStyle, useSharedValue, withSpring, SharedValue } f
 import { supabase } from '@/lib/supabase';
 import Avatar from '@/components/Avatar';
 import { formatClockTime, formatDayLabel, formatRelativeTime, isSameDay } from '@/lib/time';
+import { useAppTheme } from '@/lib/ThemeContext';
+import { ThemeColors } from '@/constants/theme';
 
-function MessageBubble({ message, isMine, showSenderName, senderName, swipeX, seenLabel }: {
+function MessageBubble({ message, isMine, showSenderName, senderName, swipeX, seenLabel, styles }: {
   message: any;
   isMine: boolean;
   showSenderName: boolean;
   senderName: string;
   swipeX: SharedValue<number>;
   seenLabel: string | null;
+  styles: ReturnType<typeof getStyles>;
 }) {
   const bubbleAnimStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: swipeX.value }],
@@ -34,7 +37,7 @@ function MessageBubble({ message, isMine, showSenderName, senderName, swipeX, se
           {showSenderName && (
             <Text style={styles.senderName}>{senderName}</Text>
           )}
-          <Text style={styles.messageText}>{message.content}</Text>
+          <Text style={[styles.messageText, isMine ? styles.messageTextMine : styles.messageTextTheirs]}>{message.content}</Text>
         </Animated.View>
         <Animated.View style={[styles.swipeTimeWrap, timeAnimStyle]} pointerEvents="none">
           <Text style={styles.swipeTimeText}>{formatClockTime(message.created_at)}</Text>
@@ -50,6 +53,8 @@ function MessageBubble({ message, isMine, showSenderName, senderName, swipeX, se
 export default function ChatThreadScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [myId, setMyId] = useState<string | null>(null);
   const [conversation, setConversation] = useState<any>(null);
   const [otherUser, setOtherUser] = useState<any>(null);
@@ -242,7 +247,7 @@ export default function ChatThreadScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#7C3AED" />
+        <ActivityIndicator size="large" color={colors.accent} />
       </View>
     );
   }
@@ -256,7 +261,7 @@ export default function ChatThreadScreen() {
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="chevron-back" size={26} color="#fff" />
+            <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.headerTitleRow}
@@ -274,7 +279,7 @@ export default function ChatThreadScreen() {
           </TouchableOpacity>
           {conversation?.conversation_type === 'group' ? (
             <TouchableOpacity onPress={() => setOptionsVisible(true)} style={styles.reportBtn}>
-              <Ionicons name="ellipsis-vertical" size={20} color="#aaa" />
+              <Ionicons name="ellipsis-vertical" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           ) : (
             <View style={{ width: 36 }} />
@@ -310,6 +315,7 @@ export default function ChatThreadScreen() {
                       ? (item.read_at ? `Seen ${formatRelativeTime(item.read_at)}` : 'Delivered')
                       : null
                   }
+                  styles={styles}
                 />
               );
             }}
@@ -320,7 +326,7 @@ export default function ChatThreadScreen() {
           <TextInput
             style={styles.input}
             placeholder="Message..."
-            placeholderTextColor="#555"
+            placeholderTextColor={colors.textFaint}
             value={text}
             onChangeText={setText}
             multiline
@@ -349,9 +355,9 @@ export default function ChatThreadScreen() {
             <Text style={styles.reportSheetTitle}>Group Options</Text>
 
             <TouchableOpacity style={styles.leaveGroupRow} onPress={confirmLeaveGroup} disabled={leaving}>
-              <Ionicons name="exit-outline" size={18} color="#ff4444" />
+              <Ionicons name="exit-outline" size={18} color={colors.error} />
               {leaving
-                ? <ActivityIndicator size="small" color="#ff4444" />
+                ? <ActivityIndicator size="small" color={colors.error} />
                 : <Text style={styles.leaveGroupText}>Leave Group</Text>
               }
             </TouchableOpacity>
@@ -367,7 +373,7 @@ export default function ChatThreadScreen() {
                 }}
               >
                 <Text style={styles.reportSheetRowText}>{p.username}</Text>
-                <Ionicons name="chevron-forward" size={18} color="#555" />
+                <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
               </TouchableOpacity>
             ))}
           </View>
@@ -377,81 +383,85 @@ export default function ChatThreadScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingTop: 60, paddingBottom: 12,
-    borderBottomWidth: 1, borderBottomColor: '#1a1a1a',
-  },
-  backBtn: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  groupIconSmall: {
-    width: 32, height: 32, borderRadius: 16,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  reportBtn: { padding: 4, width: 26, alignItems: 'flex-end' },
-  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, justifyContent: 'center' },
-  headerTitle: { color: '#fff', fontSize: 16, fontWeight: '800', flexShrink: 1 },
-  messagesList: { padding: 16, paddingBottom: 24 },
-  dateSeparatorRow: { alignItems: 'center', marginVertical: 12 },
-  dateSeparatorText: {
-    color: '#888', fontSize: 11, fontWeight: '700',
-    backgroundColor: '#161616', borderWidth: 1, borderColor: '#262626',
-    paddingHorizontal: 12, paddingVertical: 5, borderRadius: 12,
-    overflow: 'hidden',
-  },
-  messageRow: { flexDirection: 'row', marginBottom: 10 },
-  messageRowMine: { justifyContent: 'flex-end' },
-  bubble: { maxWidth: '78%', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10 },
-  bubbleTheirs: { backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a' },
-  bubbleMine: { backgroundColor: '#7C3AED' },
-  senderName: { color: '#7C3AED', fontSize: 11, fontWeight: '700', marginBottom: 2 },
-  messageText: { color: '#fff', fontSize: 14, lineHeight: 20 },
-  swipeTimeWrap: {
-    position: 'absolute', right: 4, top: 0, bottom: 0,
-    justifyContent: 'center', alignItems: 'flex-end',
-  },
-  swipeTimeText: { color: '#888', fontSize: 11, fontWeight: '600' },
-  seenText: {
-    color: '#666', fontSize: 11, fontWeight: '600',
-    textAlign: 'right', marginTop: -6, marginBottom: 8, marginRight: 4,
-  },
-  inputRow: {
-    flexDirection: 'row', alignItems: 'flex-end', gap: 10,
-    paddingHorizontal: 12, paddingTop: 12,
-    borderTopWidth: 1, borderTopColor: '#1a1a1a',
-  },
-  input: {
-    flex: 1, backgroundColor: '#1a1a1a', color: '#fff', borderRadius: 20,
-    paddingHorizontal: 16, paddingVertical: 10, fontSize: 14,
-    borderWidth: 1, borderColor: '#2a2a2a', maxHeight: 100,
-  },
-  sendBtn: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: '#7C3AED', justifyContent: 'center', alignItems: 'center',
-    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4, shadowRadius: 8, elevation: 4,
-  },
-  modalOverlay: { flex: 1, backgroundColor: '#000000aa', justifyContent: 'flex-end' },
-  reportSheet: {
-    backgroundColor: '#141414', borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    paddingHorizontal: 20, paddingTop: 20, paddingBottom: 34,
-    maxHeight: '60%', borderWidth: 1, borderColor: '#2a2a2a', borderBottomWidth: 0,
-  },
-  reportSheetTitle: { color: '#fff', fontSize: 16, fontWeight: '800', marginBottom: 12 },
-  leaveGroupRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#2a2a2a',
-  },
-  leaveGroupText: { color: '#ff4444', fontSize: 15, fontWeight: '700' },
-  reportSheetSubtitle: { color: '#666', fontSize: 12, fontWeight: '700', marginTop: 14, marginBottom: 4 },
-  reportSheetRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingVertical: 14, borderTopWidth: 1, borderTopColor: '#2a2a2a',
-  },
-  reportSheetRowText: { color: '#fff', fontSize: 15, fontWeight: '600' },
-});
+function getStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: 16, paddingTop: 60, paddingBottom: 12,
+      borderBottomWidth: 1, borderBottomColor: colors.surfaceAlt,
+    },
+    backBtn: {
+      width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    groupIconSmall: {
+      width: 32, height: 32, borderRadius: 16,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    reportBtn: { padding: 4, width: 26, alignItems: 'flex-end' },
+    headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, justifyContent: 'center' },
+    headerTitle: { color: colors.textPrimary, fontSize: 16, fontWeight: '800', flexShrink: 1 },
+    messagesList: { padding: 16, paddingBottom: 24 },
+    dateSeparatorRow: { alignItems: 'center', marginVertical: 12 },
+    dateSeparatorText: {
+      color: colors.textTertiary, fontSize: 11, fontWeight: '700',
+      backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderMuted,
+      paddingHorizontal: 12, paddingVertical: 5, borderRadius: 12,
+      overflow: 'hidden',
+    },
+    messageRow: { flexDirection: 'row', marginBottom: 10 },
+    messageRowMine: { justifyContent: 'flex-end' },
+    bubble: { maxWidth: '78%', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10 },
+    bubbleTheirs: { backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border },
+    bubbleMine: { backgroundColor: colors.accent },
+    senderName: { color: colors.accent, fontSize: 11, fontWeight: '700', marginBottom: 2 },
+    messageText: { fontSize: 14, lineHeight: 20 },
+    messageTextMine: { color: '#fff' },
+    messageTextTheirs: { color: colors.textPrimary },
+    swipeTimeWrap: {
+      position: 'absolute', right: 4, top: 0, bottom: 0,
+      justifyContent: 'center', alignItems: 'flex-end',
+    },
+    swipeTimeText: { color: colors.textTertiary, fontSize: 11, fontWeight: '600' },
+    seenText: {
+      color: colors.textMuted, fontSize: 11, fontWeight: '600',
+      textAlign: 'right', marginTop: -6, marginBottom: 8, marginRight: 4,
+    },
+    inputRow: {
+      flexDirection: 'row', alignItems: 'flex-end', gap: 10,
+      paddingHorizontal: 12, paddingTop: 12,
+      borderTopWidth: 1, borderTopColor: colors.surfaceAlt,
+    },
+    input: {
+      flex: 1, backgroundColor: colors.surfaceAlt, color: colors.textPrimary, borderRadius: 20,
+      paddingHorizontal: 16, paddingVertical: 10, fontSize: 14,
+      borderWidth: 1, borderColor: colors.border, maxHeight: 100,
+    },
+    sendBtn: {
+      width: 40, height: 40, borderRadius: 20,
+      backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center',
+      shadowColor: colors.accent, shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.4, shadowRadius: 8, elevation: 4,
+    },
+    modalOverlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
+    reportSheet: {
+      backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+      paddingHorizontal: 20, paddingTop: 20, paddingBottom: 34,
+      maxHeight: '60%', borderWidth: 1, borderColor: colors.border, borderBottomWidth: 0,
+    },
+    reportSheetTitle: { color: colors.textPrimary, fontSize: 16, fontWeight: '800', marginBottom: 12 },
+    leaveGroupRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 10,
+      paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border,
+    },
+    leaveGroupText: { color: colors.error, fontSize: 15, fontWeight: '700' },
+    reportSheetSubtitle: { color: colors.textMuted, fontSize: 12, fontWeight: '700', marginTop: 14, marginBottom: 4 },
+    reportSheetRow: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      paddingVertical: 14, borderTopWidth: 1, borderTopColor: colors.border,
+    },
+    reportSheetRowText: { color: colors.textPrimary, fontSize: 15, fontWeight: '600' },
+  });
+}

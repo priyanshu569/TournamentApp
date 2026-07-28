@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, Alert, ActivityIndicator, ScrollView,
@@ -8,6 +8,8 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { notifyAndLog } from '@/lib/notifications';
+import { useAppTheme } from '@/lib/ThemeContext';
+import { ThemeColors } from '@/constants/theme';
 
 type Member = {
   in_game_name: string;
@@ -16,6 +18,8 @@ type Member = {
 
 export default function CreateTeam() {
   const router = useRouter();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const { tournament_id, entry_fee } = useLocalSearchParams();
   const [teamName, setTeamName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -213,7 +217,7 @@ if (tournamentData?.max_teams && (registeredCount ?? 0) >= tournamentData.max_te
       >
         <View style={styles.headerRow}>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={20} color="#fff" />
+            <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
           </TouchableOpacity>
         </View>
 
@@ -225,7 +229,7 @@ if (tournamentData?.max_teams && (registeredCount ?? 0) >= tournamentData.max_te
           <TextInput
             style={styles.input}
             placeholder="e.g. Shadow Wolves"
-            placeholderTextColor="#444"
+            placeholderTextColor={colors.textDisabled}
             value={teamName}
             onChangeText={setTeamName}
           />
@@ -246,7 +250,7 @@ if (tournamentData?.max_teams && (registeredCount ?? 0) >= tournamentData.max_te
             <TextInput
               style={styles.input}
               placeholder="In-Game Name"
-              placeholderTextColor="#444"
+              placeholderTextColor={colors.textDisabled}
               value={member.in_game_name}
               onChangeText={(val) => updateMember(index, 'in_game_name', val)}
               returnKeyType="next"
@@ -254,7 +258,7 @@ if (tournamentData?.max_teams && (registeredCount ?? 0) >= tournamentData.max_te
             <TextInput
               style={[styles.input, { marginBottom: 0 }]}
               placeholder="UID / Player ID"
-              placeholderTextColor="#444"
+              placeholderTextColor={colors.textDisabled}
               value={member.player_uid}
               onChangeText={(val) => updateMember(index, 'player_uid', val)}
               returnKeyType="next"
@@ -272,7 +276,7 @@ if (tournamentData?.max_teams && (registeredCount ?? 0) >= tournamentData.max_te
           <TextInput
             style={styles.input}
             placeholder="In-Game Name"
-            placeholderTextColor="#444"
+            placeholderTextColor={colors.textDisabled}
             value={substitute.in_game_name}
             onChangeText={(val) => updateSubstitute('in_game_name', val)}
             returnKeyType="next"
@@ -280,7 +284,7 @@ if (tournamentData?.max_teams && (registeredCount ?? 0) >= tournamentData.max_te
           <TextInput
             style={[styles.input, { marginBottom: 0 }]}
             placeholder="UID / Player ID"
-            placeholderTextColor="#444"
+            placeholderTextColor={colors.textDisabled}
             value={substitute.player_uid}
             onChangeText={(val) => updateSubstitute('player_uid', val)}
             returnKeyType="done"
@@ -308,53 +312,55 @@ if (tournamentData?.max_teams && (registeredCount ?? 0) >= tournamentData.max_te
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
-  content: { padding: 24, paddingTop: 60, paddingBottom: 80 },
-  headerRow: { marginBottom: 12 },
-  backBtn: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  heading: { fontSize: 28, fontWeight: '900', color: '#fff', marginBottom: 4 },
-  sub: { fontSize: 14, color: '#aaa', marginBottom: 28 },
-  sectionTitle: {
-    color: '#555', fontSize: 11, fontWeight: '800',
-    letterSpacing: 2, marginBottom: 12,
-  },
-  label: { color: '#aaa', fontSize: 13, marginBottom: 8, fontWeight: '600' },
-  fieldGroup: { marginBottom: 20 },
-  input: {
-    backgroundColor: '#1a1a1a', color: '#fff', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 14, fontSize: 15,
-    borderWidth: 1, borderColor: '#2a2a2a', marginBottom: 10,
-  },
-  memberBox: {
-    backgroundColor: '#161616', borderRadius: 14, padding: 16,
-    marginBottom: 12, borderWidth: 1, borderColor: '#262626',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25, shadowRadius: 6, elevation: 3,
-  },
-  memberHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  memberIndex: {
-    width: 26, height: 26, borderRadius: 13,
-    backgroundColor: '#7C3AED', justifyContent: 'center',
-    alignItems: 'center', marginRight: 10,
-  },
-  memberIndexText: { color: '#fff', fontSize: 12, fontWeight: '800' },
-  memberTitle: { color: '#7C3AED', fontSize: 13, fontWeight: '700' },
-  subBox: { borderColor: '#FFB800', borderStyle: 'dashed' },
-  subIndex: { backgroundColor: '#FFB800' },
-  feeNote: {
-    backgroundColor: '#1a1a00', borderRadius: 10, padding: 14,
-    marginBottom: 20, borderWidth: 1, borderColor: '#3a3a00',
-  },
-  feeNoteText: { color: '#FFB800', fontSize: 13, fontWeight: '600' },
-  button: {
-    backgroundColor: '#7C3AED', paddingVertical: 16,
-    borderRadius: 12, alignItems: 'center', marginTop: 8,
-    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4, shadowRadius: 10, elevation: 6,
-  },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
-});
+function getStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { padding: 24, paddingTop: 60, paddingBottom: 80 },
+    headerRow: { marginBottom: 12 },
+    backBtn: {
+      width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    heading: { fontSize: 28, fontWeight: '900', color: colors.textPrimary, marginBottom: 4 },
+    sub: { fontSize: 14, color: colors.textSecondary, marginBottom: 28 },
+    sectionTitle: {
+      color: colors.textFaint, fontSize: 11, fontWeight: '800',
+      letterSpacing: 2, marginBottom: 12,
+    },
+    label: { color: colors.textSecondary, fontSize: 13, marginBottom: 8, fontWeight: '600' },
+    fieldGroup: { marginBottom: 20 },
+    input: {
+      backgroundColor: colors.surfaceAlt, color: colors.textPrimary, borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 14, fontSize: 15,
+      borderWidth: 1, borderColor: colors.border, marginBottom: 10,
+    },
+    memberBox: {
+      backgroundColor: colors.surface, borderRadius: 14, padding: 16,
+      marginBottom: 12, borderWidth: 1, borderColor: colors.borderMuted,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.25, shadowRadius: 6, elevation: 3,
+    },
+    memberHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+    memberIndex: {
+      width: 26, height: 26, borderRadius: 13,
+      backgroundColor: colors.accent, justifyContent: 'center',
+      alignItems: 'center', marginRight: 10,
+    },
+    memberIndexText: { color: '#fff', fontSize: 12, fontWeight: '800' },
+    memberTitle: { color: colors.accent, fontSize: 13, fontWeight: '700' },
+    subBox: { borderColor: colors.warning, borderStyle: 'dashed' },
+    subIndex: { backgroundColor: colors.warning },
+    feeNote: {
+      backgroundColor: '#1a1a00', borderRadius: 10, padding: 14,
+      marginBottom: 20, borderWidth: 1, borderColor: '#3a3a00',
+    },
+    feeNoteText: { color: colors.warning, fontSize: 13, fontWeight: '600' },
+    button: {
+      backgroundColor: colors.accent, paddingVertical: 16,
+      borderRadius: 12, alignItems: 'center', marginTop: 8,
+      shadowColor: colors.accent, shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.4, shadowRadius: 10, elevation: 6,
+    },
+    buttonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  });
+}

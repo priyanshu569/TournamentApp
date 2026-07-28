@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, Linking
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useAppTheme } from '@/lib/ThemeContext';
+import { ThemeColors } from '@/constants/theme';
 
 const SUPPORT_EMAIL = 'fragify.support@gmail.com';
 const WHATSAPP_NUMBER = '917800096706'; // country code + number, no symbols
@@ -34,6 +36,8 @@ const FAQS = [
 
 export default function SupportScreen() {
   const router = useRouter();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
   function openEmail() {
@@ -49,7 +53,7 @@ export default function SupportScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={20} color="#fff" />
+          <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Support</Text>
         <View style={{ width: 36 }} />
@@ -59,14 +63,14 @@ export default function SupportScreen() {
       <Text style={styles.sectionLabel}>CONTACT US</Text>
       <View style={styles.card}>
         <TouchableOpacity style={styles.contactRow} onPress={openEmail}>
-          <View style={[styles.contactIconBox, { backgroundColor: '#7C3AED22' }]}>
-            <Ionicons name="mail" size={20} color="#7C3AED" />
+          <View style={[styles.contactIconBox, { backgroundColor: colors.accentMutedStrong }]}>
+            <Ionicons name="mail" size={20} color={colors.accent} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.contactTitle}>Email</Text>
             <Text style={styles.contactSub}>{SUPPORT_EMAIL}</Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color="#555" />
+          <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
         </TouchableOpacity>
         <View style={styles.divider} />
         <TouchableOpacity style={styles.contactRow} onPress={openWhatsApp}>
@@ -77,7 +81,7 @@ export default function SupportScreen() {
             <Text style={styles.contactTitle}>WhatsApp</Text>
             <Text style={styles.contactSub}>+91 78000 96706</Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color="#555" />
+          <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
         </TouchableOpacity>
       </View>
 
@@ -111,46 +115,48 @@ export default function SupportScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
-  content: { paddingBottom: 48 },
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', paddingHorizontal: 16, paddingTop: 60, paddingBottom: 16,
-  },
-  backBtn: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
-  sectionLabel: {
-    fontSize: 12, color: '#666', fontWeight: '700',
-    marginHorizontal: 24, marginBottom: 8, marginTop: 16, letterSpacing: 1,
-  },
-  card: {
-    backgroundColor: '#161616', marginHorizontal: 24, borderRadius: 14,
-    borderWidth: 1, borderColor: '#262626', overflow: 'hidden',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25, shadowRadius: 6, elevation: 3,
-  },
-  divider: { height: 1, backgroundColor: '#2a2a2a', marginHorizontal: 16 },
-  contactRow: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 14, gap: 12,
-  },
-  contactIconBox: {
-    width: 40, height: 40, borderRadius: 10,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  contactTitle: { color: '#fff', fontSize: 15, fontWeight: '600' },
-  contactSub: { color: '#888', fontSize: 13, marginTop: 2 },
-  faqRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 14, gap: 12,
-  },
-  faqQuestion: { flex: 1, color: '#fff', fontSize: 14, fontWeight: '600' },
-  faqAnswer: {
-    color: '#aaa', fontSize: 13, lineHeight: 19,
-    paddingHorizontal: 16, paddingBottom: 14,
-  },
-});
+function getStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { paddingBottom: 48 },
+    header: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', paddingHorizontal: 16, paddingTop: 60, paddingBottom: 16,
+    },
+    backBtn: {
+      width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    headerTitle: { fontSize: 20, fontWeight: '800', color: colors.textPrimary },
+    sectionLabel: {
+      fontSize: 12, color: colors.textMuted, fontWeight: '700',
+      marginHorizontal: 24, marginBottom: 8, marginTop: 16, letterSpacing: 1,
+    },
+    card: {
+      backgroundColor: colors.surface, marginHorizontal: 24, borderRadius: 14,
+      borderWidth: 1, borderColor: colors.borderMuted, overflow: 'hidden',
+      shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.25, shadowRadius: 6, elevation: 3,
+    },
+    divider: { height: 1, backgroundColor: colors.border, marginHorizontal: 16 },
+    contactRow: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingHorizontal: 16, paddingVertical: 14, gap: 12,
+    },
+    contactIconBox: {
+      width: 40, height: 40, borderRadius: 10,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    contactTitle: { color: colors.textPrimary, fontSize: 15, fontWeight: '600' },
+    contactSub: { color: colors.textTertiary, fontSize: 13, marginTop: 2 },
+    faqRow: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: 16, paddingVertical: 14, gap: 12,
+    },
+    faqQuestion: { flex: 1, color: colors.textPrimary, fontSize: 14, fontWeight: '600' },
+    faqAnswer: {
+      color: colors.textSecondary, fontSize: 13, lineHeight: 19,
+      paddingHorizontal: 16, paddingBottom: 14,
+    },
+  });
+}

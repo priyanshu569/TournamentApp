@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
   TouchableOpacity, ScrollView, Alert
@@ -10,6 +10,8 @@ import { supabase } from '@/lib/supabase';
 import NotificationBell from '@/components/NotificationBell';
 import Avatar from '@/components/Avatar';
 import { useTabNavigation } from '@/lib/tabNavigation';
+import { useAppTheme } from '@/lib/ThemeContext';
+import { ThemeColors } from '@/constants/theme';
 
 type MenuAction = {
   key: string;
@@ -22,6 +24,8 @@ type MenuAction = {
 export default function ProfileScreen() {
   const router = useRouter();
   const tabNav = useTabNavigation();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [profile, setProfile] = useState<any>(null);
   const [stats, setStats] = useState({ tournaments: 0 });
   const [followCounts, setFollowCounts] = useState({ followers: 0, following: 0 });
@@ -118,7 +122,7 @@ export default function ProfileScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#7C3AED" />
+        <ActivityIndicator size="large" color={colors.accent} />
       </View>
     );
   }
@@ -128,18 +132,18 @@ export default function ProfileScreen() {
 
   const menuActions: MenuAction[] = [
     ...(canBecomeHost ? [{
-      key: 'become-host', icon: 'trophy' as const, color: '#FFB800',
+      key: 'become-host', icon: 'trophy' as const, color: colors.warning,
       label: 'Become a Host', onPress: () => router.push('/request-host-access'),
     }] : []),
-    { key: 'edit-profile', icon: 'create' as const, color: '#00D4AA', label: 'Edit Profile', onPress: () => router.push('/edit-profile') },
-    { key: 'game-details', icon: 'game-controller' as const, color: '#FFB800', label: 'My Games', onPress: () => router.push('/game-details') },
+    { key: 'edit-profile', icon: 'create' as const, color: colors.success, label: 'Edit Profile', onPress: () => router.push('/edit-profile') },
+    { key: 'game-details', icon: 'game-controller' as const, color: colors.warning, label: 'My Games', onPress: () => router.push('/game-details') },
     ...(isAdmin ? [
-      { key: 'admin-broadcast', icon: 'megaphone' as const, color: '#7C3AED', label: 'Admin Broadcast', onPress: () => router.push('/admin-broadcast') },
-      { key: 'admin-host-requests', icon: 'trophy' as const, color: '#7C3AED', label: 'Host Requests', onPress: () => router.push('/admin-host-requests') },
-      { key: 'switch-role', icon: 'sync' as const, color: '#7C3AED', label: 'Switch Role', onPress: handleSwitchRole },
-      { key: 'admin-reports', icon: 'warning' as const, color: '#7C3AED', label: 'Reports', onPress: () => router.push('/admin-reports') },
+      { key: 'admin-broadcast', icon: 'megaphone' as const, color: colors.accent, label: 'Admin Broadcast', onPress: () => router.push('/admin-broadcast') },
+      { key: 'admin-host-requests', icon: 'trophy' as const, color: colors.accent, label: 'Host Requests', onPress: () => router.push('/admin-host-requests') },
+      { key: 'switch-role', icon: 'sync' as const, color: colors.accent, label: 'Switch Role', onPress: handleSwitchRole },
+      { key: 'admin-reports', icon: 'warning' as const, color: colors.accent, label: 'Reports', onPress: () => router.push('/admin-reports') },
     ] : []),
-    { key: 'settings', icon: 'settings' as const, color: '#888', label: 'Settings', onPress: () => router.push('/settings') },
+    { key: 'settings', icon: 'settings' as const, color: colors.textTertiary, label: 'Settings', onPress: () => router.push('/settings') },
     { key: 'support', icon: 'help-circle' as const, color: '#4FA3FF', label: 'Support', onPress: () => router.push('/support') },
   ];
 
@@ -200,8 +204,8 @@ export default function ProfileScreen() {
       <View style={styles.menu}>
         {profile?.host_status === 'pending' && (
           <View style={[styles.menuItem, styles.pendingItem]}>
-            <View style={[styles.menuIconCircle, { backgroundColor: '#FFB80022' }]}>
-              <Ionicons name="hourglass" size={18} color="#FFB800" />
+            <View style={[styles.menuIconCircle, { backgroundColor: colors.warningMuted }]}>
+              <Ionicons name="hourglass" size={18} color={colors.warning} />
             </View>
             <Text style={styles.pendingText}>Host Request Pending</Text>
           </View>
@@ -218,13 +222,13 @@ export default function ProfileScreen() {
               <Ionicons name={action.icon} size={18} color={action.color} />
             </View>
             <Text style={styles.menuText}>{action.label}</Text>
-            <Ionicons name="chevron-forward" size={18} color="#444" />
+            <Ionicons name="chevron-forward" size={18} color={colors.textDisabled} />
           </TouchableOpacity>
         ))}
 
         <TouchableOpacity style={[styles.menuItem, styles.logoutItem]} onPress={handleLogout} activeOpacity={0.8}>
-          <View style={[styles.menuIconCircle, { backgroundColor: '#ff444422' }]}>
-            <Ionicons name="log-out" size={18} color="#ff4444" />
+          <View style={[styles.menuIconCircle, { backgroundColor: colors.errorMuted }]}>
+            <Ionicons name="log-out" size={18} color={colors.error} />
           </View>
           <Text style={styles.logoutText}>Logout</Text>
           <Ionicons name="chevron-forward" size={18} color="#442222" />
@@ -234,59 +238,61 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
-  content: { paddingBottom: 48 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' },
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', padding: 24, paddingTop: 60,
-  },
-  headerTitle: { fontSize: 26, fontWeight: '800', color: '#fff' },
+function getStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { paddingBottom: 48 },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+    header: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', padding: 24, paddingTop: 60,
+    },
+    headerTitle: { fontSize: 26, fontWeight: '800', color: colors.textPrimary },
 
-  handle: { color: '#888', fontSize: 13, fontWeight: '600', marginBottom: 6 },
+    handle: { color: colors.textTertiary, fontSize: 13, fontWeight: '600', marginBottom: 6 },
 
-  profileCard: {
-    flexDirection: 'row', alignItems: 'center',
-    margin: 24, marginTop: 0,
-    borderRadius: 18, padding: 20, borderWidth: 1, borderColor: '#2f2447',
-    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25, shadowRadius: 12, elevation: 6,
-  },
-  profileInfo: { flex: 1 },
-  username: { fontSize: 20, fontWeight: '800', color: '#fff', marginBottom: 6 },
-  roleBadge: {
-    alignSelf: 'flex-start', backgroundColor: '#7C3AED33',
-    paddingHorizontal: 10, paddingVertical: 3,
-    borderRadius: 20, borderWidth: 1, borderColor: '#7C3AED',
-    marginBottom: 2,
-  },
-  roleText: { color: '#B794F6', fontSize: 11, fontWeight: '700' },
-  statsRow: {
-    flexDirection: 'row', marginHorizontal: 24,
-    marginBottom: 24, gap: 12,
-  },
-  statBox: {
-    flex: 1, backgroundColor: '#161616', borderRadius: 14,
-    padding: 16, alignItems: 'center', borderWidth: 1, borderColor: '#262626',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3, shadowRadius: 6, elevation: 3,
-  },
-  statValue: { fontSize: 22, fontWeight: '800', color: '#7C3AED', marginBottom: 4 },
-  statLabel: { fontSize: 11, color: '#aaa', textAlign: 'center', lineHeight: 16 },
-  menu: { marginHorizontal: 24, gap: 10 },
-  menuItem: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#161616', borderRadius: 14,
-    padding: 14, borderWidth: 1, borderColor: '#262626',
-  },
-  menuIconCircle: {
-    width: 38, height: 38, borderRadius: 19,
-    justifyContent: 'center', alignItems: 'center',
-  },
-  menuText: { flex: 1, color: '#fff', fontSize: 15, fontWeight: '600' },
-  pendingItem: { borderColor: '#3a3a00', backgroundColor: '#1a1a0088' },
-  pendingText: { flex: 1, color: '#FFB800', fontSize: 15, fontWeight: '600' },
-  logoutItem: { borderColor: '#2a1414' },
-  logoutText: { flex: 1, color: '#ff4444', fontSize: 15, fontWeight: '600' },
-});
+    profileCard: {
+      flexDirection: 'row', alignItems: 'center',
+      margin: 24, marginTop: 0,
+      borderRadius: 18, padding: 20, borderWidth: 1, borderColor: '#2f2447',
+      shadowColor: colors.accent, shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.25, shadowRadius: 12, elevation: 6,
+    },
+    profileInfo: { flex: 1 },
+    username: { fontSize: 20, fontWeight: '800', color: colors.textPrimary, marginBottom: 6 },
+    roleBadge: {
+      alignSelf: 'flex-start', backgroundColor: '#7C3AED33',
+      paddingHorizontal: 10, paddingVertical: 3,
+      borderRadius: 20, borderWidth: 1, borderColor: colors.accent,
+      marginBottom: 2,
+    },
+    roleText: { color: '#B794F6', fontSize: 11, fontWeight: '700' },
+    statsRow: {
+      flexDirection: 'row', marginHorizontal: 24,
+      marginBottom: 24, gap: 12,
+    },
+    statBox: {
+      flex: 1, backgroundColor: colors.surface, borderRadius: 14,
+      padding: 16, alignItems: 'center', borderWidth: 1, borderColor: colors.borderMuted,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.3, shadowRadius: 6, elevation: 3,
+    },
+    statValue: { fontSize: 22, fontWeight: '800', color: colors.accent, marginBottom: 4 },
+    statLabel: { fontSize: 11, color: colors.textSecondary, textAlign: 'center', lineHeight: 16 },
+    menu: { marginHorizontal: 24, gap: 10 },
+    menuItem: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      backgroundColor: colors.surface, borderRadius: 14,
+      padding: 14, borderWidth: 1, borderColor: colors.borderMuted,
+    },
+    menuIconCircle: {
+      width: 38, height: 38, borderRadius: 19,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    menuText: { flex: 1, color: colors.textPrimary, fontSize: 15, fontWeight: '600' },
+    pendingItem: { borderColor: '#3a3a00', backgroundColor: '#1a1a0088' },
+    pendingText: { flex: 1, color: colors.warning, fontSize: 15, fontWeight: '600' },
+    logoutItem: { borderColor: '#2a1414' },
+    logoutText: { flex: 1, color: colors.error, fontSize: 15, fontWeight: '600' },
+  });
+}

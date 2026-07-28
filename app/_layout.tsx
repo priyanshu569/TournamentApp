@@ -6,12 +6,20 @@ import 'react-native-reanimated';
 import * as Notifications from 'expo-notifications';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { supabase } from '@/lib/supabase';
 import { registerForPushNotificationsAsync } from '@/lib/notifications';
+import { AppThemeProvider, useAppTheme } from '@/lib/ThemeContext';
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  return (
+    <AppThemeProvider>
+      <RootLayoutInner />
+    </AppThemeProvider>
+  );
+}
+
+function RootLayoutInner() {
+  const { theme, colors } = useAppTheme();
 
   useEffect(() => {
     // Check existing session on mount
@@ -95,11 +103,11 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <ThemeProvider value={theme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack
 
           screenOptions={{
-            contentStyle: { backgroundColor: '#0a0a0a' },
+            contentStyle: { backgroundColor: colors.background },
           }}>
           <Stack.Screen name="login" options={{ headerShown: false }} />
           <Stack.Screen name="select-role" options={{ headerShown: false }} />
@@ -107,7 +115,6 @@ export default function RootLayout() {
           <Stack.Screen name="game-details" options={{ headerShown: false }} />
           <Stack.Screen name="create-tournament" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
           <Stack.Screen name="notifications" options={{ headerShown: false }} />
           <Stack.Screen name="edit-tournament" options={{ headerShown: false }} />
           <Stack.Screen name="admin-broadcast" options={{ headerShown: false }} />
@@ -132,7 +139,7 @@ export default function RootLayout() {
           <Stack.Screen name="payment" options={{ headerShown: false }} />
           <Stack.Screen name="create-team" options={{ headerShown: false }} />
         </Stack>
-        <StatusBar style="auto" />
+        <StatusBar style={colors.statusBar} />
       </ThemeProvider>
     </GestureHandlerRootView>
   );

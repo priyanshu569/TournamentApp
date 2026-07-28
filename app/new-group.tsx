@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, Alert, ActivityIndicator, FlatList
@@ -7,9 +7,13 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import Avatar from '@/components/Avatar';
+import { useAppTheme } from '@/lib/ThemeContext';
+import { ThemeColors } from '@/constants/theme';
 
 export default function NewGroupScreen() {
   const router = useRouter();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [name, setName] = useState('');
   const [candidates, setCandidates] = useState<any[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -91,7 +95,7 @@ export default function NewGroupScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={26} color="#fff" />
+          <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>New Group</Text>
         <View style={{ width: 26 }} />
@@ -101,7 +105,7 @@ export default function NewGroupScreen() {
         <TextInput
           style={styles.input}
           placeholder="Group name"
-          placeholderTextColor="#444"
+          placeholderTextColor={colors.textDisabled}
           value={name}
           onChangeText={setName}
         />
@@ -110,7 +114,7 @@ export default function NewGroupScreen() {
       <Text style={styles.label}>Add people you follow or who follow you</Text>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#7C3AED" style={{ marginTop: 40 }} />
+        <ActivityIndicator size="large" color={colors.accent} style={{ marginTop: 40 }} />
       ) : (
         <FlatList
           data={candidates}
@@ -130,7 +134,7 @@ export default function NewGroupScreen() {
                 <Ionicons
                   name={isSelected ? 'checkbox' : 'square-outline'}
                   size={22}
-                  color={isSelected ? '#7C3AED' : '#555'}
+                  color={isSelected ? colors.accent : colors.textFaint}
                 />
               </TouchableOpacity>
             );
@@ -148,39 +152,41 @@ export default function NewGroupScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', paddingHorizontal: 16, paddingTop: 60, paddingBottom: 16,
-  },
-  backBtn: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
-  fieldGroup: { paddingHorizontal: 24, marginBottom: 12 },
-  input: {
-    backgroundColor: '#1a1a1a', color: '#fff', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 14, fontSize: 15,
-    borderWidth: 1, borderColor: '#2a2a2a',
-  },
-  label: { color: '#aaa', fontSize: 13, fontWeight: '600', paddingHorizontal: 24, marginBottom: 12 },
-  listContent: { paddingHorizontal: 24, paddingBottom: 16 },
-  emptyText: { color: '#555', textAlign: 'center', marginTop: 40 },
-  row: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#161616', borderRadius: 14, padding: 12,
-    marginBottom: 10, borderWidth: 1, borderColor: '#262626',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25, shadowRadius: 6, elevation: 3,
-  },
-  rowName: { flex: 1, color: '#fff', fontSize: 15, fontWeight: '600' },
-  button: {
-    backgroundColor: '#7C3AED', paddingVertical: 16,
-    borderRadius: 12, alignItems: 'center', marginHorizontal: 24, marginBottom: 24,
-    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4, shadowRadius: 10, elevation: 6,
-  },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
-});
+function getStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    header: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', paddingHorizontal: 16, paddingTop: 60, paddingBottom: 16,
+    },
+    backBtn: {
+      width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    headerTitle: { fontSize: 18, fontWeight: '800', color: colors.textPrimary },
+    fieldGroup: { paddingHorizontal: 24, marginBottom: 12 },
+    input: {
+      backgroundColor: colors.surfaceAlt, color: colors.textPrimary, borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 14, fontSize: 15,
+      borderWidth: 1, borderColor: colors.border,
+    },
+    label: { color: colors.textSecondary, fontSize: 13, fontWeight: '600', paddingHorizontal: 24, marginBottom: 12 },
+    listContent: { paddingHorizontal: 24, paddingBottom: 16 },
+    emptyText: { color: colors.textFaint, textAlign: 'center', marginTop: 40 },
+    row: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      backgroundColor: colors.surface, borderRadius: 14, padding: 12,
+      marginBottom: 10, borderWidth: 1, borderColor: colors.borderMuted,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.25, shadowRadius: 6, elevation: 3,
+    },
+    rowName: { flex: 1, color: colors.textPrimary, fontSize: 15, fontWeight: '600' },
+    button: {
+      backgroundColor: colors.accent, paddingVertical: 16,
+      borderRadius: 12, alignItems: 'center', marginHorizontal: 24, marginBottom: 24,
+      shadowColor: colors.accent, shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.4, shadowRadius: 10, elevation: 6,
+    },
+    buttonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  });
+}

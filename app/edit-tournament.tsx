@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, Alert, ActivityIndicator,
@@ -10,6 +10,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { pickAndUploadBanner } from '@/lib/bannerUpload';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { useAppTheme } from '@/lib/ThemeContext';
+import { ThemeColors } from '@/constants/theme';
 
 const CATEGORIES: { value: 'tournament' | 'scrim'; label: string }[] = [
   { value: 'tournament', label: 'Tournament' },
@@ -25,6 +27,8 @@ const DEFAULT_KILL_POINT = 1;
 export default function EditTournament() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
@@ -195,7 +199,7 @@ export default function EditTournament() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#7C3AED" />
+        <ActivityIndicator size="large" color={colors.accent} />
       </View>
     );
   }
@@ -214,7 +218,7 @@ export default function EditTournament() {
       >
         <View style={styles.headerRow}>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={20} color="#fff" />
+            <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
           </TouchableOpacity>
         </View>
 
@@ -229,12 +233,12 @@ export default function EditTournament() {
             disabled={uploadingBanner}
           >
             {uploadingBanner ? (
-              <ActivityIndicator color="#7C3AED" />
+              <ActivityIndicator color={colors.accent} />
             ) : bannerUrl ? (
               <Image source={{ uri: bannerUrl }} style={styles.bannerImage} contentFit="cover" />
             ) : (
               <View style={styles.bannerBoxEmpty}>
-                <Ionicons name="image-outline" size={28} color="#555" />
+                <Ionicons name="image-outline" size={28} color={colors.textFaint} />
                 <Text style={styles.bannerBoxText}>Tap to add a banner image</Text>
               </View>
             )}
@@ -287,7 +291,7 @@ export default function EditTournament() {
           <TextInput
             style={styles.input}
             placeholder="1"
-            placeholderTextColor="#444"
+            placeholderTextColor={colors.textDisabled}
             keyboardType="numeric"
             value={matchCount}
             onChangeText={setMatchCount}
@@ -341,7 +345,7 @@ export default function EditTournament() {
           <TextInput
             style={styles.input}
             placeholder="e.g. Free Fire Sunday Cup"
-            placeholderTextColor="#444"
+            placeholderTextColor={colors.textDisabled}
             value={form.title}
             onChangeText={(val) => setForm(prev => ({ ...prev, title: val }))}
           />
@@ -352,7 +356,7 @@ export default function EditTournament() {
           <TextInput
             style={styles.input}
             placeholder="0"
-            placeholderTextColor="#444"
+            placeholderTextColor={colors.textDisabled}
             keyboardType="numeric"
             value={form.entry_fee}
             onChangeText={(val) => setForm(prev => ({ ...prev, entry_fee: val }))}
@@ -364,7 +368,7 @@ export default function EditTournament() {
           <TextInput
             style={styles.input}
             placeholder="0"
-            placeholderTextColor="#444"
+            placeholderTextColor={colors.textDisabled}
             keyboardType="numeric"
             value={form.prize_pool}
             onChangeText={(val) => setForm(prev => ({ ...prev, prize_pool: val }))}
@@ -376,7 +380,7 @@ export default function EditTournament() {
           <TextInput
             style={styles.input}
             placeholder="12"
-            placeholderTextColor="#444"
+            placeholderTextColor={colors.textDisabled}
             keyboardType="numeric"
             value={form.max_teams}
             onChangeText={(val) => setForm(prev => ({ ...prev, max_teams: val }))}
@@ -388,7 +392,7 @@ export default function EditTournament() {
           <TextInput
             style={[styles.input, { height: 100, textAlignVertical: 'top' }]}
             placeholder="Brief description of the tournament..."
-            placeholderTextColor="#444"
+            placeholderTextColor={colors.textDisabled}
             multiline
             numberOfLines={4}
             value={form.description}
@@ -401,7 +405,7 @@ export default function EditTournament() {
           <TextInput
             style={[styles.input, { height: 120, textAlignVertical: 'top' }]}
             placeholder={`1. No cheating\n2. Must join 10 mins before match`}
-            placeholderTextColor="#444"
+            placeholderTextColor={colors.textDisabled}
             multiline
             numberOfLines={5}
             value={form.rules}
@@ -438,75 +442,77 @@ export default function EditTournament() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
-  content: { padding: 24, paddingTop: 60, paddingBottom: 80 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' },
-  headerRow: { marginBottom: 12 },
-  backBtn: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  heading: { fontSize: 28, fontWeight: '900', color: '#fff', marginBottom: 4 },
-  sub: { fontSize: 14, color: '#aaa', marginBottom: 28 },
-  label: { color: '#aaa', fontSize: 13, marginBottom: 8, fontWeight: '600' },
-  fieldGroup: { marginBottom: 18 },
-  chipRow: { flexDirection: 'row', gap: 8, marginBottom: 18 },
-  chip: {
-    flex: 1, paddingVertical: 10, borderRadius: 10,
-    backgroundColor: '#1a1a1a', borderWidth: 1,
-    borderColor: '#2a2a2a', alignItems: 'center',
-  },
-  chipActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
-  chipText: { color: '#aaa', fontSize: 12, fontWeight: '600' },
-  chipTextActive: { color: '#fff' },
-  scoringHeaderRow: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 8,
-  },
-  customizeLink: { color: '#7C3AED', fontSize: 12, fontWeight: '700' },
-  scoringDefaultText: {
-    color: '#666', fontSize: 12, lineHeight: 18,
-    backgroundColor: '#1a1a1a', borderRadius: 10, padding: 12,
-    borderWidth: 1, borderColor: '#2a2a2a',
-  },
-  pointsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
-  pointBox: {
-    width: '18%', backgroundColor: '#1a1a1a', borderRadius: 8,
-    borderWidth: 1, borderColor: '#2a2a2a', padding: 8, alignItems: 'center',
-  },
-  pointBoxLabel: { color: '#7C3AED', fontSize: 11, fontWeight: '700', marginBottom: 4 },
-  pointBoxInput: {
-    color: '#fff', fontSize: 14, fontWeight: '700', textAlign: 'center',
-    width: '100%', paddingVertical: 2,
-  },
-  killPointRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  bannerBox: {
-    height: 140, borderRadius: 12, backgroundColor: '#1a1a1a',
-    borderWidth: 1, borderColor: '#2a2a2a', borderStyle: 'dashed',
-    justifyContent: 'center', alignItems: 'center', overflow: 'hidden',
-  },
-  bannerImage: { width: '100%', height: '100%' },
-  bannerBoxEmpty: { alignItems: 'center', gap: 8 },
-  bannerBoxText: { color: '#666', fontSize: 13, fontWeight: '600' },
-  input: {
-    backgroundColor: '#1a1a1a', color: '#fff', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 14, fontSize: 15,
-    borderWidth: 1, borderColor: '#2a2a2a',
-  },
-  dateBtn: {
-    backgroundColor: '#1a1a1a', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 16,
-    borderWidth: 1, borderColor: '#7C3AED',
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-  },
-  dateBtnIcon: { fontSize: 18 },
-  dateBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
-  button: {
-    backgroundColor: '#7C3AED', paddingVertical: 16,
-    borderRadius: 12, alignItems: 'center', marginTop: 8,
-    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4, shadowRadius: 10, elevation: 6,
-  },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
-});
+function getStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { padding: 24, paddingTop: 60, paddingBottom: 80 },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+    headerRow: { marginBottom: 12 },
+    backBtn: {
+      width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    heading: { fontSize: 28, fontWeight: '900', color: colors.textPrimary, marginBottom: 4 },
+    sub: { fontSize: 14, color: colors.textSecondary, marginBottom: 28 },
+    label: { color: colors.textSecondary, fontSize: 13, marginBottom: 8, fontWeight: '600' },
+    fieldGroup: { marginBottom: 18 },
+    chipRow: { flexDirection: 'row', gap: 8, marginBottom: 18 },
+    chip: {
+      flex: 1, paddingVertical: 10, borderRadius: 10,
+      backgroundColor: colors.surfaceAlt, borderWidth: 1,
+      borderColor: colors.border, alignItems: 'center',
+    },
+    chipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+    chipText: { color: colors.textSecondary, fontSize: 12, fontWeight: '600' },
+    chipTextActive: { color: '#fff' },
+    scoringHeaderRow: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', marginBottom: 8,
+    },
+    customizeLink: { color: colors.accent, fontSize: 12, fontWeight: '700' },
+    scoringDefaultText: {
+      color: colors.textMuted, fontSize: 12, lineHeight: 18,
+      backgroundColor: colors.surfaceAlt, borderRadius: 10, padding: 12,
+      borderWidth: 1, borderColor: colors.border,
+    },
+    pointsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
+    pointBox: {
+      width: '18%', backgroundColor: colors.surfaceAlt, borderRadius: 8,
+      borderWidth: 1, borderColor: colors.border, padding: 8, alignItems: 'center',
+    },
+    pointBoxLabel: { color: colors.accent, fontSize: 11, fontWeight: '700', marginBottom: 4 },
+    pointBoxInput: {
+      color: colors.textPrimary, fontSize: 14, fontWeight: '700', textAlign: 'center',
+      width: '100%', paddingVertical: 2,
+    },
+    killPointRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    bannerBox: {
+      height: 140, borderRadius: 12, backgroundColor: colors.surfaceAlt,
+      borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed',
+      justifyContent: 'center', alignItems: 'center', overflow: 'hidden',
+    },
+    bannerImage: { width: '100%', height: '100%' },
+    bannerBoxEmpty: { alignItems: 'center', gap: 8 },
+    bannerBoxText: { color: colors.textMuted, fontSize: 13, fontWeight: '600' },
+    input: {
+      backgroundColor: colors.surfaceAlt, color: colors.textPrimary, borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 14, fontSize: 15,
+      borderWidth: 1, borderColor: colors.border,
+    },
+    dateBtn: {
+      backgroundColor: colors.surfaceAlt, borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 16,
+      borderWidth: 1, borderColor: colors.accent,
+      flexDirection: 'row', alignItems: 'center', gap: 10,
+    },
+    dateBtnIcon: { fontSize: 18 },
+    dateBtnText: { color: colors.textPrimary, fontSize: 15, fontWeight: '600' },
+    button: {
+      backgroundColor: colors.accent, paddingVertical: 16,
+      borderRadius: 12, alignItems: 'center', marginTop: 8,
+      shadowColor: colors.accent, shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.4, shadowRadius: 10, elevation: 6,
+    },
+    buttonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  });
+}

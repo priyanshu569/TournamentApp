@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, Alert, ActivityIndicator
@@ -6,6 +6,8 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
+import { useAppTheme } from '@/lib/ThemeContext';
+import { ThemeColors } from '@/constants/theme';
 
 const AUDIENCES = [
   { label: 'Everyone', value: 'all' },
@@ -15,6 +17,8 @@ const AUDIENCES = [
 
 export default function AdminBroadcast() {
   const router = useRouter();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [audience, setAudience] = useState('all');
@@ -95,7 +99,7 @@ export default function AdminBroadcast() {
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-        <Ionicons name="chevron-back" size={20} color="#fff" />
+        <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
       </TouchableOpacity>
 
       <Text style={styles.heading}>📢 Send Broadcast</Text>
@@ -122,7 +126,7 @@ export default function AdminBroadcast() {
       <TextInput
         style={styles.input}
         placeholder="e.g. New tournaments just dropped 🔥"
-        placeholderTextColor="#444"
+        placeholderTextColor={colors.textDisabled}
         value={title}
         onChangeText={setTitle}
       />
@@ -131,7 +135,7 @@ export default function AdminBroadcast() {
       <TextInput
         style={[styles.input, styles.textarea]}
         placeholder="e.g. 3 new BGMI tournaments are live — squad up before slots run out!"
-        placeholderTextColor="#444"
+        placeholderTextColor={colors.textDisabled}
         value={body}
         onChangeText={setBody}
         multiline
@@ -148,34 +152,36 @@ export default function AdminBroadcast() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a', padding: 24, paddingTop: 60 },
-  backBtn: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
-    justifyContent: 'center', alignItems: 'center', marginBottom: 12,
-  },
-  heading: { color: '#fff', fontSize: 24, fontWeight: '800', marginBottom: 4 },
-  sub: { color: '#888', fontSize: 13, marginBottom: 24 },
-  label: { color: '#aaa', fontSize: 12, fontWeight: '700', marginBottom: 8, marginTop: 4, letterSpacing: 1 },
-  audienceRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
-  audienceChip: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-    backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a',
-  },
-  audienceChipActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
-  audienceChipText: { color: '#aaa', fontSize: 13, fontWeight: '600' },
-  audienceChipTextActive: { color: '#fff' },
-  input: {
-    backgroundColor: '#1a1a1a', color: '#fff', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 14, fontSize: 15,
-    borderWidth: 1, borderColor: '#2a2a2a', marginBottom: 16,
-  },
-  textarea: { height: 100, textAlignVertical: 'top' },
-  sendBtn: {
-    backgroundColor: '#7C3AED', paddingVertical: 16,
-    borderRadius: 12, alignItems: 'center', marginTop: 8,
-    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4, shadowRadius: 10, elevation: 6,
-  },
-  sendBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
-});
+function getStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background, padding: 24, paddingTop: 60 },
+    backBtn: {
+      width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center', marginBottom: 12,
+    },
+    heading: { color: colors.textPrimary, fontSize: 24, fontWeight: '800', marginBottom: 4 },
+    sub: { color: colors.textTertiary, fontSize: 13, marginBottom: 24 },
+    label: { color: colors.textSecondary, fontSize: 12, fontWeight: '700', marginBottom: 8, marginTop: 4, letterSpacing: 1 },
+    audienceRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
+    audienceChip: {
+      paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+      backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border,
+    },
+    audienceChipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+    audienceChipText: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
+    audienceChipTextActive: { color: '#fff' },
+    input: {
+      backgroundColor: colors.surfaceAlt, color: colors.textPrimary, borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 14, fontSize: 15,
+      borderWidth: 1, borderColor: colors.border, marginBottom: 16,
+    },
+    textarea: { height: 100, textAlignVertical: 'top' },
+    sendBtn: {
+      backgroundColor: colors.accent, paddingVertical: 16,
+      borderRadius: 12, alignItems: 'center', marginTop: 8,
+      shadowColor: colors.accent, shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.4, shadowRadius: 10, elevation: 6,
+    },
+    sendBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  });
+}

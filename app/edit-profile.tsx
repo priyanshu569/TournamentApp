@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator, Alert, StyleSheet, Text,
   TextInput, TouchableOpacity, View, KeyboardAvoidingView,
@@ -13,6 +13,8 @@ import Avatar from '@/components/Avatar';
 import { AVATAR_PRESETS } from '@/lib/avatars';
 import { INDIAN_STATES } from '@/lib/indianStates';
 import { pickAndUploadAvatarPhoto } from '@/lib/avatarUpload';
+import { useAppTheme } from '@/lib/ThemeContext';
+import { ThemeColors } from '@/constants/theme';
 
 const GENDERS = [
   { value: 'male', label: 'Male' },
@@ -24,6 +26,8 @@ const GENDERS = [
 const USERNAME_REGEX = /^[a-z0-9_.]{3,20}$/;
 
 export default function EditProfileScreen() {
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [userId, setUserId] = useState<string | null>(null);
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -198,7 +202,7 @@ export default function EditProfileScreen() {
   if (fetching) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#7C3AED" />
+        <ActivityIndicator size="large" color={colors.accent} />
       </View>
     );
   }
@@ -224,7 +228,7 @@ export default function EditProfileScreen() {
         {/* Header */}
         {router.canGoBack() && (
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={20} color="#fff" />
+            <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
           </TouchableOpacity>
         )}
 
@@ -246,8 +250,8 @@ export default function EditProfileScreen() {
             ) : (
               <View style={styles.photoPlaceholder}>
                 {uploadingPhoto
-                  ? <ActivityIndicator color="#7C3AED" />
-                  : <Ionicons name="camera" size={22} color="#7C3AED" />
+                  ? <ActivityIndicator color={colors.accent} />
+                  : <Ionicons name="camera" size={22} color={colors.accent} />
                 }
               </View>
             )}
@@ -257,7 +261,7 @@ export default function EditProfileScreen() {
             </View>
             {avatarUrl && (
               <TouchableOpacity onPress={() => setAvatarUrl(null)} style={styles.photoRemoveBtn}>
-                <Ionicons name="close" size={16} color="#aaa" />
+                <Ionicons name="close" size={16} color={colors.textSecondary} />
               </TouchableOpacity>
             )}
           </TouchableOpacity>
@@ -288,14 +292,14 @@ export default function EditProfileScreen() {
             <TextInput
               style={styles.usernameInput}
               placeholder="yourhandle"
-              placeholderTextColor="#444"
+              placeholderTextColor={colors.textDisabled}
               value={username}
               onChangeText={handleUsernameChange}
               autoCapitalize="none"
               autoCorrect={false}
               maxLength={20}
             />
-            {usernameStatus === 'checking' && <ActivityIndicator size="small" color="#7C3AED" />}
+            {usernameStatus === 'checking' && <ActivityIndicator size="small" color={colors.accent} />}
           </View>
           <Text style={[
             styles.hint,
@@ -312,7 +316,7 @@ export default function EditProfileScreen() {
           <TextInput
             style={styles.input}
             placeholder="What should other players see?"
-            placeholderTextColor="#444"
+            placeholderTextColor={colors.textDisabled}
             value={displayName}
             onChangeText={setDisplayName}
           />
@@ -341,7 +345,7 @@ export default function EditProfileScreen() {
             <Text style={state ? styles.selectBtnText : styles.selectBtnPlaceholder}>
               {state ?? 'Select your state'}
             </Text>
-            <Ionicons name="chevron-down" size={18} color="#666" />
+            <Ionicons name="chevron-down" size={18} color={colors.textMuted} />
           </TouchableOpacity>
         </View>
 
@@ -354,7 +358,7 @@ export default function EditProfileScreen() {
                 ? dateOfBirth.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
                 : 'Select your date of birth'}
             </Text>
-            <Ionicons name="calendar-outline" size={18} color="#666" />
+            <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
           </TouchableOpacity>
           {dateOfBirth && (
             <Text style={styles.hint}>Age: {calculateAge(dateOfBirth)}</Text>
@@ -402,7 +406,7 @@ export default function EditProfileScreen() {
                   onPress={() => { setState(s); setStatePickerVisible(false); }}
                 >
                   <Text style={[styles.stateRowText, state === s && styles.stateRowTextActive]}>{s}</Text>
-                  {state === s && <Ionicons name="checkmark" size={18} color="#7C3AED" />}
+                  {state === s && <Ionicons name="checkmark" size={18} color={colors.accent} />}
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -413,99 +417,101 @@ export default function EditProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
-  content: { padding: 24, paddingTop: 80, paddingBottom: 48 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' },
-  backBtn: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
-    justifyContent: 'center', alignItems: 'center', marginBottom: 12,
-  },
-  logoBox: { alignItems: 'center', marginBottom: 32 },
-  appName: { color: '#fff', fontSize: 18, fontWeight: '800', letterSpacing: 3 },
-  title: { fontSize: 24, fontWeight: '900', color: '#fff', marginBottom: 8, textAlign: 'center' },
-  subtitle: { fontSize: 13, color: '#aaa', marginBottom: 32, textAlign: 'center', lineHeight: 20 },
-  fieldGroup: { marginBottom: 20 },
-  label: { color: '#aaa', fontSize: 13, marginBottom: 8, fontWeight: '600' },
-  hint: { color: '#555', fontSize: 12, marginTop: 6 },
-  hintSuccess: { color: '#00D4AA' },
-  hintError: { color: '#ff4444' },
-  photoRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#161616', borderRadius: 14, padding: 12,
-    marginBottom: 14, borderWidth: 1, borderColor: '#262626',
-  },
-  photoPlaceholder: {
-    width: 56, height: 56, borderRadius: 28, backgroundColor: '#7C3AED18',
-    justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1, borderColor: '#7C3AED44', borderStyle: 'dashed',
-  },
-  photoRowTitle: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  photoRowSubtitle: { color: '#888', fontSize: 12, marginTop: 2 },
-  photoRemoveBtn: {
-    width: 28, height: 28, borderRadius: 14, backgroundColor: '#1a1a1a',
-    justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1, borderColor: '#2a2a2a',
-  },
-  avatarGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  avatarOption: {
-    padding: 4, borderRadius: 32, borderWidth: 2, borderColor: 'transparent',
-  },
-  avatarOptionActive: {
-    borderColor: '#7C3AED',
-    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6, shadowRadius: 8, elevation: 4,
-  },
-  input: {
-    backgroundColor: '#1a1a1a', color: '#fff', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 14, fontSize: 15,
-    borderWidth: 1, borderColor: '#2a2a2a',
-  },
-  usernameInputRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: '#1a1a1a', borderRadius: 10,
-    paddingHorizontal: 14, borderWidth: 1, borderColor: '#2a2a2a',
-  },
-  usernamePrefix: { color: '#7C3AED', fontSize: 15, fontWeight: '700' },
-  usernameInput: { flex: 1, color: '#fff', fontSize: 15, paddingVertical: 14 },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20,
-    backgroundColor: '#1a1a1a', borderWidth: 1, borderColor: '#2a2a2a',
-  },
-  chipActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
-  chipText: { color: '#aaa', fontSize: 13, fontWeight: '600' },
-  chipTextActive: { color: '#fff' },
-  selectBtn: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: '#1a1a1a', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 14,
-    borderWidth: 1, borderColor: '#2a2a2a',
-  },
-  selectBtnText: { color: '#fff', fontSize: 15 },
-  selectBtnPlaceholder: { color: '#444', fontSize: 15 },
-  button: {
-    backgroundColor: '#7C3AED', paddingVertical: 16,
-    borderRadius: 12, alignItems: 'center', marginTop: 8,
-    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4, shadowRadius: 10, elevation: 6,
-  },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
-  modalOverlay: { flex: 1, backgroundColor: '#000000aa', justifyContent: 'flex-end' },
-  stateSheet: {
-    backgroundColor: '#141414', borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    paddingHorizontal: 20, paddingTop: 12, paddingBottom: 34,
-    maxHeight: '70%', borderWidth: 1, borderColor: '#2a2a2a', borderBottomWidth: 0,
-  },
-  sheetHandle: {
-    width: 40, height: 4, borderRadius: 2, backgroundColor: '#333',
-    alignSelf: 'center', marginBottom: 16,
-  },
-  sheetTitle: { fontSize: 18, fontWeight: '800', color: '#fff', marginBottom: 12 },
-  stateRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingVertical: 14, borderTopWidth: 1, borderTopColor: '#2a2a2a',
-  },
-  stateRowText: { color: '#ccc', fontSize: 14, fontWeight: '600' },
-  stateRowTextActive: { color: '#7C3AED', fontWeight: '700' },
-});
+function getStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { padding: 24, paddingTop: 80, paddingBottom: 48 },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+    backBtn: {
+      width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center', marginBottom: 12,
+    },
+    logoBox: { alignItems: 'center', marginBottom: 32 },
+    appName: { color: colors.textPrimary, fontSize: 18, fontWeight: '800', letterSpacing: 3 },
+    title: { fontSize: 24, fontWeight: '900', color: colors.textPrimary, marginBottom: 8, textAlign: 'center' },
+    subtitle: { fontSize: 13, color: colors.textSecondary, marginBottom: 32, textAlign: 'center', lineHeight: 20 },
+    fieldGroup: { marginBottom: 20 },
+    label: { color: colors.textSecondary, fontSize: 13, marginBottom: 8, fontWeight: '600' },
+    hint: { color: colors.textFaint, fontSize: 12, marginTop: 6 },
+    hintSuccess: { color: colors.success },
+    hintError: { color: colors.error },
+    photoRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      backgroundColor: colors.surface, borderRadius: 14, padding: 12,
+      marginBottom: 14, borderWidth: 1, borderColor: colors.borderMuted,
+    },
+    photoPlaceholder: {
+      width: 56, height: 56, borderRadius: 28, backgroundColor: colors.accentMuted,
+      justifyContent: 'center', alignItems: 'center',
+      borderWidth: 1, borderColor: '#7C3AED44', borderStyle: 'dashed',
+    },
+    photoRowTitle: { color: colors.textPrimary, fontSize: 14, fontWeight: '700' },
+    photoRowSubtitle: { color: colors.textTertiary, fontSize: 12, marginTop: 2 },
+    photoRemoveBtn: {
+      width: 28, height: 28, borderRadius: 14, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center',
+      borderWidth: 1, borderColor: colors.border,
+    },
+    avatarGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+    avatarOption: {
+      padding: 4, borderRadius: 32, borderWidth: 2, borderColor: 'transparent',
+    },
+    avatarOptionActive: {
+      borderColor: colors.accent,
+      shadowColor: colors.accent, shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.6, shadowRadius: 8, elevation: 4,
+    },
+    input: {
+      backgroundColor: colors.surfaceAlt, color: colors.textPrimary, borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 14, fontSize: 15,
+      borderWidth: 1, borderColor: colors.border,
+    },
+    usernameInputRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 4,
+      backgroundColor: colors.surfaceAlt, borderRadius: 10,
+      paddingHorizontal: 14, borderWidth: 1, borderColor: colors.border,
+    },
+    usernamePrefix: { color: colors.accent, fontSize: 15, fontWeight: '700' },
+    usernameInput: { flex: 1, color: colors.textPrimary, fontSize: 15, paddingVertical: 14 },
+    chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    chip: {
+      paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20,
+      backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border,
+    },
+    chipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+    chipText: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
+    chipTextActive: { color: '#fff' },
+    selectBtn: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      backgroundColor: colors.surfaceAlt, borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 14,
+      borderWidth: 1, borderColor: colors.border,
+    },
+    selectBtnText: { color: colors.textPrimary, fontSize: 15 },
+    selectBtnPlaceholder: { color: colors.textDisabled, fontSize: 15 },
+    button: {
+      backgroundColor: colors.accent, paddingVertical: 16,
+      borderRadius: 12, alignItems: 'center', marginTop: 8,
+      shadowColor: colors.accent, shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.4, shadowRadius: 10, elevation: 6,
+    },
+    buttonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+    modalOverlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
+    stateSheet: {
+      backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+      paddingHorizontal: 20, paddingTop: 12, paddingBottom: 34,
+      maxHeight: '70%', borderWidth: 1, borderColor: colors.border, borderBottomWidth: 0,
+    },
+    sheetHandle: {
+      width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border,
+      alignSelf: 'center', marginBottom: 16,
+    },
+    sheetTitle: { fontSize: 18, fontWeight: '800', color: colors.textPrimary, marginBottom: 12 },
+    stateRow: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      paddingVertical: 14, borderTopWidth: 1, borderTopColor: colors.border,
+    },
+    stateRowText: { color: colors.textSecondary, fontSize: 14, fontWeight: '600' },
+    stateRowTextActive: { color: colors.accent, fontWeight: '700' },
+  });
+}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, ActivityIndicator, Alert, Text, TouchableOpacity } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -6,9 +6,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { notifyAndLog } from '@/lib/notifications';
+import { useAppTheme } from '@/lib/ThemeContext';
+import { ThemeColors } from '@/constants/theme';
 
 export default function Payment() {
   const router = useRouter();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const { amount, tournament_id, team_id, registration_id } = useLocalSearchParams();
   const [loading, setLoading] = useState(true);
   const [webViewKey, setWebViewKey] = useState(0);
@@ -194,7 +198,7 @@ export default function Payment() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={20} color="#fff" />
+          <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Payment</Text>
         <View style={{ width: 36 }} />
@@ -210,7 +214,7 @@ export default function Payment() {
         <Text style={styles.amountLabel}>ENTRY FEE</Text>
         <Text style={styles.amountValue}>₹{amount}</Text>
         <View style={styles.amountSubRow}>
-          <Ionicons name="shield-checkmark" size={13} color="#00D4AA" />
+          <Ionicons name="shield-checkmark" size={13} color={colors.success} />
           <Text style={styles.amountSub}>Secured by Razorpay</Text>
         </View>
       </LinearGradient>
@@ -226,7 +230,7 @@ export default function Payment() {
         <>
           {loading && (
             <View style={styles.loadingOverlay}>
-              <ActivityIndicator size="large" color="#7C3AED" />
+              <ActivityIndicator size="large" color={colors.accent} />
               <Text style={styles.loadingText}>Opening payment...</Text>
             </View>
           )}
@@ -247,40 +251,42 @@ export default function Payment() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', paddingHorizontal: 24,
-    paddingTop: 60, paddingBottom: 16,
-  },
-  backBtn: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  amountBox: {
-    alignItems: 'center', paddingVertical: 28,
-    marginHorizontal: 24, borderRadius: 18, marginBottom: 8,
-    borderWidth: 1, borderColor: '#2f2447',
-  },
-  amountLabel: { color: '#888', fontSize: 11, fontWeight: '800', letterSpacing: 2, marginBottom: 8 },
-  amountValue: { color: '#fff', fontSize: 42, fontWeight: '900', marginBottom: 8 },
-  amountSubRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  amountSub: { color: '#00D4AA', fontSize: 12, fontWeight: '600' },
-  webview: { flex: 1, backgroundColor: '#0a0a0a' },
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#0a0a0a',
-    zIndex: 10,
-    gap: 12,
-  },
-  loadingText: { color: '#aaa', fontSize: 14 },
-  errorText: { color: '#FF4444', fontSize: 14, textAlign: 'center', paddingHorizontal: 32 },
-  retryBtn: {
-    backgroundColor: '#7C3AED', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 10,
-  },
-  retryBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-});
+function getStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    header: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', paddingHorizontal: 24,
+      paddingTop: 60, paddingBottom: 16,
+    },
+    backBtn: {
+      width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    headerTitle: { color: colors.textPrimary, fontSize: 18, fontWeight: '800' },
+    amountBox: {
+      alignItems: 'center', paddingVertical: 28,
+      marginHorizontal: 24, borderRadius: 18, marginBottom: 8,
+      borderWidth: 1, borderColor: '#2f2447',
+    },
+    amountLabel: { color: colors.textTertiary, fontSize: 11, fontWeight: '800', letterSpacing: 2, marginBottom: 8 },
+    amountValue: { color: colors.textPrimary, fontSize: 42, fontWeight: '900', marginBottom: 8 },
+    amountSubRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+    amountSub: { color: colors.success, fontSize: 12, fontWeight: '600' },
+    webview: { flex: 1, backgroundColor: colors.background },
+    loadingOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+      zIndex: 10,
+      gap: 12,
+    },
+    loadingText: { color: colors.textSecondary, fontSize: 14 },
+    errorText: { color: colors.error, fontSize: 14, textAlign: 'center', paddingHorizontal: 32 },
+    retryBtn: {
+      backgroundColor: colors.accent, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 10,
+    },
+    retryBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  });
+}

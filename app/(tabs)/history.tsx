@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
   FlatList, Alert, TouchableOpacity
@@ -6,9 +6,13 @@ import {
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
+import { useAppTheme } from '@/lib/ThemeContext';
+import { ThemeColors } from '@/constants/theme';
 
 export default function HistoryScreen() {
   const router = useRouter();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any[]>([]);
@@ -85,7 +89,7 @@ export default function HistoryScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#7C3AED" />
+        <ActivityIndicator size="large" color={colors.accent} />
       </View>
     );
   }
@@ -96,7 +100,7 @@ export default function HistoryScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerIconBadge}>
-          <Ionicons name="time" size={20} color="#00D4AA" />
+          <Ionicons name="time" size={20} color={colors.success} />
         </View>
         <View>
           <Text style={styles.heading}>{isPlayer ? 'My Registrations' : 'My Tournaments'}</Text>
@@ -113,7 +117,7 @@ export default function HistoryScreen() {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <View style={styles.emptyIconCircle}>
-                <Ionicons name="file-tray-outline" size={28} color="#444" />
+                <Ionicons name="file-tray-outline" size={28} color={colors.textDisabled} />
               </View>
               <Text style={styles.emptyText}>You haven't registered for any tournaments yet.</Text>
             </View>
@@ -135,24 +139,24 @@ export default function HistoryScreen() {
                   <Ionicons
                     name={item.status === 'confirmed' ? 'checkmark-circle' : 'time-outline'}
                     size={12}
-                    color={item.status === 'confirmed' ? '#00D4AA' : '#FFB800'}
+                    color={item.status === 'confirmed' ? colors.success : colors.warning}
                   />
                   <Text style={[
                     styles.badgeText,
-                    { color: item.status === 'confirmed' ? '#00D4AA' : '#FFB800' }
+                    { color: item.status === 'confirmed' ? colors.success : colors.warning }
                   ]}>{item.status.toUpperCase()}</Text>
                 </View>
               </View>
               <View style={styles.cardMetaRow}>
-                <Ionicons name="game-controller-outline" size={13} color="#888" />
+                <Ionicons name="game-controller-outline" size={13} color={colors.textTertiary} />
                 <Text style={styles.cardSub}>{item.tournaments?.game ?? '—'}</Text>
               </View>
               <View style={styles.cardMetaRow}>
-                <Ionicons name="people-outline" size={13} color="#888" />
+                <Ionicons name="people-outline" size={13} color={colors.textTertiary} />
                 <Text style={styles.cardSub}>Team: {item.teams?.name ?? '—'}</Text>
               </View>
               <View style={styles.cardMetaRow}>
-                <Ionicons name="cash-outline" size={13} color="#888" />
+                <Ionicons name="cash-outline" size={13} color={colors.textTertiary} />
                 <Text style={styles.cardSub}>Entry Fee: ₹{item.tournaments?.entry_fee ?? 0}</Text>
               </View>
 
@@ -166,7 +170,7 @@ export default function HistoryScreen() {
                   disabled={cancellingId === item.id}
                 >
                   {cancellingId === item.id
-                    ? <ActivityIndicator color="#ff4444" size="small" />
+                    ? <ActivityIndicator color={colors.error} size="small" />
                     : <Text style={styles.cancelBtnText}>Cancel Registration</Text>
                   }
                 </TouchableOpacity>
@@ -183,7 +187,7 @@ export default function HistoryScreen() {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <View style={styles.emptyIconCircle}>
-                <Ionicons name="trophy-outline" size={28} color="#444" />
+                <Ionicons name="trophy-outline" size={28} color={colors.textDisabled} />
               </View>
               <Text style={styles.emptyText}>You haven't created any tournaments yet.</Text>
             </View>
@@ -202,20 +206,20 @@ export default function HistoryScreen() {
                 ]}>
                   <Text style={[
                     styles.badgeText,
-                    { color: item.status === 'upcoming' ? '#FFB800' : '#00D4AA' }
+                    { color: item.status === 'upcoming' ? colors.warning : colors.success }
                   ]}>{item.status.toUpperCase()}</Text>
                 </View>
               </View>
               <View style={styles.cardMetaRow}>
-                <Ionicons name="game-controller-outline" size={13} color="#888" />
+                <Ionicons name="game-controller-outline" size={13} color={colors.textTertiary} />
                 <Text style={styles.cardSub}>{item.game}</Text>
               </View>
               <View style={styles.cardMetaRow}>
-                <Ionicons name="cash-outline" size={13} color="#888" />
+                <Ionicons name="cash-outline" size={13} color={colors.textTertiary} />
                 <Text style={styles.cardSub}>Prize Pool: ₹{item.prize_pool}</Text>
               </View>
               <View style={styles.cardMetaRow}>
-                <Ionicons name="people-outline" size={13} color="#888" />
+                <Ionicons name="people-outline" size={13} color={colors.textTertiary} />
                 <Text style={styles.cardSub}>{item.registrations?.[0]?.count ?? 0} / {item.max_teams} teams</Text>
               </View>
             </TouchableOpacity>
@@ -234,50 +238,52 @@ const cardShadow = {
   elevation: 5,
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0a0a0a' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: 24, paddingTop: 60, paddingBottom: 16,
-  },
-  headerIconBadge: {
-    width: 40, height: 40, borderRadius: 12,
-    backgroundColor: '#00D4AA18', justifyContent: 'center', alignItems: 'center',
-  },
-  heading: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  sub: { fontSize: 12, color: '#888', marginTop: 2 },
-  listContent: { padding: 24, paddingTop: 4 },
-  emptyContainer: { alignItems: 'center', marginTop: 60, paddingHorizontal: 20 },
-  emptyIconCircle: {
-    width: 64, height: 64, borderRadius: 32, backgroundColor: '#1a1a1a',
-    justifyContent: 'center', alignItems: 'center', marginBottom: 16,
-    borderWidth: 1, borderColor: '#2a2a2a',
-  },
-  emptyText: { color: '#555', fontSize: 14, textAlign: 'center' },
-  card: {
-    backgroundColor: '#161616', borderRadius: 14, padding: 16,
-    marginBottom: 14, borderWidth: 1, borderColor: '#262626',
-    ...cardShadow,
-  },
-  cardHeader: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', marginBottom: 12, gap: 8,
-  },
-  tournamentName: { fontSize: 16, fontWeight: '700', color: '#fff', flex: 1 },
-  cardMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
-  cardSub: { fontSize: 13, color: '#aaa' },
-  badge: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20,
-  },
-  badgePending: { backgroundColor: '#3a2a0055' },
-  badgeConfirmed: { backgroundColor: '#0a3a2a55' },
-  badgeText: { fontSize: 11, fontWeight: '700' },
-  cancelBtn: {
-    marginTop: 12, paddingVertical: 10, borderRadius: 10,
-    alignItems: 'center', backgroundColor: '#1a0a0a',
-    borderWidth: 1, borderColor: '#3a1a1a',
-  },
-  cancelBtnText: { color: '#ff4444', fontSize: 13, fontWeight: '700' },
-});
+function getStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+    header: {
+      flexDirection: 'row', alignItems: 'center', gap: 12,
+      paddingHorizontal: 24, paddingTop: 60, paddingBottom: 16,
+    },
+    headerIconBadge: {
+      width: 40, height: 40, borderRadius: 12,
+      backgroundColor: '#00D4AA18', justifyContent: 'center', alignItems: 'center',
+    },
+    heading: { fontSize: 22, fontWeight: '800', color: colors.textPrimary },
+    sub: { fontSize: 12, color: colors.textTertiary, marginTop: 2 },
+    listContent: { padding: 24, paddingTop: 4 },
+    emptyContainer: { alignItems: 'center', marginTop: 60, paddingHorizontal: 20 },
+    emptyIconCircle: {
+      width: 64, height: 64, borderRadius: 32, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center', marginBottom: 16,
+      borderWidth: 1, borderColor: colors.border,
+    },
+    emptyText: { color: colors.textFaint, fontSize: 14, textAlign: 'center' },
+    card: {
+      backgroundColor: colors.surface, borderRadius: 14, padding: 16,
+      marginBottom: 14, borderWidth: 1, borderColor: colors.borderMuted,
+      ...cardShadow,
+    },
+    cardHeader: {
+      flexDirection: 'row', justifyContent: 'space-between',
+      alignItems: 'center', marginBottom: 12, gap: 8,
+    },
+    tournamentName: { fontSize: 16, fontWeight: '700', color: colors.textPrimary, flex: 1 },
+    cardMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
+    cardSub: { fontSize: 13, color: colors.textSecondary },
+    badge: {
+      flexDirection: 'row', alignItems: 'center', gap: 4,
+      paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20,
+    },
+    badgePending: { backgroundColor: '#3a2a0055' },
+    badgeConfirmed: { backgroundColor: '#0a3a2a55' },
+    badgeText: { fontSize: 11, fontWeight: '700' },
+    cancelBtn: {
+      marginTop: 12, paddingVertical: 10, borderRadius: 10,
+      alignItems: 'center', backgroundColor: '#1a0a0a',
+      borderWidth: 1, borderColor: '#3a1a1a',
+    },
+    cancelBtnText: { color: colors.error, fontSize: 13, fontWeight: '700' },
+  });
+}

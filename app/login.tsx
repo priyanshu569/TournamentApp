@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   View, TouchableOpacity, Text, StyleSheet, Alert,
 } from 'react-native';
@@ -8,11 +8,15 @@ import * as AuthSession from 'expo-auth-session';
 import { AntDesign } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import FragifyLogo from '@/components/FragifyLogo';
+import { useAppTheme } from '@/lib/ThemeContext';
+import { ThemeColors } from '@/constants/theme';
 WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const router = useRouter();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
 
   async function signInWithGoogle() {
     setGoogleLoading(true);
@@ -103,33 +107,35 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#0a0a0a', overflow: 'hidden' },
-  glowCircle: {
-    position: 'absolute', top: -120, alignSelf: 'center',
-    width: 340, height: 340, borderRadius: 170,
-    backgroundColor: '#7C3AED', opacity: 0.16,
-  },
-  logoBox: { alignItems: 'center', marginBottom: 48 },
-  logoRing: {
-    width: 96, height: 96, borderRadius: 48,
-    justifyContent: 'center', alignItems: 'center',
-    backgroundColor: '#150f24', borderWidth: 1, borderColor: '#7C3AED44',
-    shadowColor: '#7C3AED', shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5, shadowRadius: 20, elevation: 10,
-  },
-  appName: { color: '#fff', fontSize: 20, fontWeight: '800', letterSpacing: 3, marginTop: 16 },
-  appTagline: { color: '#555', fontSize: 10, letterSpacing: 1.5, marginTop: 4 },
-  title: { fontSize: 26, fontWeight: '800', color: '#fff', marginBottom: 8, textAlign: 'center' },
-  subtitle: { fontSize: 14, color: '#aaa', marginBottom: 32, textAlign: 'center' },
-  googleButton: {
-    backgroundColor: '#fff',
-    paddingVertical: 16, borderRadius: 14, alignItems: 'center',
-    flexDirection: 'row', justifyContent: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3, shadowRadius: 10, elevation: 6,
-  },
-  googleButtonText: { color: '#1a1a1a', fontSize: 16, fontWeight: '700' },
-  footerText: { color: '#555', fontSize: 12, textAlign: 'center', marginTop: 24, lineHeight: 18 },
-  footerLink: { color: '#7C3AED', fontWeight: '700' },
-});
+function getStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: colors.background, overflow: 'hidden' },
+    glowCircle: {
+      position: 'absolute', top: -120, alignSelf: 'center',
+      width: 340, height: 340, borderRadius: 170,
+      backgroundColor: colors.accent, opacity: 0.16,
+    },
+    logoBox: { alignItems: 'center', marginBottom: 48 },
+    logoRing: {
+      width: 96, height: 96, borderRadius: 48,
+      justifyContent: 'center', alignItems: 'center',
+      backgroundColor: '#150f24', borderWidth: 1, borderColor: '#7C3AED44',
+      shadowColor: colors.accent, shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.5, shadowRadius: 20, elevation: 10,
+    },
+    appName: { color: colors.textPrimary, fontSize: 20, fontWeight: '800', letterSpacing: 3, marginTop: 16 },
+    appTagline: { color: colors.textFaint, fontSize: 10, letterSpacing: 1.5, marginTop: 4 },
+    title: { fontSize: 26, fontWeight: '800', color: colors.textPrimary, marginBottom: 8, textAlign: 'center' },
+    subtitle: { fontSize: 14, color: colors.textSecondary, marginBottom: 32, textAlign: 'center' },
+    googleButton: {
+      backgroundColor: '#fff',
+      paddingVertical: 16, borderRadius: 14, alignItems: 'center',
+      flexDirection: 'row', justifyContent: 'center',
+      shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.3, shadowRadius: 10, elevation: 6,
+    },
+    googleButtonText: { color: '#1a1a1a', fontSize: 16, fontWeight: '700' },
+    footerText: { color: colors.textFaint, fontSize: 12, textAlign: 'center', marginTop: 24, lineHeight: 18 },
+    footerLink: { color: colors.accent, fontWeight: '700' },
+  });
+}
