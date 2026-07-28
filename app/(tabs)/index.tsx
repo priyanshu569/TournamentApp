@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator, ScrollView, StyleSheet,
   Text, TouchableOpacity, View
@@ -40,6 +40,15 @@ export default function HomeScreen() {
       loadData();
     }, [])
   );
+
+  // The pager keeps every tab mounted, so useFocusEffect above only
+  // fires on entering/leaving "(tabs)" as a whole, not on internal
+  // pager swipes. Re-fetch whenever this tab actually becomes visible.
+  useEffect(() => {
+    if (tabNav?.activeTab === 'index') {
+      loadData();
+    }
+  }, [tabNav?.activeTab]);
 
   async function loadData() {
     const { data: userData } = await supabase.auth.getUser();

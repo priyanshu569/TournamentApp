@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
   FlatList, Alert, TouchableOpacity
@@ -8,9 +8,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
+import { useTabNavigation } from '@/lib/tabNavigation';
 
 export default function HistoryScreen() {
   const router = useRouter();
+  const tabNav = useTabNavigation();
   const { colors } = useAppTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
   const [role, setRole] = useState<string | null>(null);
@@ -23,6 +25,15 @@ export default function HistoryScreen() {
       loadHistory();
     }, [])
   );
+
+  // The pager keeps every tab mounted, so useFocusEffect above only
+  // fires on entering/leaving "(tabs)" as a whole, not on internal
+  // pager swipes. Re-fetch whenever this tab actually becomes visible.
+  useEffect(() => {
+    if (tabNav?.activeTab === 'history') {
+      loadHistory();
+    }
+  }, [tabNav?.activeTab]);
 
   async function loadHistory() {
     const { data: userData } = await supabase.auth.getUser();

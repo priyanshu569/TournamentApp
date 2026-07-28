@@ -13,6 +13,7 @@ import NotificationBell from '@/components/NotificationBell';
 import LeaderboardIcon from '@/components/LeaderboardIcon';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
+import { useTabNavigation } from '@/lib/tabNavigation';
 
 const GAMES: { label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { label: 'All', icon: 'apps' },
@@ -47,6 +48,7 @@ const SORT_OPTIONS: { value: SortOption; label: string; shortLabel: string; icon
 
 export default function EventsScreen() {
   const router = useRouter();
+  const tabNav = useTabNavigation();
   const { colors } = useAppTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
   const [tournaments, setTournaments] = useState<any[]>([]);
@@ -64,6 +66,15 @@ export default function EventsScreen() {
       fetchTournaments();
     }, [])
   );
+
+  // The pager keeps every tab mounted, so useFocusEffect above only
+  // fires on entering/leaving "(tabs)" as a whole, not on internal
+  // pager swipes. Re-fetch whenever this tab actually becomes visible.
+  useEffect(() => {
+    if (tabNav?.activeTab === 'events') {
+      fetchTournaments();
+    }
+  }, [tabNav?.activeTab]);
 
   useEffect(() => {
     let results = tournaments.filter(t => (t.category ?? 'tournament') === eventTab);

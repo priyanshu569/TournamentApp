@@ -47,7 +47,7 @@ export default function TabLayout() {
 
   return (
     <View style={styles.flex}>
-      <TabNavigationContext.Provider value={{ goToTab }}>
+      <TabNavigationContext.Provider value={{ goToTab, activeTab: TABS[activeIndex].key }}>
         <PagerView
           ref={pagerRef}
           style={styles.flex}

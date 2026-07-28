@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList,
   TouchableOpacity, ActivityIndicator
@@ -12,9 +12,11 @@ import GradientIconBadge from '@/components/GradientIconBadge';
 import { formatRelativeTime } from '@/lib/time';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
+import { useTabNavigation } from '@/lib/tabNavigation';
 
 export default function ChatInboxScreen() {
   const router = useRouter();
+  const tabNav = useTabNavigation();
   const { colors } = useAppTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
   const [conversations, setConversations] = useState<any[]>([]);
@@ -26,6 +28,15 @@ export default function ChatInboxScreen() {
       loadConversations();
     }, [])
   );
+
+  // The pager keeps every tab mounted, so useFocusEffect above only
+  // fires on entering/leaving "(tabs)" as a whole, not on internal
+  // pager swipes. Re-fetch whenever this tab actually becomes visible.
+  useEffect(() => {
+    if (tabNav?.activeTab === 'chat') {
+      loadConversations();
+    }
+  }, [tabNav?.activeTab]);
 
   async function loadConversations() {
     const { data: userData } = await supabase.auth.getUser();

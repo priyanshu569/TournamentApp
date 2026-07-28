@@ -40,6 +40,15 @@ export default function ProfileScreen() {
     loadProfile();
   }, []);
 
+  // The pager keeps every tab mounted, so re-fetch whenever this tab
+  // becomes the visible one again (e.g. after switching role while on
+  // another tab) instead of only ever loading once on first mount.
+  useEffect(() => {
+    if (tabNav?.activeTab === 'profile') {
+      loadProfile();
+    }
+  }, [tabNav?.activeTab]);
+
   async function loadProfile() {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) { setLoading(false); return; }
