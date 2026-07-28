@@ -65,14 +65,18 @@ export default function ChatInboxScreen() {
 
     const { data: recentMessages } = await supabase
       .from('messages')
-      .select('conversation_id, content, created_at, sender_id')
+      .select('conversation_id, content, created_at, sender_id, read_at')
       .in('conversation_id', conversationIds)
       .order('created_at', { ascending: false });
 
     const lastMessageMap = new Map<string, any>();
+    const unreadCountMap = new Map<string, number>();
     for (const m of recentMessages ?? []) {
       if (!lastMessageMap.has(m.conversation_id)) {
         lastMessageMap.set(m.conversation_id, m);
+      }
+      if (m.sender_id !== me && !m.read_at) {
+        unreadCountMap.set(m.conversation_id, (unreadCountMap.get(m.conversation_id) ?? 0) + 1);
       }
     }
 
@@ -103,6 +107,7 @@ export default function ChatInboxScreen() {
         avatarUsername,
         lastMessage: lastMessage?.content ?? null,
         lastMessageAt: lastMessage?.created_at ?? c.created_at,
+        unreadCount: unreadCountMap.get(c.id) ?? 0,
       };
     });
 
@@ -164,11 +169,25 @@ export default function ChatInboxScreen() {
               )}
               <View style={styles.rowInfo}>
                 <Text style={styles.rowTitle} numberOfLines={1}>{item.title}</Text>
-                <Text style={styles.rowPreview} numberOfLines={1}>
+                <Text
+                  style={[styles.rowPreview, item.unreadCount > 0 && styles.rowPreviewUnread]}
+                  numberOfLines={1}
+                >
                   {item.lastMessage ?? 'No messages yet'}
                 </Text>
               </View>
-              <Text style={styles.rowTime}>{formatRelativeTime(item.lastMessageAt)}</Text>
+              <View style={styles.rowRight}>
+                <Text style={[styles.rowTime, item.unreadCount > 0 && styles.rowTimeUnread]}>
+                  {formatRelativeTime(item.lastMessageAt)}
+                </Text>
+                {item.unreadCount > 0 && (
+                  <View style={styles.unreadBadge}>
+                    <Text style={styles.unreadBadgeText}>
+                      {item.unreadCount > 9 ? '9+' : item.unreadCount}
+                    </Text>
+                  </View>
+                )}
+              </View>
             </TouchableOpacity>
           )}
         />
@@ -216,5 +235,13 @@ const styles = StyleSheet.create({
   rowInfo: { flex: 1 },
   rowTitle: { color: '#fff', fontSize: 15, fontWeight: '700', marginBottom: 2 },
   rowPreview: { color: '#888', fontSize: 13 },
-  rowTime: { color: '#555', fontSize: 11, fontWeight: '600', alignSelf: 'flex-start', marginTop: 2 },
+  rowPreviewUnread: { color: '#eee', fontWeight: '700' },
+  rowRight: { alignItems: 'flex-end', gap: 6 },
+  rowTime: { color: '#555', fontSize: 11, fontWeight: '600' },
+  rowTimeUnread: { color: '#7C3AED' },
+  unreadBadge: {
+    minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 6,
+    backgroundColor: '#7C3AED', justifyContent: 'center', alignItems: 'center',
+  },
+  unreadBadgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
 });
