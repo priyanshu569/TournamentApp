@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TextInput,
   TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Modal, Alert, Keyboard
@@ -6,8 +6,46 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring, SharedValue } from 'react-native-reanimated';
 import { supabase } from '@/lib/supabase';
 import Avatar from '@/components/Avatar';
+import { formatClockTime, formatDayLabel, formatRelativeTime, isSameDay } from '@/lib/time';
+
+function MessageBubble({ message, isMine, showSenderName, senderName, swipeX, seenLabel }: {
+  message: any;
+  isMine: boolean;
+  showSenderName: boolean;
+  senderName: string;
+  swipeX: SharedValue<number>;
+  seenLabel: string | null;
+}) {
+  const bubbleAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: swipeX.value }],
+  }));
+  const timeAnimStyle = useAnimatedStyle(() => ({
+    opacity: Math.min(1, Math.abs(swipeX.value) / 36),
+  }));
+
+  return (
+    <View>
+      <View style={[styles.messageRow, isMine && styles.messageRowMine]}>
+        <Animated.View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleTheirs, bubbleAnimStyle]}>
+          {showSenderName && (
+            <Text style={styles.senderName}>{senderName}</Text>
+          )}
+          <Text style={styles.messageText}>{message.content}</Text>
+        </Animated.View>
+        <Animated.View style={[styles.swipeTimeWrap, timeAnimStyle]} pointerEvents="none">
+          <Text style={styles.swipeTimeText}>{formatClockTime(message.created_at)}</Text>
+        </Animated.View>
+      </View>
+      {seenLabel && (
+        <Text style={styles.seenText}>{seenLabel}</Text>
+      )}
+    </View>
+  );
+}
 
 export default function ChatThreadScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -25,6 +63,7 @@ export default function ChatThreadScreen() {
   const [sending, setSending] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const listRef = useRef<FlatList>(null);
+  const swipeX = useSharedValue(0);
 
   useEffect(() => { loadThread(); }, [id]);
 
@@ -47,12 +86,49 @@ export default function ChatThreadScreen() {
         { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${id}` },
         (payload) => {
           setMessages((prev) => [...prev, payload.new]);
+          if (payload.new.sender_id !== myId) {
+            supabase.rpc('mark_messages_read', { p_conversation_id: id });
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'messages', filter: `conversation_id=eq.${id}` },
+        (payload) => {
+          setMessages((prev) => prev.map((m) => (m.id === payload.new.id ? payload.new : m)));
         }
       )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [id]);
+  }, [id, myId]);
+
+  const rows = useMemo(() => {
+    const result: any[] = [];
+    let lastDate: string | null = null;
+    for (const m of messages) {
+      if (!lastDate || !isSameDay(m.created_at, lastDate)) {
+        result.push({ type: 'separator', id: `sep-${m.id}`, label: formatDayLabel(m.created_at) });
+        lastDate = m.created_at;
+      }
+      result.push({ type: 'message', ...m });
+    }
+    return result;
+  }, [messages]);
+
+  const lastMessage = messages[messages.length - 1];
+  const showSeenOnLast = conversation?.conversation_type === 'direct'
+    && !!lastMessage && lastMessage.sender_id === myId;
+
+  const panGesture = Gesture.Pan()
+    .activeOffsetX([-15, 999])
+    .failOffsetY([-10, 10])
+    .onUpdate((e) => {
+      swipeX.value = Math.max(-60, Math.min(0, e.translationX));
+    })
+    .onEnd(() => {
+      swipeX.value = withSpring(0, { damping: 20, stiffness: 200 });
+    });
 
   async function loadThread() {
     const { data: userData } = await supabase.auth.getUser();
@@ -103,6 +179,10 @@ export default function ChatThreadScreen() {
 
     setMessages(msgs ?? []);
     setLoading(false);
+
+    if (me) {
+      await supabase.rpc('mark_messages_read', { p_conversation_id: id });
+    }
   }
 
   async function handleSend() {
@@ -201,28 +281,40 @@ export default function ChatThreadScreen() {
           )}
         </View>
 
-        <FlatList
-          ref={listRef}
-          data={messages}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.messagesList}
-          onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
-          renderItem={({ item }) => {
-            const isMine = item.sender_id === myId;
-            return (
-              <View style={[styles.messageRow, isMine && styles.messageRowMine]}>
-                <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleTheirs]}>
-                  {!isMine && conversation?.conversation_type === 'group' && (
-                    <Text style={styles.senderName}>
-                      {participantNames.get(item.sender_id) ?? 'Unknown'}
-                    </Text>
-                  )}
-                  <Text style={styles.messageText}>{item.content}</Text>
-                </View>
-              </View>
-            );
-          }}
-        />
+        <GestureDetector gesture={panGesture}>
+          <FlatList
+            ref={listRef}
+            data={rows}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.messagesList}
+            onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
+            renderItem={({ item }) => {
+              if (item.type === 'separator') {
+                return (
+                  <View style={styles.dateSeparatorRow}>
+                    <Text style={styles.dateSeparatorText}>{item.label}</Text>
+                  </View>
+                );
+              }
+
+              const isMine = item.sender_id === myId;
+              return (
+                <MessageBubble
+                  message={item}
+                  isMine={isMine}
+                  showSenderName={!isMine && conversation?.conversation_type === 'group'}
+                  senderName={participantNames.get(item.sender_id) ?? 'Unknown'}
+                  swipeX={swipeX}
+                  seenLabel={
+                    showSeenOnLast && item.id === lastMessage?.id
+                      ? (item.read_at ? `Seen ${formatRelativeTime(item.read_at)}` : 'Delivered')
+                      : null
+                  }
+                />
+              );
+            }}
+          />
+        </GestureDetector>
 
         <View style={[styles.inputRow, { paddingBottom: keyboardVisible ? 12 : 34 }]}>
           <TextInput
@@ -305,6 +397,13 @@ const styles = StyleSheet.create({
   headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, justifyContent: 'center' },
   headerTitle: { color: '#fff', fontSize: 16, fontWeight: '800', flexShrink: 1 },
   messagesList: { padding: 16, paddingBottom: 24 },
+  dateSeparatorRow: { alignItems: 'center', marginVertical: 12 },
+  dateSeparatorText: {
+    color: '#888', fontSize: 11, fontWeight: '700',
+    backgroundColor: '#161616', borderWidth: 1, borderColor: '#262626',
+    paddingHorizontal: 12, paddingVertical: 5, borderRadius: 12,
+    overflow: 'hidden',
+  },
   messageRow: { flexDirection: 'row', marginBottom: 10 },
   messageRowMine: { justifyContent: 'flex-end' },
   bubble: { maxWidth: '78%', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10 },
@@ -312,6 +411,15 @@ const styles = StyleSheet.create({
   bubbleMine: { backgroundColor: '#7C3AED' },
   senderName: { color: '#7C3AED', fontSize: 11, fontWeight: '700', marginBottom: 2 },
   messageText: { color: '#fff', fontSize: 14, lineHeight: 20 },
+  swipeTimeWrap: {
+    position: 'absolute', right: 4, top: 0, bottom: 0,
+    justifyContent: 'center', alignItems: 'flex-end',
+  },
+  swipeTimeText: { color: '#888', fontSize: 11, fontWeight: '600' },
+  seenText: {
+    color: '#666', fontSize: 11, fontWeight: '600',
+    textAlign: 'right', marginTop: -6, marginBottom: 8, marginRight: 4,
+  },
   inputRow: {
     flexDirection: 'row', alignItems: 'flex-end', gap: 10,
     paddingHorizontal: 12, paddingTop: 12,

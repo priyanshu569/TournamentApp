@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '@/lib/supabase';
 import Avatar from '@/components/Avatar';
+import { formatRelativeTime } from '@/lib/time';
 
 export default function ChatInboxScreen() {
   const router = useRouter();
@@ -109,18 +110,6 @@ export default function ChatInboxScreen() {
 
     setConversations(built);
     setLoading(false);
-  }
-
-  function formatRelativeTime(dateStr: string) {
-    const diffMs = Date.now() - new Date(dateStr).getTime();
-    const mins = Math.floor(diffMs / 60000);
-    if (mins < 1) return 'now';
-    if (mins < 60) return `${mins}m`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h`;
-    const days = Math.floor(hours / 24);
-    if (days < 7) return `${days}d`;
-    return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
   }
 
   return (
