@@ -75,7 +75,7 @@ function getStyles(colors: ThemeColors) {
   return StyleSheet.create({
     notifBtn: { padding: 4, position: 'relative' },
     circle: {
-      width: 36, height: 36, borderRadius: 11,
+      width: 36, height: 36, borderRadius: 18,
       justifyContent: 'center', alignItems: 'center',
       shadowColor: colors.accent, shadowOffset: { width: 0, height: 3 },
       shadowOpacity: 0.45, shadowRadius: 8, elevation: 5,
