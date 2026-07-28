@@ -84,7 +84,7 @@ if (tournamentData?.status !== 'upcoming') {
 
 const { count: registeredCount } = await supabase
   .from('registrations')
-  .select('*', { count: 'exact', head: true })
+  .select('id', { count: 'exact', head: true })
   .eq('tournament_id', tournament_id);
 
 if (tournamentData?.max_teams && (registeredCount ?? 0) >= tournamentData.max_teams) {

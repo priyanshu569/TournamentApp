@@ -40,7 +40,7 @@ export default function HistoryScreen() {
     if (profile.role === 'player') {
       const { data: regs } = await supabase
         .from('registrations')
-        .select('*, teams(name), tournaments(title, game, entry_fee)')
+        .select('id, tournament_id, status, teams(name), tournaments(title, game, entry_fee)')
         .eq('player_id', userData.user.id)
         .order('created_at', { ascending: false });
 

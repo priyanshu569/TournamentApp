@@ -62,7 +62,7 @@ export default function ProfileScreen() {
     if (p?.role === 'player') {
       const { count: regCount } = await supabase
         .from('registrations')
-        .select('*', { count: 'exact', head: true })
+        .select('id', { count: 'exact', head: true })
         .eq('player_id', userData.user.id);
 
       setStats({ tournaments: regCount ?? 0 });

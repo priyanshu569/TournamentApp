@@ -33,7 +33,7 @@ export default function Registrations() {
 
     const { data, error } = await supabase
       .from('registrations')
-      .select('*, teams(name, team_members(in_game_name, player_uid))')
+      .select('id, status, player_id, teams(name, team_members(in_game_name, player_uid))')
       .eq('tournament_id', tournament_id)
       .order('created_at', { ascending: false });
 
