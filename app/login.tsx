@@ -85,7 +85,7 @@ export default function LoginScreen() {
 
       <View style={styles.logoBox}>
         <View style={styles.logoRing}>
-          <FragifyLogo size={64} />
+          <FragifyLogo size={64} withBackground={false} />
         </View>
         <Text style={styles.appName}>FRAGIFY</Text>
         <Text style={styles.appTagline}>ESPORTS · COMPETE · WIN</Text>

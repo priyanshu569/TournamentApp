@@ -1,16 +1,19 @@
 import Svg, {
-  Path, G, Defs, LinearGradient, Stop, ClipPath, Rect,
+  Path, G, Defs, LinearGradient as SvgLinearGradient, Stop, ClipPath, Rect,
 } from 'react-native-svg';
-import { useAppTheme } from '@/lib/ThemeContext';
+import { LinearGradient } from 'expo-linear-gradient';
 
 type Props = {
   size?: number;
+  // The mark itself is drawn pure white/light -- fine on the app's
+  // original all-dark background, invisible on a light-mode background.
+  // Default true wraps it in a constant purple badge so it stays legible
+  // in both themes without recoloring the mark.
+  withBackground?: boolean;
 };
 
-export default function FragifyLogo({ size = 40 }: Props) {
-  const { colors } = useAppTheme();
-
-  return (
+export default function FragifyLogo({ size = 40, withBackground = true }: Props) {
+  const mark = (
     <Svg width={size} height={size} viewBox="241.68 55.54 771.87 771.87" fill="none">
     <G clipPath="url(#clip0_3311_113)">
     <Path d="M849.542 275.263L850.454 275.327C848.287 278.095 820.574 297.021 816.337 300.067C797.227 313.783 778.288 327.739 759.527 341.931C779.654 332.693 799.713 323.31 819.704 313.782C808.242 328.78 795.408 343.388 783.664 358.189C744.397 360.548 670.792 365.878 629.565 369.698C626.694 369.964 591.952 395.494 587.347 399.195C600.299 393.296 613.29 387.481 626.32 381.752C619.273 409.224 609.973 439.12 602.117 466.652C619.083 454.213 636.172 441.949 653.39 429.862C678.409 428.604 703.85 426.128 728.9 424.639C740.044 423.977 751.451 422.572 762.595 422.402C754.665 431.277 746.405 439.3 738.513 447.971C734.79 452.063 729.775 460.527 725.875 465.472C717.229 476.431 708.424 487.136 699.576 497.929C687.532 499.193 673.59 499.738 661.289 500.714L590.733 506.523C573.097 519.738 553.996 534.176 536.973 548.105C552.651 538.763 571.076 529.262 587.252 520.392L555.481 626.859C555.454 628.898 556.734 636.24 557.108 638.671C519.289 664.155 483.075 691.947 448.673 721.889C458.492 689.841 466.907 656.985 476.584 624.839C480.612 611.458 484.761 596.968 487.967 583.379C492.198 578.829 499.61 572.221 504.262 567.793C514.808 557.663 525.445 547.628 536.172 537.689C518.575 546.936 501.318 556.83 483.664 566.073L510.209 474.804C513.403 463.995 516.187 451.817 520.138 441.313C521.272 438.297 528.122 432.334 530.923 429.697C544.739 434.35 559.104 437.963 572.773 443.098C562.037 435.349 548.621 427.988 538.591 419.723C542.537 417.347 546.497 414.831 550.415 412.393C535.982 417.736 532.562 418.477 518.372 412.604C520.772 405.676 523.455 395.172 525.534 387.907L539.677 337.996C521.331 324.027 500.104 309.36 481.258 295.653C533.432 292.459 585.623 289.532 637.825 286.871C707.708 282.816 779.758 277.956 849.542 275.263Z" fill="url(#paint0_linear_3311_113)"/>
@@ -54,38 +57,56 @@ export default function FragifyLogo({ size = 40 }: Props) {
     <Path d="M961.637 486.201C959.371 491.12 957.516 494.091 954.626 498.731L953.787 496.747C956.402 493.119 958.863 489.702 961.637 486.201Z" fill="#5C15B2"/>
     </G>
     <Defs>
-    <LinearGradient id="paint0_linear_3311_113" x1="649.3" y1="717.725" x2="648.173" y2="276.645" gradientUnits="userSpaceOnUse">
-    <Stop stopColor={colors.textSecondary}/>
-    <Stop offset="1" stopColor={colors.textPrimary}/>
-    </LinearGradient>
-    <LinearGradient id="paint1_linear_3311_113" x1="784.038" y1="406.399" x2="873.092" y2="232.757" gradientUnits="userSpaceOnUse">
+    <SvgLinearGradient id="paint0_linear_3311_113" x1="649.3" y1="717.725" x2="648.173" y2="276.645" gradientUnits="userSpaceOnUse">
+    <Stop stopColor="#D6D5D6"/>
+    <Stop offset="1" stopColor="white"/>
+    </SvgLinearGradient>
+    <SvgLinearGradient id="paint1_linear_3311_113" x1="784.038" y1="406.399" x2="873.092" y2="232.757" gradientUnits="userSpaceOnUse">
     <Stop stopColor="#6A19D0"/>
     <Stop offset="1" stopColor="#A843FF"/>
-    </LinearGradient>
-    <LinearGradient id="paint2_linear_3311_113" x1="411.36" y1="429.17" x2="298.53" y2="305.113" gradientUnits="userSpaceOnUse">
+    </SvgLinearGradient>
+    <SvgLinearGradient id="paint2_linear_3311_113" x1="411.36" y1="429.17" x2="298.53" y2="305.113" gradientUnits="userSpaceOnUse">
     <Stop stopColor="#6714D5"/>
     <Stop offset="1" stopColor="#A944FF"/>
-    </LinearGradient>
-    <LinearGradient id="paint3_linear_3311_113" x1="921.935" y1="593.403" x2="896.481" y2="461.822" gradientUnits="userSpaceOnUse">
+    </SvgLinearGradient>
+    <SvgLinearGradient id="paint3_linear_3311_113" x1="921.935" y1="593.403" x2="896.481" y2="461.822" gradientUnits="userSpaceOnUse">
     <Stop stopColor="#2E0369"/>
     <Stop offset="1" stopColor="#7220D3"/>
-    </LinearGradient>
-    <LinearGradient id="paint4_linear_3311_113" x1="589.297" y1="190.606" x2="596.061" y2="287.66" gradientUnits="userSpaceOnUse">
+    </SvgLinearGradient>
+    <SvgLinearGradient id="paint4_linear_3311_113" x1="589.297" y1="190.606" x2="596.061" y2="287.66" gradientUnits="userSpaceOnUse">
     <Stop stopColor="#111121"/>
     <Stop offset="1" stopColor="#2C2B42"/>
-    </LinearGradient>
-    <LinearGradient id="paint5_linear_3311_113" x1="822.442" y1="736.419" x2="807.214" y2="593.917" gradientUnits="userSpaceOnUse">
+    </SvgLinearGradient>
+    <SvgLinearGradient id="paint5_linear_3311_113" x1="822.442" y1="736.419" x2="807.214" y2="593.917" gradientUnits="userSpaceOnUse">
     <Stop stopColor="#010019"/>
     <Stop offset="1" stopColor="#2C056A"/>
-    </LinearGradient>
-    <LinearGradient id="paint6_linear_3311_113" x1="808.965" y1="420.509" x2="884.076" y2="432.979" gradientUnits="userSpaceOnUse">
+    </SvgLinearGradient>
+    <SvgLinearGradient id="paint6_linear_3311_113" x1="808.965" y1="420.509" x2="884.076" y2="432.979" gradientUnits="userSpaceOnUse">
     <Stop stopColor="#0F0F1D"/>
     <Stop offset="1" stopColor="#27273F"/>
-    </LinearGradient>
+    </SvgLinearGradient>
     <ClipPath id="clip0_3311_113">
     <Rect width="1254" height="1254" fill="white"/>
     </ClipPath>
     </Defs>
     </Svg>
+  );
+
+  if (!withBackground) {
+    return mark;
+  }
+
+  const badgeSize = Math.round(size * 1.3);
+
+  return (
+    <LinearGradient
+      colors={['#7C3AED', '#4C1D95']}
+      style={{
+        width: badgeSize, height: badgeSize, borderRadius: badgeSize / 2,
+        justifyContent: 'center', alignItems: 'center',
+      }}
+    >
+      {mark}
+    </LinearGradient>
   );
 }
