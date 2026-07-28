@@ -21,6 +21,11 @@ type MenuAction = {
   onPress: () => void;
 };
 
+type MenuSection = {
+  title: string;
+  items: MenuAction[];
+};
+
 export default function ProfileScreen() {
   const router = useRouter();
   const tabNav = useTabNavigation();
@@ -130,21 +135,34 @@ export default function ProfileScreen() {
   const canBecomeHost = profile?.role !== 'host' && profile?.host_status !== 'pending';
   const isAdmin = !!profile?.is_admin;
 
-  const menuActions: MenuAction[] = [
-    ...(canBecomeHost ? [{
-      key: 'become-host', icon: 'trophy' as const, color: colors.warning,
-      label: 'Become a Host', onPress: () => router.push('/request-host-access'),
+  const menuSections: MenuSection[] = [
+    {
+      title: 'ACCOUNT',
+      items: [
+        ...(canBecomeHost ? [{
+          key: 'become-host', icon: 'trophy' as const, color: colors.warning,
+          label: 'Become a Host', onPress: () => router.push('/request-host-access'),
+        }] : []),
+        { key: 'edit-profile', icon: 'create' as const, color: colors.success, label: 'Edit Profile', onPress: () => router.push('/edit-profile') },
+        { key: 'game-details', icon: 'game-controller' as const, color: colors.warning, label: 'My Games', onPress: () => router.push('/game-details') },
+      ],
+    },
+    ...(isAdmin ? [{
+      title: 'ADMIN TOOLS',
+      items: [
+        { key: 'admin-broadcast', icon: 'megaphone' as const, color: colors.accent, label: 'Admin Broadcast', onPress: () => router.push('/admin-broadcast') },
+        { key: 'admin-host-requests', icon: 'trophy' as const, color: colors.accent, label: 'Host Requests', onPress: () => router.push('/admin-host-requests') },
+        { key: 'switch-role', icon: 'sync' as const, color: colors.accent, label: 'Switch Role', onPress: handleSwitchRole },
+        { key: 'admin-reports', icon: 'warning' as const, color: colors.accent, label: 'Reports', onPress: () => router.push('/admin-reports') },
+      ],
     }] : []),
-    { key: 'edit-profile', icon: 'create' as const, color: colors.success, label: 'Edit Profile', onPress: () => router.push('/edit-profile') },
-    { key: 'game-details', icon: 'game-controller' as const, color: colors.warning, label: 'My Games', onPress: () => router.push('/game-details') },
-    ...(isAdmin ? [
-      { key: 'admin-broadcast', icon: 'megaphone' as const, color: colors.accent, label: 'Admin Broadcast', onPress: () => router.push('/admin-broadcast') },
-      { key: 'admin-host-requests', icon: 'trophy' as const, color: colors.accent, label: 'Host Requests', onPress: () => router.push('/admin-host-requests') },
-      { key: 'switch-role', icon: 'sync' as const, color: colors.accent, label: 'Switch Role', onPress: handleSwitchRole },
-      { key: 'admin-reports', icon: 'warning' as const, color: colors.accent, label: 'Reports', onPress: () => router.push('/admin-reports') },
-    ] : []),
-    { key: 'settings', icon: 'settings' as const, color: colors.textTertiary, label: 'Settings', onPress: () => router.push('/settings') },
-    { key: 'support', icon: 'help-circle' as const, color: '#4FA3FF', label: 'Support', onPress: () => router.push('/support') },
+    {
+      title: 'MORE',
+      items: [
+        { key: 'settings', icon: 'settings' as const, color: colors.textTertiary, label: 'Settings', onPress: () => router.push('/settings') },
+        { key: 'support', icon: 'help-circle' as const, color: '#4FA3FF', label: 'Support', onPress: () => router.push('/support') },
+      ],
+    },
   ];
 
   return (
@@ -157,81 +175,102 @@ export default function ProfileScreen() {
 
       {/* Profile Card */}
       <LinearGradient
-        colors={['#241a3a', '#150f24']}
+        colors={['#2d1b4e', '#1a0f2e', '#0d0619']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.profileCard}
       >
-        <Avatar avatarId={profile?.avatar_id} avatarUrl={profile?.avatar_url} username={profile?.display_name} size={68} />
+        <View style={styles.avatarRing}>
+          <Avatar avatarId={profile?.avatar_id} avatarUrl={profile?.avatar_url} username={profile?.display_name} size={72} />
+        </View>
         <View style={[styles.profileInfo, { marginLeft: 16 }]}>
           <Text style={styles.username}>{profile?.display_name ?? 'Unknown'}</Text>
           {profile?.username && <Text style={styles.handle}>@{profile.username}</Text>}
-          <View style={styles.roleBadge}>
+          <LinearGradient
+            colors={['#7C3AED', '#4C1D95']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.roleBadge}
+          >
             <Text style={styles.roleText}>
               {profile?.is_admin ? 'ADMIN' : (profile?.role?.toUpperCase() ?? 'PLAYER')}
             </Text>
-          </View>
+          </LinearGradient>
         </View>
       </LinearGradient>
 
       {/* Stats */}
-      <View style={styles.statsRow}>
-        <TouchableOpacity style={styles.statBox} onPress={() => tabNav?.goToTab('history')} activeOpacity={0.8}>
+      <View style={styles.statsCard}>
+        <TouchableOpacity style={styles.statItem} onPress={() => tabNav?.goToTab('history')} activeOpacity={0.75}>
+          <Ionicons name="trophy" size={16} color={colors.accent} style={styles.statIcon} />
           <Text style={styles.statValue}>{stats.tournaments}</Text>
           <Text style={styles.statLabel}>
-            {profile?.role === 'host' ? 'Tournaments\nCreated' : 'Tournaments\nJoined'}
+            {profile?.role === 'host' ? 'Created' : 'Joined'}
           </Text>
         </TouchableOpacity>
+        <View style={styles.statDivider} />
         <TouchableOpacity
-          style={styles.statBox}
-          activeOpacity={0.8}
+          style={styles.statItem}
+          activeOpacity={0.75}
           onPress={() => profile?.id && router.push(`/follow-list?id=${profile.id}&type=followers`)}
         >
+          <Ionicons name="people" size={16} color={colors.accent} style={styles.statIcon} />
           <Text style={styles.statValue}>{followCounts.followers}</Text>
           <Text style={styles.statLabel}>Followers</Text>
         </TouchableOpacity>
+        <View style={styles.statDivider} />
         <TouchableOpacity
-          style={styles.statBox}
-          activeOpacity={0.8}
+          style={styles.statItem}
+          activeOpacity={0.75}
           onPress={() => profile?.id && router.push(`/follow-list?id=${profile.id}&type=following`)}
         >
+          <Ionicons name="person-add" size={16} color={colors.accent} style={styles.statIcon} />
           <Text style={styles.statValue}>{followCounts.following}</Text>
           <Text style={styles.statLabel}>Following</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Menu Items */}
-      <View style={styles.menu}>
-        {profile?.host_status === 'pending' && (
+      {profile?.host_status === 'pending' && (
+        <View style={styles.menuWrap}>
           <View style={[styles.menuItem, styles.pendingItem]}>
-            <View style={[styles.menuIconCircle, { backgroundColor: colors.warningMuted }]}>
+            <View style={[styles.menuIconCircle, { backgroundColor: colors.warningMuted, borderColor: colors.warning + '55' }]}>
               <Ionicons name="hourglass" size={18} color={colors.warning} />
             </View>
             <Text style={styles.pendingText}>Host Request Pending</Text>
           </View>
-        )}
+        </View>
+      )}
 
-        {menuActions.map((action) => (
-          <TouchableOpacity
-            key={action.key}
-            style={styles.menuItem}
-            onPress={action.onPress}
-            activeOpacity={0.8}
-          >
-            <View style={[styles.menuIconCircle, { backgroundColor: action.color + '22' }]}>
-              <Ionicons name={action.icon} size={18} color={action.color} />
-            </View>
-            <Text style={styles.menuText}>{action.label}</Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.textDisabled} />
-          </TouchableOpacity>
-        ))}
+      {/* Menu Sections */}
+      {menuSections.map((section) => (
+        <View key={section.title} style={styles.menuWrap}>
+          <Text style={styles.sectionLabel}>{section.title}</Text>
+          <View style={styles.menu}>
+            {section.items.map((action) => (
+              <TouchableOpacity
+                key={action.key}
+                style={styles.menuItem}
+                onPress={action.onPress}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.menuIconCircle, { backgroundColor: action.color + '1c', borderColor: action.color + '44' }]}>
+                  <Ionicons name={action.icon} size={18} color={action.color} />
+                </View>
+                <Text style={styles.menuText}>{action.label}</Text>
+                <Ionicons name="chevron-forward" size={18} color={colors.textDisabled} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      ))}
 
+      <View style={styles.menuWrap}>
         <TouchableOpacity style={[styles.menuItem, styles.logoutItem]} onPress={handleLogout} activeOpacity={0.8}>
-          <View style={[styles.menuIconCircle, { backgroundColor: colors.errorMuted }]}>
+          <View style={[styles.menuIconCircle, { backgroundColor: colors.errorMuted, borderColor: colors.error + '44' }]}>
             <Ionicons name="log-out" size={18} color={colors.error} />
           </View>
           <Text style={styles.logoutText}>Logout</Text>
-          <Ionicons name="chevron-forward" size={18} color="#442222" />
+          <Ionicons name="chevron-forward" size={18} color={colors.error + '66'} />
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -249,45 +288,54 @@ function getStyles(colors: ThemeColors) {
     },
     headerTitle: { fontSize: 26, fontWeight: '800', color: colors.textPrimary },
 
-    handle: { color: colors.textTertiary, fontSize: 13, fontWeight: '600', marginBottom: 6 },
+    handle: { color: '#c9b8ea', fontSize: 13, fontWeight: '600', marginBottom: 8 },
 
     profileCard: {
       flexDirection: 'row', alignItems: 'center',
       margin: 24, marginTop: 0,
-      borderRadius: 18, padding: 20, borderWidth: 1, borderColor: '#2f2447',
-      shadowColor: colors.accent, shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.25, shadowRadius: 12, elevation: 6,
+      borderRadius: 22, padding: 20, borderWidth: 1, borderColor: '#3a2c5c',
+      shadowColor: colors.accent, shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.3, shadowRadius: 16, elevation: 8,
+    },
+    avatarRing: {
+      padding: 3, borderRadius: 40, borderWidth: 2, borderColor: colors.accent,
     },
     profileInfo: { flex: 1 },
-    username: { fontSize: 20, fontWeight: '800', color: colors.textPrimary, marginBottom: 6 },
+    username: { fontSize: 20, fontWeight: '800', color: '#fff', marginBottom: 4 },
     roleBadge: {
-      alignSelf: 'flex-start', backgroundColor: '#7C3AED33',
-      paddingHorizontal: 10, paddingVertical: 3,
-      borderRadius: 20, borderWidth: 1, borderColor: colors.accent,
-      marginBottom: 2,
+      alignSelf: 'flex-start',
+      paddingHorizontal: 12, paddingVertical: 4,
+      borderRadius: 20,
     },
-    roleText: { color: '#B794F6', fontSize: 11, fontWeight: '700' },
-    statsRow: {
-      flexDirection: 'row', marginHorizontal: 24,
-      marginBottom: 24, gap: 12,
+    roleText: { color: '#fff', fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
+
+    statsCard: {
+      flexDirection: 'row', marginHorizontal: 24, marginBottom: 24,
+      backgroundColor: colors.surface, borderRadius: 20,
+      borderWidth: 1, borderColor: colors.borderMuted, paddingVertical: 18,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.25, shadowRadius: 8, elevation: 3,
     },
-    statBox: {
-      flex: 1, backgroundColor: colors.surface, borderRadius: 14,
-      padding: 16, alignItems: 'center', borderWidth: 1, borderColor: colors.borderMuted,
-      shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.3, shadowRadius: 6, elevation: 3,
+    statItem: { flex: 1, alignItems: 'center' },
+    statIcon: { marginBottom: 6 },
+    statDivider: { width: 1, backgroundColor: colors.border, marginVertical: 2 },
+    statValue: { fontSize: 20, fontWeight: '800', color: colors.textPrimary, marginBottom: 3 },
+    statLabel: { fontSize: 11, color: colors.textSecondary, textAlign: 'center' },
+
+    menuWrap: { marginHorizontal: 24, marginBottom: 22 },
+    sectionLabel: {
+      fontSize: 11, color: colors.textMuted, fontWeight: '700',
+      letterSpacing: 1.2, marginBottom: 10, marginLeft: 4,
     },
-    statValue: { fontSize: 22, fontWeight: '800', color: colors.accent, marginBottom: 4 },
-    statLabel: { fontSize: 11, color: colors.textSecondary, textAlign: 'center', lineHeight: 16 },
-    menu: { marginHorizontal: 24, gap: 10 },
+    menu: { gap: 10 },
     menuItem: {
       flexDirection: 'row', alignItems: 'center', gap: 12,
-      backgroundColor: colors.surface, borderRadius: 14,
+      backgroundColor: colors.surface, borderRadius: 16,
       padding: 14, borderWidth: 1, borderColor: colors.borderMuted,
     },
     menuIconCircle: {
-      width: 38, height: 38, borderRadius: 19,
-      justifyContent: 'center', alignItems: 'center',
+      width: 40, height: 40, borderRadius: 20,
+      justifyContent: 'center', alignItems: 'center', borderWidth: 1,
     },
     menuText: { flex: 1, color: colors.textPrimary, fontSize: 15, fontWeight: '600' },
     pendingItem: { borderColor: '#3a3a00', backgroundColor: '#1a1a0088' },

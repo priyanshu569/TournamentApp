@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '@/lib/supabase';
 import Avatar from '@/components/Avatar';
+import GradientIconBadge from '@/components/GradientIconBadge';
 import { formatRelativeTime } from '@/lib/time';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
@@ -125,16 +126,14 @@ export default function ChatInboxScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <View style={styles.headerIconBadge}>
-            <Ionicons name="chatbubbles" size={20} color={colors.accent} />
-          </View>
+          <GradientIconBadge icon="chatbubbles" size={44} colors={['#7C3AED', '#4C1D95']} />
           <Text style={styles.headerTitle}>Chats</Text>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity onPress={() => router.push('/search-users')} style={styles.newGroupBtn}>
+          <TouchableOpacity onPress={() => router.push('/search-users')} style={styles.headerBtn}>
             <Ionicons name="search" size={18} color={colors.accent} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push('/new-group')} style={styles.newGroupBtn}>
+          <TouchableOpacity onPress={() => router.push('/new-group')} style={styles.headerBtn}>
             <Ionicons name="people" size={20} color={colors.accent} />
           </TouchableOpacity>
         </View>
@@ -150,50 +149,59 @@ export default function ChatInboxScreen() {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <View style={styles.emptyIconCircle}>
-                <Ionicons name="chatbubble-ellipses-outline" size={28} color={colors.textDisabled} />
-              </View>
+              <GradientIconBadge
+                icon="chatbubble-ellipses-outline"
+                size={72}
+                colors={[colors.surfaceAlt, colors.surfaceAlt]}
+                iconColor={colors.textDisabled}
+                glowColor="transparent"
+              />
               <Text style={styles.emptyText}>
                 No conversations yet. Message someone from their profile, or start a group.
               </Text>
             </View>
           }
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.row}
-              activeOpacity={0.85}
-              onPress={() => router.push(`/chat-thread?id=${item.id}`)}
-            >
-              {item.type === 'direct' ? (
-                <Avatar avatarId={item.avatarId} avatarUrl={item.avatarUrl} username={item.avatarUsername} size={50} />
-              ) : (
-                <LinearGradient colors={['#7C3AED', '#4C1D95']} style={styles.groupIcon}>
-                  <Ionicons name="people" size={22} color="#fff" />
-                </LinearGradient>
-              )}
-              <View style={styles.rowInfo}>
-                <Text style={styles.rowTitle} numberOfLines={1}>{item.title}</Text>
-                <Text
-                  style={[styles.rowPreview, item.unreadCount > 0 && styles.rowPreviewUnread]}
-                  numberOfLines={1}
-                >
-                  {item.lastMessage ?? 'No messages yet'}
-                </Text>
-              </View>
-              <View style={styles.rowRight}>
-                <Text style={[styles.rowTime, item.unreadCount > 0 && styles.rowTimeUnread]}>
-                  {formatRelativeTime(item.lastMessageAt)}
-                </Text>
-                {item.unreadCount > 0 && (
-                  <View style={styles.unreadBadge}>
-                    <Text style={styles.unreadBadgeText}>
-                      {item.unreadCount > 9 ? '9+' : item.unreadCount}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </TouchableOpacity>
-          )}
+          renderItem={({ item }) => {
+            const isUnread = item.unreadCount > 0;
+            return (
+              <TouchableOpacity
+                style={[styles.row, isUnread && styles.rowUnread]}
+                activeOpacity={0.85}
+                onPress={() => router.push(`/chat-thread?id=${item.id}`)}
+              >
+                <View style={[styles.avatarRing, isUnread && styles.avatarRingUnread]}>
+                  {item.type === 'direct' ? (
+                    <Avatar avatarId={item.avatarId} avatarUrl={item.avatarUrl} username={item.avatarUsername} size={50} />
+                  ) : (
+                    <LinearGradient colors={['#7C3AED', '#4C1D95']} style={styles.groupIcon}>
+                      <Ionicons name="people" size={22} color="#fff" />
+                    </LinearGradient>
+                  )}
+                </View>
+                <View style={styles.rowInfo}>
+                  <Text style={styles.rowTitle} numberOfLines={1}>{item.title}</Text>
+                  <Text
+                    style={[styles.rowPreview, isUnread && styles.rowPreviewUnread]}
+                    numberOfLines={1}
+                  >
+                    {item.lastMessage ?? 'No messages yet'}
+                  </Text>
+                </View>
+                <View style={styles.rowRight}>
+                  <Text style={[styles.rowTime, isUnread && styles.rowTimeUnread]}>
+                    {formatRelativeTime(item.lastMessageAt)}
+                  </Text>
+                  {isUnread && (
+                    <View style={styles.unreadBadge}>
+                      <Text style={styles.unreadBadgeText}>
+                        {item.unreadCount > 9 ? '9+' : item.unreadCount}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
+            );
+          }}
         />
       )}
     </View>
@@ -205,40 +213,42 @@ function getStyles(colors: ThemeColors) {
     container: { flex: 1, backgroundColor: colors.background },
     header: {
       flexDirection: 'row', justifyContent: 'space-between',
-      alignItems: 'center', paddingHorizontal: 24, paddingTop: 60, paddingBottom: 16,
+      alignItems: 'center', paddingHorizontal: 24, paddingTop: 60, paddingBottom: 20,
     },
-    headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
     headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    headerIconBadge: {
-      width: 40, height: 40, borderRadius: 12,
-      backgroundColor: colors.accentMuted, justifyContent: 'center', alignItems: 'center',
-    },
-    headerTitle: { fontSize: 22, fontWeight: '800', color: colors.textPrimary },
-    newGroupBtn: {
-      width: 36, height: 36, borderRadius: 18, backgroundColor: colors.accentMuted,
+    headerTitle: { fontSize: 24, fontWeight: '800', color: colors.textPrimary, letterSpacing: 0.2 },
+    headerBtn: {
+      width: 38, height: 38, borderRadius: 19, backgroundColor: colors.accentMuted,
       justifyContent: 'center', alignItems: 'center',
+      borderWidth: 1, borderColor: colors.accentMutedStrong,
     },
     listContent: { padding: 24, paddingTop: 4 },
-    emptyContainer: { alignItems: 'center', marginTop: 60, paddingHorizontal: 20 },
-    emptyIconCircle: {
-      width: 64, height: 64, borderRadius: 32, backgroundColor: colors.surfaceAlt,
-      justifyContent: 'center', alignItems: 'center', marginBottom: 16,
-      borderWidth: 1, borderColor: colors.border,
-    },
-    emptyText: { color: colors.textFaint, textAlign: 'center' },
+    emptyContainer: { alignItems: 'center', marginTop: 60, paddingHorizontal: 20, gap: 16 },
+    emptyText: { color: colors.textFaint, textAlign: 'center', lineHeight: 20 },
     row: {
-      flexDirection: 'row', alignItems: 'center', gap: 12,
-      backgroundColor: colors.surface, borderRadius: 14, padding: 14,
-      marginBottom: 10, borderWidth: 1, borderColor: colors.borderMuted,
+      flexDirection: 'row', alignItems: 'center', gap: 14,
+      backgroundColor: colors.surface, borderRadius: 20, padding: 14,
+      marginBottom: 12, borderWidth: 1, borderColor: colors.borderMuted,
       shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3, shadowRadius: 8, elevation: 4,
+      shadowOpacity: 0.25, shadowRadius: 8, elevation: 3,
     },
+    rowUnread: {
+      backgroundColor: colors.accentMuted,
+      borderColor: colors.accentMutedStrong,
+      shadowColor: colors.accent,
+      shadowOpacity: 0.2,
+    },
+    avatarRing: {
+      padding: 2, borderRadius: 29, borderWidth: 1.5, borderColor: 'transparent',
+    },
+    avatarRingUnread: { borderColor: colors.accent },
     groupIcon: {
       width: 50, height: 50, borderRadius: 25,
       justifyContent: 'center', alignItems: 'center',
     },
     rowInfo: { flex: 1 },
-    rowTitle: { color: colors.textPrimary, fontSize: 15, fontWeight: '700', marginBottom: 2 },
+    rowTitle: { color: colors.textPrimary, fontSize: 15, fontWeight: '700', marginBottom: 3 },
     rowPreview: { color: colors.textTertiary, fontSize: 13 },
     rowPreviewUnread: { color: colors.textPrimary, fontWeight: '700' },
     rowRight: { alignItems: 'flex-end', gap: 6 },
