@@ -78,11 +78,16 @@ export default function ChatThreadScreen() {
       setOtherUser(other ?? null);
     }
 
-    const { data: msgs } = await supabase
+    const { data: msgs, error: msgsError } = await supabase
       .from('messages')
       .select('*')
       .eq('conversation_id', id)
       .order('created_at', { ascending: true });
+
+    if (msgsError) {
+      console.log('Failed to load messages:', msgsError.message);
+      Alert.alert('Error loading messages', msgsError.message);
+    }
 
     setMessages(msgs ?? []);
     setLoading(false);
@@ -100,6 +105,9 @@ export default function ChatThreadScreen() {
 
     if (!error) {
       setText('');
+    } else {
+      console.log('Failed to send message:', error.message);
+      Alert.alert('Message not sent', error.message);
     }
     setSending(false);
   }
@@ -294,7 +302,8 @@ const styles = StyleSheet.create({
   messageText: { color: '#fff', fontSize: 14, lineHeight: 20 },
   inputRow: {
     flexDirection: 'row', alignItems: 'flex-end', gap: 10,
-    padding: 12, borderTopWidth: 1, borderTopColor: '#1a1a1a',
+    paddingHorizontal: 12, paddingTop: 12, paddingBottom: 34,
+    borderTopWidth: 1, borderTopColor: '#1a1a1a',
   },
   input: {
     flex: 1, backgroundColor: '#1a1a1a', color: '#fff', borderRadius: 20,
