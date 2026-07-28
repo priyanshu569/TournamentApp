@@ -101,7 +101,7 @@ export default function FragifyLogo({ size = 40, withBackground = true }: Props)
   return (
     <View
       style={{
-        width: badgeSize, height: badgeSize, borderRadius: badgeSize / 2,
+        width: badgeSize, height: badgeSize, borderRadius: Math.round(badgeSize * 0.3),
         backgroundColor: '#000000', justifyContent: 'center', alignItems: 'center',
       }}
     >
