@@ -1,13 +1,13 @@
+import { View } from 'react-native';
 import Svg, {
   Path, G, Defs, LinearGradient as SvgLinearGradient, Stop, ClipPath, Rect,
 } from 'react-native-svg';
-import { LinearGradient } from 'expo-linear-gradient';
 
 type Props = {
   size?: number;
   // The mark itself is drawn pure white/light -- fine on the app's
   // original all-dark background, invisible on a light-mode background.
-  // Default true wraps it in a constant purple badge so it stays legible
+  // Default true wraps it in a constant black badge so it stays legible
   // in both themes without recoloring the mark.
   withBackground?: boolean;
 };
@@ -99,14 +99,13 @@ export default function FragifyLogo({ size = 40, withBackground = true }: Props)
   const badgeSize = Math.round(size * 1.3);
 
   return (
-    <LinearGradient
-      colors={['#7C3AED', '#4C1D95']}
+    <View
       style={{
         width: badgeSize, height: badgeSize, borderRadius: badgeSize / 2,
-        justifyContent: 'center', alignItems: 'center',
+        backgroundColor: '#000000', justifyContent: 'center', alignItems: 'center',
       }}
     >
       {mark}
-    </LinearGradient>
+    </View>
   );
 }
