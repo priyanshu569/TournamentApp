@@ -11,6 +11,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import NotificationBell from '@/components/NotificationBell';
 import FragifyLogo from '@/components/FragifyLogo';
+import ShimmerSweep from '@/components/ShimmerSweep';
 import LeaderboardIcon from '@/components/LeaderboardIcon';
 import GradientIconBadge from '@/components/GradientIconBadge';
 import { useTabNavigation } from '@/lib/tabNavigation';
@@ -183,17 +184,19 @@ export default function HomeScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <FragifyLogo size={40} />
-          <View>
-            <Text style={styles.appName}>FRAGIFY</Text>
-            <Text style={styles.appTagline}>ESPORTS · COMPETE · WIN</Text>
+      <View style={styles.headerWrap}>
+        <ShimmerSweep style={styles.header}>
+          <View style={styles.headerLeft}>
+            <FragifyLogo size={40} />
+            <View>
+              <Text style={styles.appName}>FRAGIFY</Text>
+              <Text style={styles.appTagline}>ESPORTS · COMPETE · WIN</Text>
+            </View>
           </View>
-        </View>
-        <View style={styles.headerRight}>
-          <NotificationBell />
-        </View>
+          <View style={styles.headerRight}>
+            <NotificationBell />
+          </View>
+        </ShimmerSweep>
       </View>
 
       {/* Hero */}
@@ -294,9 +297,12 @@ function getStyles(colors: ThemeColors) {
     container: { flex: 1, backgroundColor: colors.background },
     content: { paddingBottom: 32 },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+    headerWrap: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 16 },
     header: {
-      flexDirection: 'row', justifyContent: 'space-between',
-      alignItems: 'center', padding: 24, paddingTop: 60, paddingBottom: 16,
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+      backgroundColor: colors.surface, borderRadius: 16,
+      borderWidth: 1, borderColor: colors.borderMuted,
+      paddingHorizontal: 16, paddingVertical: 12,
     },
     headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     headerRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
