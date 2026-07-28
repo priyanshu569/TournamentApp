@@ -29,7 +29,7 @@ export default function HomeScreen() {
   const styles = useMemo(() => getStyles(colors), [colors]);
   const [role, setRole] = useState<string | null>(null);
   const [hostStatus, setHostStatus] = useState<string | null>(null);
-  const [displayName, setDisplayName] = useState('');
+  const [username, setUsername] = useState('');
   const [tournaments, setTournaments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -56,13 +56,13 @@ export default function HomeScreen() {
 
     const { data: profile } = await supabase
       .from('Profiles')
-      .select('role, display_name, host_status')
+      .select('role, username, host_status')
       .eq('id', userData.user.id)
       .single();
 
     if (profile) {
       setRole(profile.role);
-      setDisplayName(profile.display_name || '');
+      setUsername(profile.username || '');
       setHostStatus(profile.host_status);
     }
 
@@ -213,7 +213,7 @@ export default function HomeScreen() {
         style={styles.hero}
       >
         <Text style={styles.heroGreeting}>
-          {isHost ? `Welcome back, ${displayName} 🏆` : `Hey ${displayName} 🎮`}
+          {isHost ? `Welcome back, ${username} 🏆` : `Hey ${username} 🎮`}
         </Text>
         <Text style={styles.heroSub}>
           {isHost ? 'Manage your tournaments and grow your community' : 'Find your next tournament and claim victory'}
