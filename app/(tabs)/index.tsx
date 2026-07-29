@@ -120,6 +120,7 @@ export default function HomeScreen() {
     { key: 'leaderboard', label: 'Leaderboard', onPress: () => router.push('/leaderboard') },
     { key: 'history', label: isHost ? 'Tournaments' : 'Registrations', onPress: () => tabNav?.goToTab('history') },
     { key: 'chat', label: 'Chats', onPress: () => tabNav?.goToTab('chat') },
+    { key: 'worldchat', label: 'World Chat', onPress: () => router.push('/world-chat') },
     ...(canBecomeHost
       ? [{ key: 'host', label: 'Become a Host', onPress: () => router.push('/request-host-access') }]
       : []),
@@ -256,6 +257,14 @@ export default function HomeScreen() {
                   size={52}
                   colors={['#9B6BFF', '#7C3AED', '#4C1D95']}
                   glowColor="#7C3AED"
+                />
+              )}
+              {action.key === 'worldchat' && (
+                <GradientIconBadge
+                  icon="globe"
+                  size={52}
+                  colors={['#7BFFE0', '#00D4AA', '#00897B']}
+                  glowColor="#00D4AA"
                 />
               )}
               {action.key === 'host' && (

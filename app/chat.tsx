@@ -158,22 +158,6 @@ export default function ChatInboxScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          ListHeaderComponent={
-            <TouchableOpacity
-              style={styles.worldChatRow}
-              activeOpacity={0.85}
-              onPress={() => router.push('/world-chat')}
-            >
-              <LinearGradient colors={['#00D4AA', '#00897B']} style={styles.worldChatIcon}>
-                <Ionicons name="globe" size={24} color="#fff" />
-              </LinearGradient>
-              <View style={styles.rowInfo}>
-                <Text style={styles.rowTitle}>World Chat</Text>
-                <Text style={styles.rowPreview}>Public community chat — anyone can post</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
-            </TouchableOpacity>
-          }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <GradientIconBadge
@@ -253,17 +237,6 @@ function getStyles(colors: ThemeColors) {
     listContent: { padding: 24, paddingTop: 4 },
     emptyContainer: { alignItems: 'center', marginTop: 60, paddingHorizontal: 20, gap: 16 },
     emptyText: { color: colors.textFaint, textAlign: 'center', lineHeight: 20 },
-    worldChatRow: {
-      flexDirection: 'row', alignItems: 'center', gap: 14,
-      backgroundColor: colors.surface, borderRadius: 20, padding: 14,
-      marginBottom: 14, borderWidth: 1, borderColor: '#00D4AA33',
-      shadowColor: '#00D4AA', shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.15, shadowRadius: 8, elevation: 3,
-    },
-    worldChatIcon: {
-      width: 50, height: 50, borderRadius: 25,
-      justifyContent: 'center', alignItems: 'center',
-    },
     row: {
       flexDirection: 'row', alignItems: 'center', gap: 14,
       backgroundColor: colors.surface, borderRadius: 20, padding: 14,
