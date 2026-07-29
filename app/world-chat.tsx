@@ -159,7 +159,7 @@ export default function WorldChatScreen() {
             <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
           </TouchableOpacity>
           <View style={styles.headerTitleRow}>
-            <LinearGradient colors={['#00D4AA', '#00897B']} style={styles.headerIcon}>
+            <LinearGradient colors={['#2E9BFF', '#0F5FA6']} style={styles.headerIcon}>
               <Ionicons name="globe" size={18} color="#fff" />
             </LinearGradient>
             <Text style={styles.headerTitle}>World Chat</Text>

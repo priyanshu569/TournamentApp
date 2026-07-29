@@ -254,8 +254,8 @@ export default function HomeScreen() {
                 <GradientIconBadge
                   icon="globe"
                   size={52}
-                  colors={['#7BFFE0', '#00D4AA', '#00897B']}
-                  glowColor="#00D4AA"
+                  colors={['#7BC8FF', '#2E9BFF', '#0F5FA6']}
+                  glowColor="#2E9BFF"
                 />
               )}
               {action.key === 'host' && (
