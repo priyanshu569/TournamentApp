@@ -1,3 +1,4 @@
+import { File } from 'expo-file-system';
 import { supabase } from './supabase';
 
 // Bucket is private (unlike the avatar/banner buckets) -- voice
@@ -9,13 +10,14 @@ export async function uploadVoiceMessage(
   senderId: string,
   localUri: string
 ): Promise<string> {
-  const response = await fetch(localUri);
-  const blob = await response.blob();
+  // fetch(localUri).blob() silently produces empty/corrupt blobs for
+  // local recording files on React Native -- read raw bytes instead.
+  const bytes = await new File(localUri).bytes();
   const path = `${conversationId}/${senderId}/${Date.now()}.m4a`;
 
   const { error } = await supabase.storage
     .from('chat-audio')
-    .upload(path, blob, { contentType: 'audio/m4a' });
+    .upload(path, bytes, { contentType: 'audio/m4a' });
 
   if (error) throw error;
   return path;
