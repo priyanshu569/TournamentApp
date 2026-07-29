@@ -47,6 +47,12 @@
         {
           "photosPermission": "Fragify uses your photos to let you set a tournament banner image."
         }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Fragify uses your microphone to record voice messages in chat."
+        }
       ]
     ],
     "experiments": {

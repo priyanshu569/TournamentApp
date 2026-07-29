@@ -8,20 +8,82 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, SharedValue } from 'react-native-reanimated';
+import {
+  useAudioRecorder, useAudioRecorderState, AudioModule, RecordingPresets, setAudioModeAsync,
+  useAudioPlayer, useAudioPlayerStatus,
+} from 'expo-audio';
 import { supabase } from '@/lib/supabase';
 import Avatar from '@/components/Avatar';
 import { formatClockTime, formatDayLabel, formatRelativeTime, isSameDay } from '@/lib/time';
+import { uploadVoiceMessage, getSignedVoiceMessageUrl, formatAudioDuration } from '@/lib/voiceMessage';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 
-function MessageBubble({ message, isMine, showSenderName, senderName, swipeX, seenLabel, styles }: {
+function VoiceMessagePlayer({ message, isMine, styles, colors }: {
+  message: any;
+  isMine: boolean;
+  styles: ReturnType<typeof getStyles>;
+  colors: ThemeColors;
+}) {
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (message.audio_url) {
+      getSignedVoiceMessageUrl(message.audio_url)
+        .then((url) => { if (!cancelled) setSignedUrl(url); })
+        .catch((err) => console.log('Failed to load voice message:', err.message));
+    }
+    return () => { cancelled = true; };
+  }, [message.audio_url]);
+
+  const player = useAudioPlayer(signedUrl);
+  const status = useAudioPlayerStatus(player);
+
+  function togglePlayback() {
+    if (!status.isLoaded) return;
+    if (status.playing) {
+      player.pause();
+    } else {
+      if (status.currentTime >= status.duration && status.duration > 0) {
+        player.seekTo(0);
+      }
+      player.play();
+    }
+  }
+
+  const progressPct = status.duration > 0 ? Math.min(100, (status.currentTime / status.duration) * 100) : 0;
+  const iconColor = isMine ? '#fff' : colors.textPrimary;
+
+  return (
+    <TouchableOpacity style={styles.audioRow} onPress={togglePlayback} disabled={!status.isLoaded}>
+      <View style={[styles.audioPlayBtn, isMine && styles.audioPlayBtnMine]}>
+        {status.isLoaded
+          ? <Ionicons name={status.playing ? 'pause' : 'play'} size={14} color={iconColor} />
+          : <ActivityIndicator size="small" color={iconColor} />
+        }
+      </View>
+      <View style={styles.audioProgressTrack}>
+        <View style={[styles.audioProgressFill, { width: `${progressPct}%` }, isMine && styles.audioProgressFillMine]} />
+      </View>
+      <Text style={[styles.audioDuration, isMine ? styles.messageTextMine : styles.messageTextTheirs]}>
+        {formatAudioDuration(message.audio_duration_seconds ?? 0)}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
+function MessageBubble({ message, isMine, showSenderName, senderName, senderAvatarId, senderAvatarUrl, swipeX, seenLabel, styles, colors }: {
   message: any;
   isMine: boolean;
   showSenderName: boolean;
   senderName: string;
+  senderAvatarId: string | null;
+  senderAvatarUrl: string | null;
   swipeX: SharedValue<number>;
   seenLabel: string | null;
   styles: ReturnType<typeof getStyles>;
+  colors: ThemeColors;
 }) {
   const bubbleAnimStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: swipeX.value }],
@@ -33,11 +95,18 @@ function MessageBubble({ message, isMine, showSenderName, senderName, swipeX, se
   return (
     <View>
       <View style={[styles.messageRow, isMine && styles.messageRowMine]}>
+        {!isMine && (
+          <Avatar avatarId={senderAvatarId} avatarUrl={senderAvatarUrl} username={senderName} size={28} />
+        )}
         <Animated.View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleTheirs, bubbleAnimStyle]}>
           {showSenderName && (
             <Text style={styles.senderName}>{senderName}</Text>
           )}
-          <Text style={[styles.messageText, isMine ? styles.messageTextMine : styles.messageTextTheirs]}>{message.content}</Text>
+          {message.audio_url ? (
+            <VoiceMessagePlayer message={message} isMine={isMine} styles={styles} colors={colors} />
+          ) : (
+            <Text style={[styles.messageText, isMine ? styles.messageTextMine : styles.messageTextTheirs]}>{message.content}</Text>
+          )}
         </Animated.View>
         <Animated.View style={[styles.swipeTimeWrap, timeAnimStyle]} pointerEvents="none">
           <Text style={styles.swipeTimeText}>{formatClockTime(message.created_at)}</Text>
@@ -58,7 +127,7 @@ export default function ChatThreadScreen() {
   const [myId, setMyId] = useState<string | null>(null);
   const [conversation, setConversation] = useState<any>(null);
   const [otherUser, setOtherUser] = useState<any>(null);
-  const [participantNames, setParticipantNames] = useState<Map<string, string>>(new Map());
+  const [participantProfiles, setParticipantProfiles] = useState<Map<string, any>>(new Map());
   const [participantList, setParticipantList] = useState<{ id: string; username: string }[]>([]);
   const [optionsVisible, setOptionsVisible] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -67,8 +136,13 @@ export default function ChatThreadScreen() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [uploadingAudio, setUploadingAudio] = useState(false);
   const listRef = useRef<FlatList>(null);
   const swipeX = useSharedValue(0);
+  const recordingStartRef = useRef<number>(0);
+  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorderState = useAudioRecorderState(audioRecorder, 200);
 
   useEffect(() => { loadThread(); }, [id]);
 
@@ -155,11 +229,11 @@ export default function ChatThreadScreen() {
     const participantIds = (participants ?? []).map((p: any) => p.user_id);
 
     const { data: profiles } = participantIds.length > 0
-      ? await supabase.from('public_profiles').select('id, display_name, avatar_id, avatar_url').in('id', participantIds)
+      ? await supabase.from('public_profiles').select('id, username, display_name, avatar_id, avatar_url').in('id', participantIds)
       : { data: [] };
 
-    const nameMap = new Map((profiles ?? []).map((p: any) => [p.id, p.display_name ?? 'Unknown']));
-    setParticipantNames(nameMap);
+    const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
+    setParticipantProfiles(profileMap);
     setParticipantList(
       (profiles ?? [])
         .filter((p: any) => p.id !== me)
@@ -207,6 +281,64 @@ export default function ChatThreadScreen() {
       Alert.alert('Message not sent', error.message);
     }
     setSending(false);
+  }
+
+  async function startRecording() {
+    const permission = await AudioModule.requestRecordingPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Microphone access needed', 'Enable microphone access to record voice messages.');
+      return;
+    }
+
+    await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+    await audioRecorder.prepareToRecordAsync();
+    audioRecorder.record();
+    recordingStartRef.current = Date.now();
+    setIsRecording(true);
+  }
+
+  async function cancelRecording() {
+    setIsRecording(false);
+    try {
+      await audioRecorder.stop();
+    } catch (err) {
+      console.log('Failed to cancel recording:', err);
+    }
+  }
+
+  async function stopAndSendRecording() {
+    if (!myId) return;
+    setIsRecording(false);
+
+    let uri: string | null = null;
+    try {
+      await audioRecorder.stop();
+      uri = audioRecorder.uri;
+    } catch (err) {
+      console.log('Failed to stop recording:', err);
+    }
+
+    if (!uri) return;
+
+    const durationSeconds = Math.round((Date.now() - recordingStartRef.current) / 1000);
+    setUploadingAudio(true);
+
+    try {
+      const path = await uploadVoiceMessage(id, myId, uri);
+      const { error } = await supabase.from('messages').insert({
+        conversation_id: id,
+        sender_id: myId,
+        content: '🎤 Voice message',
+        audio_url: path,
+        audio_duration_seconds: durationSeconds,
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      console.log('Failed to send voice message:', err.message);
+      Alert.alert('Voice message not sent', err.message ?? 'Please try again.');
+    }
+
+    setUploadingAudio(false);
   }
 
   function confirmLeaveGroup() {
@@ -275,7 +407,12 @@ export default function ChatThreadScreen() {
                 <Ionicons name="people" size={16} color="#fff" />
               </LinearGradient>
             )}
-            <Text style={styles.headerTitle} numberOfLines={1}>{title}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.headerTitle} numberOfLines={1}>{title}</Text>
+              {conversation?.conversation_type === 'direct' && otherUser?.username && (
+                <Text style={styles.headerSubtitle} numberOfLines={1}>@{otherUser.username}</Text>
+              )}
+            </View>
           </TouchableOpacity>
           {conversation?.conversation_type === 'group' ? (
             <TouchableOpacity onPress={() => setOptionsVisible(true)} style={styles.reportBtn}>
@@ -303,12 +440,15 @@ export default function ChatThreadScreen() {
               }
 
               const isMine = item.sender_id === myId;
+              const sender = participantProfiles.get(item.sender_id);
               return (
                 <MessageBubble
                   message={item}
                   isMine={isMine}
                   showSenderName={!isMine && conversation?.conversation_type === 'group'}
-                  senderName={participantNames.get(item.sender_id) ?? 'Unknown'}
+                  senderName={sender?.display_name ?? 'Unknown'}
+                  senderAvatarId={sender?.avatar_id ?? null}
+                  senderAvatarUrl={sender?.avatar_url ?? null}
                   swipeX={swipeX}
                   seenLabel={
                     showSeenOnLast && item.id === lastMessage?.id
@@ -316,28 +456,52 @@ export default function ChatThreadScreen() {
                       : null
                   }
                   styles={styles}
+                  colors={colors}
                 />
               );
             }}
           />
         </GestureDetector>
 
-        <View style={[styles.inputRow, { paddingBottom: keyboardVisible ? 12 : 34 }]}>
-          <TextInput
-            style={styles.input}
-            placeholder="Message..."
-            placeholderTextColor={colors.textFaint}
-            value={text}
-            onChangeText={setText}
-            multiline
-          />
-          <TouchableOpacity style={styles.sendBtn} onPress={handleSend} disabled={sending || !text.trim()}>
-            {sending
-              ? <ActivityIndicator size="small" color="#fff" />
-              : <Ionicons name="send" size={18} color="#fff" />
-            }
-          </TouchableOpacity>
-        </View>
+        {isRecording ? (
+          <View style={[styles.inputRow, { paddingBottom: keyboardVisible ? 12 : 34 }]}>
+            <View style={styles.recordingIndicator}>
+              <View style={styles.recordingDot} />
+              <Text style={styles.recordingText}>
+                Recording... {formatAudioDuration(recorderState.durationMillis / 1000)}
+              </Text>
+            </View>
+            <TouchableOpacity style={styles.recordingCancelBtn} onPress={cancelRecording}>
+              <Ionicons name="close" size={20} color={colors.error} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.sendBtn} onPress={stopAndSendRecording} disabled={uploadingAudio}>
+              {uploadingAudio
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Ionicons name="checkmark" size={20} color="#fff" />
+              }
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={[styles.inputRow, { paddingBottom: keyboardVisible ? 12 : 34 }]}>
+            <TextInput
+              style={styles.input}
+              placeholder="Message..."
+              placeholderTextColor={colors.textFaint}
+              value={text}
+              onChangeText={setText}
+              multiline
+            />
+            <TouchableOpacity style={styles.micBtn} onPress={startRecording}>
+              <Ionicons name="mic" size={20} color={colors.accent} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.sendBtn} onPress={handleSend} disabled={sending || !text.trim()}>
+              {sending
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Ionicons name="send" size={18} color="#fff" />
+              }
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       <Modal
@@ -401,8 +565,9 @@ function getStyles(colors: ThemeColors) {
       justifyContent: 'center', alignItems: 'center',
     },
     reportBtn: { padding: 4, width: 26, alignItems: 'flex-end' },
-    headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, justifyContent: 'center' },
+    headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
     headerTitle: { color: colors.textPrimary, fontSize: 16, fontWeight: '800', flexShrink: 1 },
+    headerSubtitle: { color: colors.textFaint, fontSize: 12, fontWeight: '600', marginTop: 1 },
     messagesList: { padding: 16, paddingBottom: 24 },
     dateSeparatorRow: { alignItems: 'center', marginVertical: 12 },
     dateSeparatorText: {
@@ -411,7 +576,7 @@ function getStyles(colors: ThemeColors) {
       paddingHorizontal: 12, paddingVertical: 5, borderRadius: 12,
       overflow: 'hidden',
     },
-    messageRow: { flexDirection: 'row', marginBottom: 10 },
+    messageRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginBottom: 10 },
     messageRowMine: { justifyContent: 'flex-end' },
     bubble: { maxWidth: '78%', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10 },
     bubbleTheirs: { backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border },
@@ -439,6 +604,36 @@ function getStyles(colors: ThemeColors) {
       paddingHorizontal: 16, paddingVertical: 10, fontSize: 14,
       borderWidth: 1, borderColor: colors.border, maxHeight: 100,
     },
+    micBtn: {
+      width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center',
+      borderWidth: 1, borderColor: colors.border,
+    },
+    recordingIndicator: {
+      flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8,
+      backgroundColor: colors.surfaceAlt, borderRadius: 20,
+      paddingHorizontal: 16, paddingVertical: 12,
+      borderWidth: 1, borderColor: colors.error + '55',
+    },
+    recordingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.error },
+    recordingText: { color: colors.textPrimary, fontSize: 14, fontWeight: '600' },
+    recordingCancelBtn: {
+      width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center',
+      borderWidth: 1, borderColor: colors.border,
+    },
+    audioRow: { flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 160 },
+    audioPlayBtn: {
+      width: 28, height: 28, borderRadius: 14, backgroundColor: colors.accentMutedStrong,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    audioPlayBtnMine: { backgroundColor: '#ffffff33' },
+    audioProgressTrack: {
+      flex: 1, height: 3, borderRadius: 2, backgroundColor: colors.border, overflow: 'hidden',
+    },
+    audioProgressFill: { height: '100%', backgroundColor: colors.accent, borderRadius: 2 },
+    audioProgressFillMine: { backgroundColor: '#fff' },
+    audioDuration: { fontSize: 11, fontWeight: '600' },
     sendBtn: {
       width: 40, height: 40, borderRadius: 20,
       backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center',
