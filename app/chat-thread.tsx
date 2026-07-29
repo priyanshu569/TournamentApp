@@ -25,35 +25,94 @@ function VoiceMessagePlayer({ message, isMine, styles, colors }: {
   styles: ReturnType<typeof getStyles>;
   colors: ThemeColors;
 }) {
-  const player = useAudioPlayer(null);
-  const status = useAudioPlayerStatus(player);
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    setSignedUrl(null);
+    setLoadError(null);
     async function load() {
       if (!message.audio_url) return;
       try {
         const url = await getSignedVoiceMessageUrl(message.audio_url);
-        if (!cancelled) {
-          await player.replace(url);
-        }
+        if (!cancelled) setSignedUrl(url);
       } catch (err: any) {
-        console.log('Failed to load voice message:', err.message);
+        if (!cancelled) setLoadError(err?.message ?? 'Failed to load audio');
       }
     }
     load();
     return () => { cancelled = true; };
   }, [message.audio_url]);
 
+  const iconColor = isMine ? '#fff' : colors.textPrimary;
+  const durationLabel = formatAudioDuration(message.audio_duration_seconds ?? 0);
+
+  if (loadError) {
+    return (
+      <TouchableOpacity
+        style={styles.audioRow}
+        onPress={() => Alert.alert('Voice message error', loadError)}
+      >
+        <View style={[styles.audioPlayBtn, isMine && styles.audioPlayBtnMine]}>
+          <Ionicons name="alert-circle" size={16} color={colors.error} />
+        </View>
+        <Text style={[styles.audioDuration, isMine ? styles.messageTextMine : styles.messageTextTheirs]} numberOfLines={1}>
+          Couldn't load audio
+        </Text>
+      </TouchableOpacity>
+    );
+  }
+
+  if (!signedUrl) {
+    return (
+      <View style={styles.audioRow}>
+        <View style={[styles.audioPlayBtn, isMine && styles.audioPlayBtnMine]}>
+          <ActivityIndicator size="small" color={iconColor} />
+        </View>
+        <View style={styles.audioProgressTrack} />
+        <Text style={[styles.audioDuration, isMine ? styles.messageTextMine : styles.messageTextTheirs]}>
+          {durationLabel}
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <VoiceMessagePlayerReady
+      url={signedUrl}
+      durationLabel={durationLabel}
+      isMine={isMine}
+      styles={styles}
+      colors={colors}
+    />
+  );
+}
+
+function VoiceMessagePlayerReady({ url, durationLabel, isMine, styles, colors }: {
+  url: string;
+  durationLabel: string;
+  isMine: boolean;
+  styles: ReturnType<typeof getStyles>;
+  colors: ThemeColors;
+}) {
+  const player = useAudioPlayer(url);
+  const status = useAudioPlayerStatus(player);
+  const [playError, setPlayError] = useState<string | null>(null);
+
   function togglePlayback() {
-    if (!status.isLoaded) return;
-    if (status.playing) {
-      player.pause();
-    } else {
-      if (status.currentTime >= status.duration && status.duration > 0) {
-        player.seekTo(0);
+    try {
+      if (!status.isLoaded) return;
+      if (status.playing) {
+        player.pause();
+      } else {
+        if (status.currentTime >= status.duration && status.duration > 0) {
+          player.seekTo(0);
+        }
+        player.play();
       }
-      player.play();
+    } catch (err: any) {
+      setPlayError(err?.message ?? 'Failed to play audio');
     }
   }
 
@@ -61,9 +120,15 @@ function VoiceMessagePlayer({ message, isMine, styles, colors }: {
   const iconColor = isMine ? '#fff' : colors.textPrimary;
 
   return (
-    <TouchableOpacity style={styles.audioRow} onPress={togglePlayback} disabled={!status.isLoaded}>
+    <TouchableOpacity
+      style={styles.audioRow}
+      onPress={playError ? () => Alert.alert('Voice message error', playError) : togglePlayback}
+      disabled={!status.isLoaded && !playError}
+    >
       <View style={[styles.audioPlayBtn, isMine && styles.audioPlayBtnMine]}>
-        {status.isLoaded
+        {playError
+          ? <Ionicons name="alert-circle" size={16} color={colors.error} />
+          : status.isLoaded
           ? <Ionicons name={status.playing ? 'pause' : 'play'} size={14} color={iconColor} />
           : <ActivityIndicator size="small" color={iconColor} />
         }
@@ -72,7 +137,7 @@ function VoiceMessagePlayer({ message, isMine, styles, colors }: {
         <View style={[styles.audioProgressFill, { width: `${progressPct}%` }, isMine && styles.audioProgressFillMine]} />
       </View>
       <Text style={[styles.audioDuration, isMine ? styles.messageTextMine : styles.messageTextTheirs]}>
-        {formatAudioDuration(message.audio_duration_seconds ?? 0)}
+        {durationLabel}
       </Text>
     </TouchableOpacity>
   );
