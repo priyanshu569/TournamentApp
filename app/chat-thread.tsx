@@ -99,10 +99,23 @@ function VoiceMessagePlayerReady({ url, durationLabel, isMine, styles, colors }:
   const player = useAudioPlayer(url);
   const status = useAudioPlayerStatus(player);
   const [playError, setPlayError] = useState<string | null>(null);
+  const [timedOut, setTimedOut] = useState(false);
 
-  function togglePlayback() {
+  // useAudioPlayerStatus has no error field, so a corrupt/undecodable
+  // source just never sets isLoaded -- it would otherwise spin forever.
+  useEffect(() => {
+    if (status.isLoaded) return;
+    const t = setTimeout(() => setTimedOut(true), 8000);
+    return () => clearTimeout(t);
+  }, [status.isLoaded]);
+
+  async function togglePlayback() {
     try {
       if (!status.isLoaded) return;
+      // Audio session may still be routed for recording (earpiece-only
+      // playback) if this device recorded a voice message earlier in
+      // the session -- force it back to normal speaker playback first.
+      await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
       if (status.playing) {
         player.pause();
       } else {
@@ -116,17 +129,20 @@ function VoiceMessagePlayerReady({ url, durationLabel, isMine, styles, colors }:
     }
   }
 
+  const failed = !!playError || (timedOut && !status.isLoaded);
   const progressPct = status.duration > 0 ? Math.min(100, (status.currentTime / status.duration) * 100) : 0;
   const iconColor = isMine ? '#fff' : colors.textPrimary;
 
   return (
     <TouchableOpacity
       style={styles.audioRow}
-      onPress={playError ? () => Alert.alert('Voice message error', playError) : togglePlayback}
-      disabled={!status.isLoaded && !playError}
+      onPress={failed
+        ? () => Alert.alert('Voice message error', playError ?? 'This voice message could not be loaded. It may be corrupted.')
+        : togglePlayback}
+      disabled={!status.isLoaded && !failed}
     >
       <View style={[styles.audioPlayBtn, isMine && styles.audioPlayBtnMine]}>
-        {playError
+        {failed
           ? <Ionicons name="alert-circle" size={16} color={colors.error} />
           : status.isLoaded
           ? <Ionicons name={status.playing ? 'pause' : 'play'} size={14} color={iconColor} />
@@ -386,6 +402,9 @@ export default function ChatThreadScreen() {
     } catch (err) {
       console.log('Failed to cancel recording:', err);
     }
+    // Leaving allowsRecording on routes any later playback to the
+    // earpiece instead of the speaker -- restore normal playback mode.
+    await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
   }
 
   async function stopAndSendRecording() {
@@ -399,6 +418,7 @@ export default function ChatThreadScreen() {
     } catch (err) {
       console.log('Failed to stop recording:', err);
     }
+    await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
 
     if (!uri) return;
 
