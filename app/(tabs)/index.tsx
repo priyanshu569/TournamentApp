@@ -222,19 +222,13 @@ export default function HomeScreen() {
 
         <View style={styles.heroPillRow}>
           <View style={styles.heroPill}>
-            {liveNow.length > 0 ? (
-              <>
-                <View style={styles.heroLiveDot} />
-                <Text style={styles.heroPillText}>{liveNow.length} live right now</Text>
-              </>
-            ) : (
-              <Text style={styles.heroPillText}>No tournaments live right now</Text>
-            )}
+            <View style={styles.heroLiveDot} />
+            <Text style={styles.heroPillText}>{upcomingCount} upcoming tournament{upcomingCount !== 1 ? 's' : ''}</Text>
           </View>
-          <View style={styles.heroPill}>
-            <Ionicons name="calendar" size={12} color="#E9DDFF" />
-            <Text style={styles.heroPillText}>{upcomingCount} upcoming</Text>
-          </View>
+          <TouchableOpacity style={styles.heroExploreBtn} onPress={() => tabNav?.goToTab('events')}>
+            <Text style={styles.heroExploreBtnText}>Explore</Text>
+            <Ionicons name="arrow-forward" size={12} color="#fff" />
+          </TouchableOpacity>
         </View>
 
         {isHost && (
@@ -332,6 +326,12 @@ function getStyles(colors: ThemeColors) {
     },
     heroLiveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#00D4AA' },
     heroPillText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+    heroExploreBtn: {
+      flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start',
+      backgroundColor: '#ffffff26', paddingHorizontal: 12, paddingVertical: 7,
+      borderRadius: 20, gap: 5, borderWidth: 1, borderColor: '#ffffff3d',
+    },
+    heroExploreBtnText: { color: '#fff', fontSize: 12, fontWeight: '800' },
     createButton: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
       backgroundColor: '#fff', paddingVertical: 13, borderRadius: 12, marginTop: 16,
