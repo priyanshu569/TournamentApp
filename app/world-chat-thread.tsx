@@ -1,0 +1,316 @@
+import { useEffect, useMemo, useState } from 'react';
+import {
+  View, Text, StyleSheet, FlatList, TextInput,
+  TouchableOpacity, ActivityIndicator, Alert, KeyboardAvoidingView, Platform
+} from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '@/lib/supabase';
+import Avatar from '@/components/Avatar';
+import VerifiedBadge from '@/components/VerifiedBadge';
+import { formatRelativeTime } from '@/lib/time';
+import { useAppTheme } from '@/lib/ThemeContext';
+import { ThemeColors } from '@/constants/theme';
+
+const MAX_LENGTH = 300;
+
+export default function WorldChatThreadScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const { colors } = useAppTheme();
+  const styles = useMemo(() => getStyles(colors), [colors]);
+  const [post, setPost] = useState<any>(null);
+  const [replies, setReplies] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [myId, setMyId] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [text, setText] = useState('');
+  const [posting, setPosting] = useState(false);
+
+  useEffect(() => { loadThread(); }, [id]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`world_chat_replies_${id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'world_chat_replies', filter: `post_id=eq.${id}` },
+        () => { loadReplies(); }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'world_chat_replies', filter: `post_id=eq.${id}` },
+        (payload) => {
+          setReplies((prev) => prev.filter((r) => r.id !== payload.old.id));
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [id]);
+
+  async function loadThread() {
+    const { data: userData } = await supabase.auth.getUser();
+    const me = userData.user?.id ?? null;
+    setMyId(me);
+
+    if (me) {
+      const { data: myProfile } = await supabase
+        .from('Profiles')
+        .select('is_admin')
+        .eq('id', me)
+        .single();
+      setIsAdmin(!!myProfile?.is_admin);
+    }
+
+    const { data: postRow, error } = await supabase
+      .from('world_chat_posts')
+      .select('id, author_id, content, created_at')
+      .eq('id', id)
+      .single();
+
+    if (error || !postRow) {
+      setLoading(false);
+      return;
+    }
+
+    const { data: authorProfile } = await supabase
+      .from('public_profiles')
+      .select('id, username, display_name, avatar_id, avatar_url, is_verified')
+      .eq('id', postRow.author_id)
+      .single();
+
+    setPost({ ...postRow, author: authorProfile });
+
+    await loadReplies();
+    setLoading(false);
+  }
+
+  async function loadReplies() {
+    const { data: rows } = await supabase
+      .from('world_chat_replies')
+      .select('id, author_id, content, created_at')
+      .eq('post_id', id)
+      .order('created_at', { ascending: true });
+
+    const replyRows = rows ?? [];
+    const authorIds = [...new Set(replyRows.map((r) => r.author_id))];
+
+    const { data: profiles } = authorIds.length > 0
+      ? await supabase.from('public_profiles').select('id, username, display_name, avatar_id, avatar_url, is_verified').in('id', authorIds)
+      : { data: [] };
+
+    const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
+    setReplies(replyRows.map((r) => ({ ...r, author: profileMap.get(r.author_id) ?? null })));
+  }
+
+  async function handleReply() {
+    const trimmed = text.trim();
+    if (!trimmed || !myId) return;
+    setPosting(true);
+
+    const { error } = await supabase.from('world_chat_replies').insert({
+      post_id: id,
+      author_id: myId,
+      content: trimmed,
+    });
+
+    setPosting(false);
+
+    if (error) {
+      const friendly = error.message.includes('row-level security')
+        ? "You're posting too fast — please wait a few minutes and try again."
+        : error.message;
+      Alert.alert('Could not reply', friendly);
+      return;
+    }
+
+    setText('');
+  }
+
+  function confirmDeleteReply(replyId: string) {
+    Alert.alert('Delete Reply?', 'This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete', style: 'destructive', onPress: async () => {
+          const { error } = await supabase.from('world_chat_replies').delete().eq('id', replyId);
+          if (error) {
+            Alert.alert('Error', error.message);
+          } else {
+            setReplies((prev) => prev.filter((r) => r.id !== replyId));
+          }
+        },
+      },
+    ]);
+  }
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={colors.accent} />
+      </View>
+    );
+  }
+
+  if (!post) {
+    return (
+      <View style={styles.center}>
+        <Text style={{ color: colors.textPrimary }}>Post not found — it may have been deleted.</Text>
+      </View>
+    );
+  }
+
+  const remaining = MAX_LENGTH - text.length;
+
+  return (
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={0}
+    >
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Post</Text>
+          <View style={{ width: 36 }} />
+        </View>
+
+        <FlatList
+          data={replies}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          ListHeaderComponent={
+            <View style={styles.postCard}>
+              <TouchableOpacity
+                style={styles.authorRow}
+                onPress={() => router.push(`/user-profile?id=${post.author_id}`)}
+              >
+                <Avatar avatarId={post.author?.avatar_id} avatarUrl={post.author?.avatar_url} username={post.author?.display_name} size={40} />
+                <View>
+                  <View style={styles.authorNameRow}>
+                    <Text style={styles.authorName}>{post.author?.display_name ?? 'Unknown'}</Text>
+                    {post.author?.is_verified && <VerifiedBadge size={13} />}
+                  </View>
+                  <Text style={styles.postTime}>{formatRelativeTime(post.created_at)}</Text>
+                </View>
+              </TouchableOpacity>
+              <Text style={styles.postContent}>{post.content}</Text>
+              <View style={styles.divider} />
+              <Text style={styles.repliesLabel}>
+                {replies.length > 0 ? `${replies.length} repl${replies.length === 1 ? 'y' : 'ies'}` : 'No replies yet'}
+              </Text>
+            </View>
+          }
+          renderItem={({ item }) => {
+            const canDelete = item.author_id === myId || isAdmin;
+            return (
+              <View style={styles.replyCard}>
+                <TouchableOpacity
+                  style={styles.authorRow}
+                  onPress={() => router.push(`/user-profile?id=${item.author_id}`)}
+                >
+                  <Avatar avatarId={item.author?.avatar_id} avatarUrl={item.author?.avatar_url} username={item.author?.display_name} size={30} />
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.authorNameRow}>
+                      <Text style={styles.replyAuthorName}>{item.author?.display_name ?? 'Unknown'}</Text>
+                      {item.author?.is_verified && <VerifiedBadge size={11} />}
+                      <Text style={styles.replyTime}>· {formatRelativeTime(item.created_at)}</Text>
+                    </View>
+                    <Text style={styles.replyContent}>{item.content}</Text>
+                  </View>
+                  {canDelete && (
+                    <TouchableOpacity onPress={() => confirmDeleteReply(item.id)} style={styles.deleteBtn}>
+                      <Ionicons name="trash-outline" size={15} color={colors.textFaint} />
+                    </TouchableOpacity>
+                  )}
+                </TouchableOpacity>
+              </View>
+            );
+          }}
+        />
+
+        <View style={styles.composer}>
+          <TextInput
+            style={styles.composerInput}
+            placeholder="Write a reply..."
+            placeholderTextColor={colors.textDisabled}
+            value={text}
+            onChangeText={(t) => setText(t.slice(0, MAX_LENGTH))}
+            multiline
+          />
+          <View style={styles.composerFooter}>
+            <Text style={[styles.charCount, remaining < 30 && styles.charCountLow]}>{remaining}</Text>
+            <TouchableOpacity
+              style={styles.postBtn}
+              onPress={handleReply}
+              disabled={posting || !text.trim()}
+            >
+              {posting
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Text style={styles.postBtnText}>Reply</Text>
+              }
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </KeyboardAvoidingView>
+  );
+}
+
+function getStyles(colors: ThemeColors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background, padding: 24 },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: 16, paddingTop: 60, paddingBottom: 12,
+      borderBottomWidth: 1, borderBottomColor: colors.borderMuted,
+    },
+    backBtn: {
+      width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    headerTitle: { color: colors.textPrimary, fontSize: 17, fontWeight: '800' },
+    listContent: { padding: 16, paddingBottom: 24 },
+    postCard: {
+      backgroundColor: colors.surface, borderRadius: 16, padding: 16,
+      marginBottom: 14, borderWidth: 1, borderColor: colors.borderMuted,
+    },
+    authorRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    authorNameRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+    authorName: { color: colors.textPrimary, fontSize: 15, fontWeight: '700' },
+    postTime: { color: colors.textFaint, fontSize: 12, marginTop: 1 },
+    postContent: { color: colors.textPrimary, fontSize: 16, lineHeight: 22, marginTop: 14 },
+    divider: { height: 1, backgroundColor: colors.border, marginTop: 16, marginBottom: 10 },
+    repliesLabel: { color: colors.textMuted, fontSize: 12, fontWeight: '700' },
+    replyCard: {
+      backgroundColor: colors.surface, borderRadius: 14, padding: 12,
+      marginBottom: 8, borderWidth: 1, borderColor: colors.borderMuted,
+    },
+    replyAuthorName: { color: colors.textPrimary, fontSize: 13, fontWeight: '700' },
+    replyTime: { color: colors.textFaint, fontSize: 11, marginLeft: 2 },
+    replyContent: { color: colors.textSecondary, fontSize: 13, lineHeight: 18, marginTop: 3 },
+    deleteBtn: { padding: 4 },
+    composer: {
+      borderTopWidth: 1, borderTopColor: colors.borderMuted,
+      padding: 12, paddingBottom: 20, backgroundColor: colors.surface,
+    },
+    composerInput: {
+      backgroundColor: colors.surfaceAlt, color: colors.textPrimary, borderRadius: 14,
+      paddingHorizontal: 14, paddingVertical: 10, fontSize: 14,
+      borderWidth: 1, borderColor: colors.border, maxHeight: 90, minHeight: 44,
+    },
+    composerFooter: {
+      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8,
+    },
+    charCount: { color: colors.textFaint, fontSize: 11, fontWeight: '600' },
+    charCountLow: { color: colors.warning },
+    postBtn: {
+      backgroundColor: colors.accent, paddingHorizontal: 20, paddingVertical: 9,
+      borderRadius: 18, minWidth: 70, alignItems: 'center',
+    },
+    postBtnText: { color: '#fff', fontSize: 13, fontWeight: '800' },
+  });
+}
