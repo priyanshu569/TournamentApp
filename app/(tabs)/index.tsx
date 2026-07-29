@@ -118,8 +118,8 @@ export default function HomeScreen() {
 
   const quickActions = [
     { key: 'leaderboard', label: 'Leaderboard', onPress: () => router.push('/leaderboard') },
-    { key: 'history', label: isHost ? 'Tournaments' : 'Registrations', onPress: () => tabNav?.goToTab('history') },
     { key: 'worldchat', label: 'World Chat', onPress: () => router.push('/world-chat') },
+    { key: 'history', label: isHost ? 'Tournaments' : 'Registrations', onPress: () => tabNav?.goToTab('history') },
     ...(canBecomeHost
       ? [{ key: 'host', label: 'Become a Host', onPress: () => router.push('/request-host-access') }]
       : []),

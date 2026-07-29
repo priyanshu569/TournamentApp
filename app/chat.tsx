@@ -22,6 +22,7 @@ export default function ChatInboxScreen() {
   const [conversations, setConversations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [myId, setMyId] = useState<string | null>(null);
+  const [category, setCategory] = useState<'personal' | 'group'>('personal');
 
   useFocusEffect(
     useCallback(() => {
@@ -150,11 +151,32 @@ export default function ChatInboxScreen() {
         </View>
       </View>
 
+      <View style={styles.categoryRow}>
+        <TouchableOpacity
+          style={[styles.categoryTab, category === 'personal' && styles.categoryTabActive]}
+          onPress={() => setCategory('personal')}
+        >
+          <Ionicons name="person" size={14} color={category === 'personal' ? '#fff' : colors.textTertiary} />
+          <Text style={[styles.categoryTabText, category === 'personal' && styles.categoryTabTextActive]}>Personal</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.categoryTab, category === 'group' && styles.categoryTabActive]}
+          onPress={() => setCategory('group')}
+        >
+          <Ionicons name="people" size={14} color={category === 'group' ? '#fff' : colors.textTertiary} />
+          <Text style={[styles.categoryTabText, category === 'group' && styles.categoryTabTextActive]}>Group</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.categoryTab} onPress={() => router.push('/world-chat')}>
+          <Ionicons name="globe" size={14} color="#2E9BFF" />
+          <Text style={[styles.categoryTabText, { color: '#2E9BFF' }]}>World</Text>
+        </TouchableOpacity>
+      </View>
+
       {loading ? (
         <ActivityIndicator size="large" color={colors.accent} style={{ marginTop: 40 }} />
       ) : (
         <FlatList
-          data={conversations}
+          data={conversations.filter((c) => c.type === (category === 'personal' ? 'direct' : 'group'))}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
@@ -168,7 +190,9 @@ export default function ChatInboxScreen() {
                 glowColor="transparent"
               />
               <Text style={styles.emptyText}>
-                No conversations yet. Message someone from their profile, or start a group.
+                {category === 'personal'
+                  ? 'No personal chats yet. Message someone from their profile.'
+                  : "No group chats yet. Tap the people icon above to start one."}
               </Text>
             </View>
           }
@@ -234,6 +258,17 @@ function getStyles(colors: ThemeColors) {
       justifyContent: 'center', alignItems: 'center',
       borderWidth: 1, borderColor: colors.accentMutedStrong,
     },
+    categoryRow: {
+      flexDirection: 'row', gap: 10, paddingHorizontal: 24, paddingBottom: 16,
+    },
+    categoryTab: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      paddingHorizontal: 14, paddingVertical: 8, borderRadius: 18,
+      backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border,
+    },
+    categoryTabActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+    categoryTabText: { color: colors.textTertiary, fontSize: 13, fontWeight: '700' },
+    categoryTabTextActive: { color: '#fff' },
     listContent: { padding: 24, paddingTop: 4 },
     emptyContainer: { alignItems: 'center', marginTop: 60, paddingHorizontal: 20, gap: 16 },
     emptyText: { color: colors.textFaint, textAlign: 'center', lineHeight: 20 },
