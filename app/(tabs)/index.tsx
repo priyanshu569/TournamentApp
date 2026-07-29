@@ -135,7 +135,7 @@ export default function HomeScreen() {
           <Image source={{ uri: item.banner_url }} style={styles.compactBanner} contentFit="cover" />
         ) : (
           <View style={[styles.compactBannerFallback, { backgroundColor: getGameColor(item.game) + '22' }]}>
-            <Ionicons name={getGameIcon(item.game)} size={40} color={getGameColor(item.game)} />
+            <Ionicons name={getGameIcon(item.game)} size={32} color={getGameColor(item.game)} />
           </View>
         )}
         <View style={styles.compactBody}>
@@ -348,8 +348,8 @@ function getStyles(colors: ThemeColors) {
       width: 220, backgroundColor: colors.surfaceAlt, borderRadius: 14,
       borderWidth: 1, borderColor: colors.border, overflow: 'hidden',
     },
-    compactBanner: { width: '100%', aspectRatio: 16 / 9 },
-    compactBannerFallback: { width: '100%', aspectRatio: 16 / 9, justifyContent: 'center', alignItems: 'center' },
+    compactBanner: { width: '100%', height: 90 },
+    compactBannerFallback: { width: '100%', height: 90, justifyContent: 'center', alignItems: 'center' },
     compactBody: { padding: 12 },
     gameTag: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, marginBottom: 6 },
     gameTagText: { fontSize: 9, fontWeight: '800' },

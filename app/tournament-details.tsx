@@ -697,7 +697,7 @@ function getStyles(colors: ThemeColors) {
       alignItems: 'center', marginTop: 4, marginBottom: 16,
     },
     banner: {
-      width: '100%', aspectRatio: 16 / 9, borderRadius: 14, marginBottom: 16,
+      width: '100%', height: 180, borderRadius: 14, marginBottom: 16,
       ...cardShadow,
     },
     topRow: {

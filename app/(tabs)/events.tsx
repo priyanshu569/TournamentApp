@@ -320,7 +320,7 @@ export default function EventsScreen() {
                     end={{ x: 1, y: 1 }}
                     style={styles.cardBannerFallback}
                   >
-                    <Ionicons name={getGameIcon(item.game)} size={88} color={gameColor + '40'} />
+                    <Ionicons name={getGameIcon(item.game)} size={72} color={gameColor + '40'} />
                   </LinearGradient>
                 )}
                 <View style={styles.cardHeroOverlay}>
@@ -520,7 +520,7 @@ function getStyles(colors: ThemeColors) {
       shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
       shadowOpacity: 0.4, shadowRadius: 12, elevation: 6,
     },
-    cardHero: { aspectRatio: 16 / 9, position: 'relative' },
+    cardHero: { height: 130, position: 'relative' },
     cardBanner: { width: '100%', height: '100%' },
     cardBannerFallback: {
       width: '100%', height: '100%',
