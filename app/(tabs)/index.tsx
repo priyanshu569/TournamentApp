@@ -107,6 +107,7 @@ export default function HomeScreen() {
 
   const isHost = role === 'host';
   const liveNow = tournaments.filter((t) => t.status === 'ongoing');
+  const upcomingCount = tournaments.filter((t) => t.status === 'upcoming').length;
   const startingSoon = [...tournaments.filter((t) => t.status === 'upcoming')]
     .sort((a, b) => new Date(a.start_time ?? 0).getTime() - new Date(b.start_time ?? 0).getTime())
     .slice(0, 10);
@@ -219,15 +220,21 @@ export default function HomeScreen() {
           {isHost ? 'Manage your tournaments and grow your community' : 'Find your next tournament and claim victory'}
         </Text>
 
-        <View style={styles.heroPill}>
-          {liveNow.length > 0 ? (
-            <>
-              <View style={styles.heroLiveDot} />
-              <Text style={styles.heroPillText}>{liveNow.length} tournament{liveNow.length !== 1 ? 's' : ''} live right now</Text>
-            </>
-          ) : (
-            <Text style={styles.heroPillText}>No tournaments live right now</Text>
-          )}
+        <View style={styles.heroPillRow}>
+          <View style={styles.heroPill}>
+            {liveNow.length > 0 ? (
+              <>
+                <View style={styles.heroLiveDot} />
+                <Text style={styles.heroPillText}>{liveNow.length} live right now</Text>
+              </>
+            ) : (
+              <Text style={styles.heroPillText}>No tournaments live right now</Text>
+            )}
+          </View>
+          <View style={styles.heroPill}>
+            <Ionicons name="calendar" size={12} color="#E9DDFF" />
+            <Text style={styles.heroPillText}>{upcomingCount} upcoming</Text>
+          </View>
         </View>
 
         {isHost && (
@@ -289,9 +296,9 @@ export default function HomeScreen() {
         </View>
       ) : (
         <>
-          {renderSection(isHost ? 'Live Now' : 'Live Now', '🔴', liveNow, 'live')}
           {renderSection('Starting Soon', '⚡', startingSoon, 'soon')}
           {renderSection('Big Prize Pools', '💰', bigPrizePools, 'prize')}
+          {renderSection(isHost ? 'Live Now' : 'Live Now', '🔴', liveNow, 'live')}
         </>
       )}
     </ScrollView>
@@ -317,6 +324,7 @@ function getStyles(colors: ThemeColors) {
     },
     heroGreeting: { color: '#fff', fontSize: 21, fontWeight: '800', marginBottom: 4 },
     heroSub: { color: '#E9DDFF', fontSize: 13, marginBottom: 14 },
+    heroPillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     heroPill: {
       flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start',
       backgroundColor: '#00000033', paddingHorizontal: 12, paddingVertical: 7,
