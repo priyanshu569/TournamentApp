@@ -25,20 +25,25 @@ function VoiceMessagePlayer({ message, isMine, styles, colors }: {
   styles: ReturnType<typeof getStyles>;
   colors: ThemeColors;
 }) {
-  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const player = useAudioPlayer(null);
+  const status = useAudioPlayerStatus(player);
 
   useEffect(() => {
     let cancelled = false;
-    if (message.audio_url) {
-      getSignedVoiceMessageUrl(message.audio_url)
-        .then((url) => { if (!cancelled) setSignedUrl(url); })
-        .catch((err) => console.log('Failed to load voice message:', err.message));
+    async function load() {
+      if (!message.audio_url) return;
+      try {
+        const url = await getSignedVoiceMessageUrl(message.audio_url);
+        if (!cancelled) {
+          await player.replace(url);
+        }
+      } catch (err: any) {
+        console.log('Failed to load voice message:', err.message);
+      }
     }
+    load();
     return () => { cancelled = true; };
   }, [message.audio_url]);
-
-  const player = useAudioPlayer(signedUrl);
-  const status = useAudioPlayerStatus(player);
 
   function togglePlayback() {
     if (!status.isLoaded) return;
@@ -73,9 +78,10 @@ function VoiceMessagePlayer({ message, isMine, styles, colors }: {
   );
 }
 
-function MessageBubble({ message, isMine, showSenderName, senderName, senderAvatarId, senderAvatarUrl, swipeX, seenLabel, styles, colors }: {
+function MessageBubble({ message, isMine, showAvatar, showSenderName, senderName, senderAvatarId, senderAvatarUrl, swipeX, seenLabel, styles, colors }: {
   message: any;
   isMine: boolean;
+  showAvatar: boolean;
   showSenderName: boolean;
   senderName: string;
   senderAvatarId: string | null;
@@ -94,9 +100,11 @@ function MessageBubble({ message, isMine, showSenderName, senderName, senderAvat
 
   return (
     <View>
-      <View style={[styles.messageRow, isMine && styles.messageRowMine]}>
+      <View style={[styles.messageRow, isMine && styles.messageRowMine, showAvatar && styles.messageRowLast]}>
         {!isMine && (
-          <Avatar avatarId={senderAvatarId} avatarUrl={senderAvatarUrl} username={senderName} size={28} />
+          showAvatar
+            ? <Avatar avatarId={senderAvatarId} avatarUrl={senderAvatarUrl} username={senderName} size={28} />
+            : <View style={styles.avatarSpacer} />
         )}
         <Animated.View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleTheirs, bubbleAnimStyle]}>
           {showSenderName && (
@@ -191,6 +199,15 @@ export default function ChatThreadScreen() {
         lastDate = m.created_at;
       }
       result.push({ type: 'message', ...m });
+    }
+    // Avatar (and the slightly larger gap after it) only shows on the
+    // last message of a consecutive run from the same sender, not on
+    // every message in the group.
+    for (let i = 0; i < result.length; i++) {
+      if (result[i].type !== 'message') continue;
+      const next = result[i + 1];
+      const sameNextSender = next?.type === 'message' && next.sender_id === result[i].sender_id;
+      result[i].showAvatar = !sameNextSender;
     }
     return result;
   }, [messages]);
@@ -445,6 +462,7 @@ export default function ChatThreadScreen() {
                 <MessageBubble
                   message={item}
                   isMine={isMine}
+                  showAvatar={item.showAvatar}
                   showSenderName={!isMine && conversation?.conversation_type === 'group'}
                   senderName={sender?.display_name ?? 'Unknown'}
                   senderAvatarId={sender?.avatar_id ?? null}
@@ -576,8 +594,10 @@ function getStyles(colors: ThemeColors) {
       paddingHorizontal: 12, paddingVertical: 5, borderRadius: 12,
       overflow: 'hidden',
     },
-    messageRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginBottom: 10 },
+    messageRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginBottom: 2 },
     messageRowMine: { justifyContent: 'flex-end' },
+    messageRowLast: { marginBottom: 10 },
+    avatarSpacer: { width: 28 },
     bubble: { maxWidth: '78%', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10 },
     bubbleTheirs: { backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border },
     bubbleMine: { backgroundColor: colors.accent },
