@@ -9,7 +9,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import NotificationBell from '@/components/NotificationBell';
 import Avatar from '@/components/Avatar';
-import AdminBadge from '@/components/AdminBadge';
 import { useTabNavigation } from '@/lib/tabNavigation';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
@@ -196,7 +195,6 @@ export default function ProfileScreen() {
         <View style={[styles.profileInfo, { marginLeft: 16 }]}>
           <View style={styles.nameRow}>
             <Text style={styles.username}>{profile?.display_name ?? 'Unknown'}</Text>
-            {profile?.is_admin && <AdminBadge size={15} />}
           </View>
           {profile?.username && <Text style={styles.handle}>@{profile.username}</Text>}
           <LinearGradient

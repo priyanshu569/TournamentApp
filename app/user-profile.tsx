@@ -9,7 +9,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import Avatar from '@/components/Avatar';
 import VerifiedBadge from '@/components/VerifiedBadge';
-import AdminBadge from '@/components/AdminBadge';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 
@@ -226,7 +225,6 @@ export default function UserProfileScreen() {
         <View style={styles.nameRow}>
           <Text style={styles.username}>{profile.display_name ?? 'Unknown'}</Text>
           {profile.is_verified && <VerifiedBadge size={16} />}
-          {profile.is_admin && <AdminBadge size={16} />}
         </View>
         {profile.username && (
           <Text style={styles.handle}>@{profile.username}</Text>
