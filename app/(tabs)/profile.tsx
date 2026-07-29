@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import NotificationBell from '@/components/NotificationBell';
 import Avatar from '@/components/Avatar';
+import AdminBadge from '@/components/AdminBadge';
 import { useTabNavigation } from '@/lib/tabNavigation';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
@@ -193,15 +194,18 @@ export default function ProfileScreen() {
           <Avatar avatarId={profile?.avatar_id} avatarUrl={profile?.avatar_url} username={profile?.display_name} size={72} />
         </View>
         <View style={[styles.profileInfo, { marginLeft: 16 }]}>
-          <Text style={styles.username}>{profile?.display_name ?? 'Unknown'}</Text>
+          <View style={styles.nameRow}>
+            <Text style={styles.username}>{profile?.display_name ?? 'Unknown'}</Text>
+            {profile?.is_admin && <AdminBadge size={15} />}
+          </View>
           {profile?.username && <Text style={styles.handle}>@{profile.username}</Text>}
           <LinearGradient
-            colors={['#7C3AED', '#4C1D95']}
+            colors={profile?.is_admin ? ['#FFE28A', '#F5B93D', '#B8860B'] : ['#7C3AED', '#4C1D95']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.roleBadge}
           >
-            <Text style={styles.roleText}>
+            <Text style={[styles.roleText, profile?.is_admin && styles.roleTextAdmin]}>
               {profile?.is_admin ? 'ADMIN' : (profile?.role?.toUpperCase() ?? 'PLAYER')}
             </Text>
           </LinearGradient>
@@ -310,13 +314,15 @@ function getStyles(colors: ThemeColors) {
       padding: 3, borderRadius: 40, borderWidth: 2, borderColor: colors.accent,
     },
     profileInfo: { flex: 1 },
-    username: { fontSize: 20, fontWeight: '800', color: '#fff', marginBottom: 4 },
+    nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
+    username: { fontSize: 20, fontWeight: '800', color: '#fff' },
     roleBadge: {
       alignSelf: 'flex-start',
       paddingHorizontal: 12, paddingVertical: 4,
       borderRadius: 20,
     },
     roleText: { color: '#fff', fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
+    roleTextAdmin: { color: '#4a2f00' },
 
     statsCard: {
       flexDirection: 'row', marginHorizontal: 24, marginBottom: 24,
