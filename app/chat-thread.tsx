@@ -10,7 +10,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, SharedValue } from 'react-native-reanimated';
 import {
   useAudioRecorder, useAudioRecorderState, AudioModule, RecordingPresets, setAudioModeAsync,
-  useAudioPlayer, useAudioPlayerStatus,
+  useAudioPlayer, useAudioPlayerStatus, AudioQuality, IOSOutputFormat,
 } from 'expo-audio';
 import { supabase } from '@/lib/supabase';
 import Avatar from '@/components/Avatar';
@@ -18,6 +18,30 @@ import { formatClockTime, formatDayLabel, formatRelativeTime, isSameDay } from '
 import { uploadVoiceMessage, getSignedVoiceMessageUrl, formatAudioDuration } from '@/lib/voiceMessage';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
+
+// Voice messages are speech, not music -- mono/low-bitrate keeps file
+// size close to WhatsApp-sized (HIGH_QUALITY's stereo 128kbps default
+// is ~4x larger than needed and meant for general audio recording).
+const VOICE_MESSAGE_PRESET = {
+  extension: '.m4a',
+  sampleRate: 22050,
+  numberOfChannels: 1,
+  bitRate: 32000,
+  android: {
+    ...RecordingPresets.HIGH_QUALITY.android,
+    outputFormat: 'mpeg4' as const,
+    audioEncoder: 'aac' as const,
+  },
+  ios: {
+    ...RecordingPresets.HIGH_QUALITY.ios,
+    outputFormat: IOSOutputFormat.MPEG4AAC,
+    audioQuality: AudioQuality.LOW,
+  },
+  web: {
+    mimeType: 'audio/webm',
+    bitsPerSecond: 32000,
+  },
+};
 
 function VoiceMessagePlayer({ message, isMine, styles, colors }: {
   message: any;
@@ -230,7 +254,7 @@ export default function ChatThreadScreen() {
   const listRef = useRef<FlatList>(null);
   const swipeX = useSharedValue(0);
   const recordingStartRef = useRef<number>(0);
-  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const audioRecorder = useAudioRecorder(VOICE_MESSAGE_PRESET);
   const recorderState = useAudioRecorderState(audioRecorder, 200);
 
   useEffect(() => { loadThread(); }, [id]);
