@@ -10,6 +10,7 @@ import Avatar from '@/components/Avatar';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import { formatRelativeTime } from '@/lib/time';
 import { getWorldChatRetryMessage } from '@/lib/worldChatRateLimit';
+import { getDesignation } from '@/lib/designation';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 
@@ -77,7 +78,7 @@ export default function WorldChatThreadScreen() {
 
     const { data: authorProfile } = await supabase
       .from('public_profiles')
-      .select('id, username, display_name, avatar_id, avatar_url, is_verified')
+      .select('id, username, display_name, avatar_id, avatar_url, is_verified, role, is_admin')
       .eq('id', postRow.author_id)
       .single();
 
@@ -98,7 +99,7 @@ export default function WorldChatThreadScreen() {
     const authorIds = [...new Set(replyRows.map((r) => r.author_id))];
 
     const { data: profiles } = authorIds.length > 0
-      ? await supabase.from('public_profiles').select('id, username, display_name, avatar_id, avatar_url, is_verified').in('id', authorIds)
+      ? await supabase.from('public_profiles').select('id, username, display_name, avatar_id, avatar_url, is_verified, role, is_admin').in('id', authorIds)
       : { data: [] };
 
     const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
@@ -194,7 +195,13 @@ export default function WorldChatThreadScreen() {
                     <Text style={styles.authorName}>{post.author?.display_name ?? 'Unknown'}</Text>
                     {post.author?.is_verified && <VerifiedBadge size={13} />}
                   </View>
-                  <Text style={styles.postTime}>{formatRelativeTime(post.created_at)}</Text>
+                  <View style={styles.postMetaRow}>
+                    <Text style={[styles.postDesignation, { color: getDesignation(post.author, colors).color }]}>
+                      {getDesignation(post.author, colors).label}
+                    </Text>
+                    <Text style={styles.postMetaDot}>·</Text>
+                    <Text style={styles.postTime}>{formatRelativeTime(post.created_at)}</Text>
+                  </View>
                 </View>
               </TouchableOpacity>
               <Text style={styles.postContent}>{post.content}</Text>
@@ -206,6 +213,7 @@ export default function WorldChatThreadScreen() {
           }
           renderItem={({ item }) => {
             const canDelete = item.author_id === myId || isAdmin;
+            const designation = getDesignation(item.author, colors);
             return (
               <View style={styles.replyCard}>
                 <TouchableOpacity
@@ -217,6 +225,7 @@ export default function WorldChatThreadScreen() {
                     <View style={styles.authorNameRow}>
                       <Text style={styles.replyAuthorName}>{item.author?.display_name ?? 'Unknown'}</Text>
                       {item.author?.is_verified && <VerifiedBadge size={11} />}
+                      <Text style={[styles.replyDesignation, { color: designation.color }]}>· {designation.label}</Text>
                       <Text style={styles.replyTime}>· {formatRelativeTime(item.created_at)}</Text>
                     </View>
                     <Text style={styles.replyContent}>{item.content}</Text>
@@ -283,6 +292,9 @@ function getStyles(colors: ThemeColors) {
     authorNameRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
     authorName: { color: colors.textPrimary, fontSize: 15, fontWeight: '700' },
     postTime: { color: colors.textFaint, fontSize: 12, marginTop: 1 },
+    postMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 1 },
+    postDesignation: { fontSize: 12, fontWeight: '700' },
+    postMetaDot: { color: colors.textFaint, fontSize: 12 },
     postContent: { color: colors.textPrimary, fontSize: 16, lineHeight: 22, marginTop: 14 },
     divider: { height: 1, backgroundColor: colors.border, marginTop: 16, marginBottom: 10 },
     repliesLabel: { color: colors.textMuted, fontSize: 12, fontWeight: '700' },
@@ -291,6 +303,7 @@ function getStyles(colors: ThemeColors) {
       marginBottom: 8, borderWidth: 1, borderColor: colors.borderMuted,
     },
     replyAuthorName: { color: colors.textPrimary, fontSize: 13, fontWeight: '700' },
+    replyDesignation: { fontSize: 11, fontWeight: '700', marginLeft: 2 },
     replyTime: { color: colors.textFaint, fontSize: 11, marginLeft: 2 },
     replyContent: { color: colors.textSecondary, fontSize: 13, lineHeight: 18, marginTop: 3 },
     deleteBtn: { padding: 4 },

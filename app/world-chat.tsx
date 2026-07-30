@@ -11,6 +11,7 @@ import Avatar from '@/components/Avatar';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import { formatRelativeTime } from '@/lib/time';
 import { getWorldChatRetryMessage } from '@/lib/worldChatRateLimit';
+import { getDesignation } from '@/lib/designation';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 
@@ -84,7 +85,7 @@ export default function WorldChatScreen() {
 
     const [{ data: profiles }, { data: replyRows }] = await Promise.all([
       authorIds.length > 0
-        ? supabase.from('public_profiles').select('id, username, display_name, avatar_id, avatar_url, is_verified').in('id', authorIds)
+        ? supabase.from('public_profiles').select('id, username, display_name, avatar_id, avatar_url, is_verified, role, is_admin').in('id', authorIds)
         : Promise.resolve({ data: [] }),
       postIds.length > 0
         ? supabase.from('world_chat_replies').select('post_id').in('post_id', postIds)
@@ -185,6 +186,7 @@ export default function WorldChatScreen() {
             }
             renderItem={({ item }) => {
               const canDelete = item.author_id === myId || isAdmin;
+              const designation = getDesignation(item.author, colors);
               return (
                 <TouchableOpacity
                   style={styles.postCard}
@@ -202,7 +204,11 @@ export default function WorldChatScreen() {
                           <Text style={styles.postAuthorName}>{item.author?.display_name ?? 'Unknown'}</Text>
                           {item.author?.is_verified && <VerifiedBadge size={12} />}
                         </View>
-                        <Text style={styles.postTime}>{formatRelativeTime(item.created_at)}</Text>
+                        <View style={styles.postMetaRow}>
+                          <Text style={[styles.postDesignation, { color: designation.color }]}>{designation.label}</Text>
+                          <Text style={styles.postMetaDot}>·</Text>
+                          <Text style={styles.postTime}>{formatRelativeTime(item.created_at)}</Text>
+                        </View>
                       </View>
                     </TouchableOpacity>
                     {canDelete && (
@@ -289,6 +295,9 @@ function getStyles(colors: ThemeColors) {
     postAuthorNameRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
     postAuthorName: { color: colors.textPrimary, fontSize: 14, fontWeight: '700' },
     postTime: { color: colors.textFaint, fontSize: 11, marginTop: 1 },
+    postMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 1 },
+    postDesignation: { fontSize: 11, fontWeight: '700' },
+    postMetaDot: { color: colors.textFaint, fontSize: 11 },
     deleteBtn: { padding: 4 },
     postContent: { color: colors.textPrimary, fontSize: 14, lineHeight: 20, marginTop: 10 },
     postFooter: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
