@@ -91,6 +91,18 @@ export async function getSignedChatImageUrl(path: string): Promise<string> {
   return data.signedUrl;
 }
 
+// Atomically consumes a view-once photo server-side (marks it viewed +
+// clears messages.image_url so it can never be fetched through the app
+// again) and returns the storage path it had, which is still resolved
+// into a signed URL here since the RPC only clears the DB reference --
+// the object itself is untouched, and this signed URL is the one and
+// only chance to see it.
+export async function revealViewOnceImage(messageId: string): Promise<string> {
+  const { data: path, error } = await supabase.rpc('reveal_view_once_message', { p_message_id: messageId });
+  if (error) throw error;
+  return getSignedChatImageUrl(path as string);
+}
+
 // MediaLibrary needs a local file, not a remote URL -- download the
 // signed URL to cache first, then hand that off and clean up.
 export async function saveChatImageToGallery(signedUrl: string): Promise<void> {

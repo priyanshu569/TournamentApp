@@ -9,7 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
 import * as Clipboard from 'expo-clipboard';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring, SharedValue } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming, Easing, SharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import {
   useAudioRecorder, useAudioRecorderState, AudioModule, RecordingPresets, setAudioModeAsync,
@@ -19,7 +19,10 @@ import { supabase } from '@/lib/supabase';
 import Avatar from '@/components/Avatar';
 import { formatClockTime, formatDayLabel, formatRelativeTime, isSameDay } from '@/lib/time';
 import { uploadVoiceMessage, getSignedVoiceMessageUrl, formatAudioDuration } from '@/lib/voiceMessage';
-import { pickChatImage, uploadChatImage, getSignedChatImageUrl, saveChatImageToGallery } from '@/lib/chatImage';
+import {
+  pickChatImage, uploadChatImage, getSignedChatImageUrl, saveChatImageToGallery, revealViewOnceImage,
+  PickedChatImage,
+} from '@/lib/chatImage';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 
@@ -290,10 +293,54 @@ function ImageMessage({ message, isMine, styles, colors, onPress }: {
   );
 }
 
+function ViewOnceImageMessage({ message, isMine, styles, onReveal, revealing }: {
+  message: any;
+  isMine: boolean;
+  styles: ReturnType<typeof getStyles>;
+  onReveal: (messageId: string) => void;
+  revealing: boolean;
+}) {
+  const opened = !!message.viewed_at;
+
+  if (opened) {
+    return (
+      <View style={[styles.viewOnceBubble, isMine && styles.viewOnceBubbleMine]}>
+        <Ionicons name="checkmark-done" size={16} color={isMine ? '#ffffffcc' : '#8a8a8e'} />
+        <Text style={[styles.viewOnceBubbleText, isMine && styles.viewOnceBubbleTextMine]}>Opened</Text>
+      </View>
+    );
+  }
+
+  if (isMine) {
+    return (
+      <View style={[styles.viewOnceBubble, styles.viewOnceBubbleMine]}>
+        <Ionicons name="flame" size={16} color="#ffffffcc" />
+        <Text style={[styles.viewOnceBubbleText, styles.viewOnceBubbleTextMine]}>Photo · View once</Text>
+      </View>
+    );
+  }
+
+  return (
+    <TouchableOpacity
+      style={[styles.viewOnceBubble, styles.viewOnceBubbleTappable]}
+      onPress={() => onReveal(message.id)}
+      disabled={revealing}
+    >
+      {revealing
+        ? <ActivityIndicator size="small" color="#fff" />
+        : <Ionicons name="flame" size={16} color="#fff" />
+      }
+      <Text style={[styles.viewOnceBubbleText, styles.viewOnceBubbleTextMine]}>
+        {revealing ? 'Opening...' : 'View Once Photo'}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
 function MessageBubble({
   message, isMine, showAvatar, showSenderName, senderName, senderAvatarId, senderAvatarUrl,
   swipeX, seenLabel, styles, colors, onImagePress, replyToMessage, replyToSenderName,
-  reactions, onSwipeReply, onLongPressMessage, onReplyPreviewPress,
+  reactions, onSwipeReply, onLongPressMessage, onReplyPreviewPress, onRevealViewOnce, revealingViewOnce,
 }: {
   message: any;
   isMine: boolean;
@@ -313,6 +360,8 @@ function MessageBubble({
   onSwipeReply: (message: any) => void;
   onLongPressMessage: (message: any, isMine: boolean, y: number) => void;
   onReplyPreviewPress: (replyToId: string) => void;
+  onRevealViewOnce: (messageId: string) => void;
+  revealingViewOnce: boolean;
 }) {
   const bubbleAnimStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: swipeX.value }],
@@ -343,7 +392,7 @@ function MessageBubble({
         scheduleOnRN(Haptics.impactAsync, Haptics.ImpactFeedbackStyle.Medium);
         scheduleOnRN(onSwipeReply, message);
       }
-      replySwipeX.value = withSpring(0, { damping: 20, stiffness: 200 });
+      replySwipeX.value = withTiming(0, { duration: 220, easing: Easing.out(Easing.cubic) });
     });
 
   const longPressGesture = Gesture.LongPress()
@@ -367,35 +416,43 @@ function MessageBubble({
               : <View style={styles.avatarSpacer} />
           )}
           <View style={styles.bubbleWrap}>
+            {replyToMessage && !isDeleted && (
+              <TouchableOpacity
+                style={[styles.replyPreview, isMine && styles.replyPreviewMine]}
+                onPress={() => onReplyPreviewPress(message.reply_to_id)}
+              >
+                <Text style={[styles.replyPreviewName, isMine && styles.replyPreviewNameMine]} numberOfLines={1}>
+                  {replyToSenderName}
+                </Text>
+                <Text style={[styles.replyPreviewText, isMine && styles.replyPreviewTextMine]} numberOfLines={1}>
+                  {replyPreviewSnippet(replyToMessage)}
+                </Text>
+              </TouchableOpacity>
+            )}
             <GestureDetector gesture={longPressGesture}>
               <Animated.View style={[
                 styles.bubble,
                 isMine ? styles.bubbleMine : styles.bubbleTheirs,
-                message.image_url && styles.bubbleImage,
+                message.image_url && !message.view_once && styles.bubbleImage,
                 isDeleted && styles.bubbleDeleted,
                 bubbleAnimStyle,
               ]}>
                 {showSenderName && !isDeleted && (
-                  <Text style={[styles.senderName, message.image_url && styles.senderNameOnImage]}>{senderName}</Text>
-                )}
-                {replyToMessage && !isDeleted && (
-                  <TouchableOpacity
-                    style={[styles.replyPreview, isMine && styles.replyPreviewMine]}
-                    onPress={() => onReplyPreviewPress(message.reply_to_id)}
-                  >
-                    <Text style={[styles.replyPreviewName, isMine && styles.replyPreviewNameMine]} numberOfLines={1}>
-                      {replyToSenderName}
-                    </Text>
-                    <Text style={[styles.replyPreviewText, isMine && styles.replyPreviewTextMine]} numberOfLines={1}>
-                      {replyPreviewSnippet(replyToMessage)}
-                    </Text>
-                  </TouchableOpacity>
+                  <Text style={[styles.senderName, message.image_url && !message.view_once && styles.senderNameOnImage]}>{senderName}</Text>
                 )}
                 {isDeleted ? (
                   <View style={styles.deletedRow}>
                     <Ionicons name="ban-outline" size={13} color={isMine ? '#ffffffaa' : colors.textFaint} />
                     <Text style={[styles.deletedText, isMine && styles.deletedTextMine]}>This message was deleted</Text>
                   </View>
+                ) : message.view_once ? (
+                  <ViewOnceImageMessage
+                    message={message}
+                    isMine={isMine}
+                    styles={styles}
+                    onReveal={onRevealViewOnce}
+                    revealing={revealingViewOnce}
+                  />
                 ) : message.image_url ? (
                   <ImageMessage message={message} isMine={isMine} styles={styles} colors={colors} onPress={onImagePress} />
                 ) : message.audio_url ? (
@@ -462,6 +519,10 @@ export default function ChatThreadScreen() {
   const [forwardTargets, setForwardTargets] = useState<any[]>([]);
   const [forwarding, setForwarding] = useState(false);
   const [savingImage, setSavingImage] = useState(false);
+  const [pendingImage, setPendingImage] = useState<PickedChatImage | null>(null);
+  const [pendingViewOnce, setPendingViewOnce] = useState(false);
+  const [viewOnceImageUrl, setViewOnceImageUrl] = useState<string | null>(null);
+  const [revealingViewOnce, setRevealingViewOnce] = useState(false);
   const listRef = useRef<FlatList>(null);
   const swipeX = useSharedValue(0);
   const recordingStartRef = useRef<number>(0);
@@ -553,7 +614,7 @@ export default function ChatThreadScreen() {
       swipeX.value = Math.max(-60, Math.min(0, e.translationX));
     })
     .onEnd(() => {
-      swipeX.value = withSpring(0, { damping: 20, stiffness: 200 });
+      swipeX.value = withTiming(0, { duration: 220, easing: Easing.out(Easing.cubic) });
     });
 
   async function loadThread() {
@@ -687,21 +748,40 @@ export default function ChatThreadScreen() {
   }
 
   async function handlePickImage(source: 'camera' | 'library') {
-    if (!myId) return;
     try {
       const picked = await pickChatImage(source);
       if (!picked) return;
+      setPendingImage(picked);
+      setPendingViewOnce(false);
+    } catch (err: any) {
+      Alert.alert('Could not open image', err?.message ?? 'Please try again.');
+    }
+  }
 
-      setUploadingImage(true);
+  function handleCancelPendingImage() {
+    setPendingImage(null);
+    setPendingViewOnce(false);
+  }
+
+  async function handleSendPendingImage() {
+    if (!myId || !pendingImage) return;
+    const picked = pendingImage;
+    const viewOnce = pendingViewOnce;
+    setPendingImage(null);
+    setPendingViewOnce(false);
+    setUploadingImage(true);
+
+    try {
       const path = await uploadChatImage(id, myId, picked.base64);
       const { error } = await supabase.from('messages').insert({
         conversation_id: id,
         sender_id: myId,
-        content: '📷 Photo',
+        content: viewOnce ? '📷 View once photo' : '📷 Photo',
         image_url: path,
         image_width: picked.width,
         image_height: picked.height,
         reply_to_id: replyingTo?.id ?? null,
+        view_once: viewOnce,
       });
       if (error) throw error;
       setReplyingTo(null);
@@ -709,6 +789,17 @@ export default function ChatThreadScreen() {
       Alert.alert('Photo not sent', friendlySendError(err?.message ?? 'Please try again.'));
     }
     setUploadingImage(false);
+  }
+
+  async function handleRevealViewOnce(messageId: string) {
+    setRevealingViewOnce(true);
+    try {
+      const url = await revealViewOnceImage(messageId);
+      setViewOnceImageUrl(url);
+    } catch (err: any) {
+      Alert.alert('Could not open photo', err?.message ?? 'Please try again.');
+    }
+    setRevealingViewOnce(false);
   }
 
   async function startRecording() {
@@ -899,6 +990,10 @@ export default function ChatThreadScreen() {
     if (!activeMenu) return;
     const message = activeMenu.message;
     closeMenu();
+    if (message.view_once && !message.viewed_at) {
+      Alert.alert("Can't Forward", 'View once photos cannot be forwarded.');
+      return;
+    }
     openForwardPicker(message);
   }
 
@@ -1170,6 +1265,8 @@ export default function ChatThreadScreen() {
                   onSwipeReply={setReplyingTo}
                   onLongPressMessage={handleLongPressMessage}
                   onReplyPreviewPress={handleReplyPreviewPress}
+                  onRevealViewOnce={handleRevealViewOnce}
+                  revealingViewOnce={revealingViewOnce}
                 />
               );
             }}
@@ -1278,6 +1375,89 @@ export default function ChatThreadScreen() {
           {previewImageUrl && (
             <Image source={{ uri: previewImageUrl }} style={styles.imagePreviewFull} resizeMode="contain" />
           )}
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal
+        visible={!!pendingImage}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCancelPendingImage}
+      >
+        <View style={[styles.imagePreviewOverlay, { backgroundColor: theme === 'dark' ? '#000' : '#fff' }]}>
+          <View style={styles.imagePreviewTopBar}>
+            <TouchableOpacity
+              style={[styles.imagePreviewIconBtn, { backgroundColor: theme === 'dark' ? '#ffffff22' : '#00000014' }]}
+              onPress={handleCancelPendingImage}
+            >
+              <Ionicons name="close" size={24} color={theme === 'dark' ? '#fff' : '#000'} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.imagePreviewIconBtn,
+                { backgroundColor: pendingViewOnce ? colors.accent : (theme === 'dark' ? '#ffffff22' : '#00000014') },
+              ]}
+              onPress={() => setPendingViewOnce((v) => !v)}
+            >
+              <Ionicons
+                name={pendingViewOnce ? 'flame' : 'flame-outline'}
+                size={22}
+                color={pendingViewOnce ? '#fff' : (theme === 'dark' ? '#fff' : '#000')}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {pendingImage && (
+            <Image
+              source={{ uri: `data:image/jpeg;base64,${pendingImage.base64}` }}
+              style={styles.imagePreviewFull}
+              resizeMode="contain"
+            />
+          )}
+
+          {pendingViewOnce && (
+            <View style={styles.viewOnceHint}>
+              <Ionicons name="flame" size={14} color={colors.accent} />
+              <Text style={styles.viewOnceHintText}>View once — disappears after it's opened</Text>
+            </View>
+          )}
+
+          <TouchableOpacity style={styles.pendingSendBtn} onPress={handleSendPendingImage} disabled={uploadingImage}>
+            {uploadingImage
+              ? <ActivityIndicator size="small" color="#fff" />
+              : <Ionicons name="send" size={22} color="#fff" />
+            }
+          </TouchableOpacity>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={!!viewOnceImageUrl}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setViewOnceImageUrl(null)}
+      >
+        <TouchableOpacity
+          style={[styles.imagePreviewOverlay, { backgroundColor: theme === 'dark' ? '#000' : '#fff' }]}
+          activeOpacity={1}
+          onPress={() => setViewOnceImageUrl(null)}
+        >
+          <View style={styles.imagePreviewTopBar}>
+            <TouchableOpacity
+              style={[styles.imagePreviewIconBtn, { backgroundColor: theme === 'dark' ? '#ffffff22' : '#00000014' }]}
+              onPress={() => setViewOnceImageUrl(null)}
+            >
+              <Ionicons name="close" size={24} color={theme === 'dark' ? '#fff' : '#000'} />
+            </TouchableOpacity>
+            <View style={styles.imagePreviewIconBtn} />
+          </View>
+          {viewOnceImageUrl && (
+            <Image source={{ uri: viewOnceImageUrl }} style={styles.imagePreviewFull} resizeMode="contain" />
+          )}
+          <View style={styles.viewOnceHint}>
+            <Ionicons name="flame" size={14} color={colors.accent} />
+            <Text style={styles.viewOnceHintText}>This photo has disappeared for both of you</Text>
+          </View>
         </TouchableOpacity>
       </Modal>
 
@@ -1528,10 +1708,12 @@ function getStyles(colors: ThemeColors) {
     forwardedTextMine: { color: '#ffffffaa' },
     replyPreview: {
       borderLeftWidth: 3, borderLeftColor: colors.accent,
-      backgroundColor: colors.overlay, borderRadius: 6,
-      paddingHorizontal: 8, paddingVertical: 6, marginBottom: 6,
+      backgroundColor: colors.surfaceAlt,
+      borderTopLeftRadius: 12, borderTopRightRadius: 12,
+      borderBottomLeftRadius: 4, borderBottomRightRadius: 4,
+      paddingHorizontal: 10, paddingVertical: 7, marginBottom: 3,
     },
-    replyPreviewMine: { borderLeftColor: '#fff', backgroundColor: '#ffffff26' },
+    replyPreviewMine: { borderLeftColor: '#fff', backgroundColor: colors.accentMutedStrong },
     replyPreviewName: { color: colors.accent, fontSize: 12, fontWeight: '700' },
     replyPreviewNameMine: { color: '#fff' },
     replyPreviewText: { color: colors.textSecondary, fontSize: 12, marginTop: 1 },
@@ -1584,6 +1766,29 @@ function getStyles(colors: ThemeColors) {
       justifyContent: 'center', alignItems: 'center',
     },
     imagePreviewFull: { width: '100%', height: '80%' },
+    viewOnceHint: {
+      position: 'absolute', bottom: 110, alignSelf: 'center',
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      backgroundColor: colors.surface, borderRadius: 20,
+      paddingHorizontal: 14, paddingVertical: 8,
+      borderWidth: 1, borderColor: colors.border,
+    },
+    viewOnceHintText: { color: colors.textPrimary, fontSize: 12, fontWeight: '600' },
+    pendingSendBtn: {
+      position: 'absolute', bottom: 40, right: 24,
+      width: 56, height: 56, borderRadius: 28,
+      backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center',
+      shadowColor: colors.accent, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 4,
+    },
+    viewOnceBubble: {
+      flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 170,
+      paddingHorizontal: 14, paddingVertical: 12, borderRadius: 14,
+      backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border,
+    },
+    viewOnceBubbleMine: { backgroundColor: colors.accentMutedStrong, borderWidth: 0 },
+    viewOnceBubbleTappable: { backgroundColor: colors.accent, borderWidth: 0 },
+    viewOnceBubbleText: { color: colors.textPrimary, fontSize: 13, fontWeight: '600' },
+    viewOnceBubbleTextMine: { color: '#fff' },
     recordingIndicator: {
       flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8,
       backgroundColor: colors.surfaceAlt, borderRadius: 20,
