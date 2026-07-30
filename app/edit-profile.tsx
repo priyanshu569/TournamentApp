@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator, Alert, StyleSheet, Text,
   TextInput, TouchableOpacity, View, KeyboardAvoidingView,
-  Platform, ScrollView, Modal
+  Platform, ScrollView, Modal, Switch
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
@@ -34,7 +34,9 @@ export default function EditProfileScreen() {
   const [gender, setGender] = useState<string | null>(null);
   const [state, setState] = useState<string | null>(null);
   const [city, setCity] = useState('');
+  const [cityPublic, setCityPublic] = useState(true);
   const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null);
+  const [agePublic, setAgePublic] = useState(true);
   const [avatarId, setAvatarId] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [gamesOnboarded, setGamesOnboarded] = useState(true);
@@ -93,7 +95,7 @@ export default function EditProfileScreen() {
 
     const { data } = await supabase
       .from('Profiles')
-      .select('username, display_name, gender, state, city, date_of_birth, avatar_id, avatar_url, games_onboarded')
+      .select('username, display_name, gender, state, city, city_public, date_of_birth, age_public, avatar_id, avatar_url, games_onboarded')
       .eq('id', userData.user.id)
       .single();
 
@@ -103,7 +105,9 @@ export default function EditProfileScreen() {
       setGender(data.gender || null);
       setState(data.state || null);
       setCity(data.city || '');
+      setCityPublic(data.city_public !== false);
       setDateOfBirth(data.date_of_birth ? new Date(data.date_of_birth) : null);
+      setAgePublic(data.age_public !== false);
       setAvatarId(data.avatar_id || null);
       setAvatarUrl(data.avatar_url || null);
       setGamesOnboarded(!!data.games_onboarded);
@@ -170,7 +174,9 @@ export default function EditProfileScreen() {
         gender,
         state,
         city: city.trim() || null,
+        city_public: cityPublic,
         date_of_birth: dateOfBirth ? dateOfBirth.toISOString().slice(0, 10) : null,
+        age_public: agePublic,
         avatar_id: avatarId,
         avatar_url: avatarUrl,
       });
@@ -362,6 +368,15 @@ export default function EditProfileScreen() {
             value={city}
             onChangeText={setCity}
           />
+          <View style={styles.visibilityRow}>
+            <Text style={styles.visibilityLabel}>Show my city on my public profile</Text>
+            <Switch
+              value={cityPublic}
+              onValueChange={setCityPublic}
+              trackColor={{ false: colors.border, true: colors.accent }}
+              thumbColor="#fff"
+            />
+          </View>
         </View>
 
         {/* Date of Birth */}
@@ -376,7 +391,18 @@ export default function EditProfileScreen() {
             <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
           </TouchableOpacity>
           {dateOfBirth && (
-            <Text style={styles.hint}>Age: {calculateAge(dateOfBirth)}</Text>
+            <>
+              <Text style={styles.hint}>Age: {calculateAge(dateOfBirth)}</Text>
+              <View style={styles.visibilityRow}>
+                <Text style={styles.visibilityLabel}>Show my age on my public profile</Text>
+                <Switch
+                  value={agePublic}
+                  onValueChange={setAgePublic}
+                  trackColor={{ false: colors.border, true: colors.accent }}
+                  thumbColor="#fff"
+                />
+              </View>
+            </>
           )}
         </View>
 
@@ -448,6 +474,12 @@ function getStyles(colors: ThemeColors) {
     fieldGroup: { marginBottom: 20 },
     label: { color: colors.textSecondary, fontSize: 13, marginBottom: 8, fontWeight: '600' },
     hint: { color: colors.textFaint, fontSize: 12, marginTop: 6 },
+    visibilityRow: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      marginTop: 10, backgroundColor: colors.surface, borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderColor: colors.borderMuted,
+    },
+    visibilityLabel: { color: colors.textSecondary, fontSize: 13, fontWeight: '600', flex: 1, marginRight: 10 },
     hintSuccess: { color: colors.success },
     hintError: { color: colors.error },
     photoRow: {

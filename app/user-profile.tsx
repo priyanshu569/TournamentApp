@@ -230,7 +230,7 @@ export default function UserProfileScreen() {
           <Text style={styles.handle}>@{profile.username}</Text>
         )}
 
-        {(genderMeta || location) && (
+        {(genderMeta || location || profile.age) && (
           <View style={styles.infoRow}>
             {genderMeta && (
               <View style={styles.infoChip}>
@@ -241,6 +241,11 @@ export default function UserProfileScreen() {
               <View style={styles.infoChip}>
                 <Ionicons name="location" size={12} color="#c9b8ea" />
                 <Text style={styles.infoChipText}>{location}</Text>
+              </View>
+            )}
+            {!!profile.age && (
+              <View style={styles.infoChip}>
+                <Text style={styles.infoChipText}>{profile.age} yrs</Text>
               </View>
             )}
           </View>
