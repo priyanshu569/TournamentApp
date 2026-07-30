@@ -1761,11 +1761,16 @@ function getStyles(colors: ThemeColors) {
       borderBottomLeftRadius: 4, borderBottomRightRadius: 4,
       paddingHorizontal: 10, paddingVertical: 7, marginBottom: 3,
     },
-    replyPreviewMine: { borderLeftColor: '#fff', backgroundColor: colors.accentMutedStrong },
+    // WhatsApp tints the quote a shade of the bubble it belongs to
+    // rather than a translucent wash -- accentMutedStrong is a ~13%
+    // alpha meant for layering over a colored surface, and reads as
+    // washed-out lavender now that this chip sits on the plain
+    // chat background instead.
+    replyPreviewMine: { borderLeftColor: '#c4b5fd', backgroundColor: '#5b21b6' },
     replyPreviewName: { color: colors.accent, fontSize: 12, fontWeight: '700' },
-    replyPreviewNameMine: { color: '#fff' },
+    replyPreviewNameMine: { color: '#ddd6fe' },
     replyPreviewText: { color: colors.textSecondary, fontSize: 12, marginTop: 1 },
-    replyPreviewTextMine: { color: '#ffffffdd' },
+    replyPreviewTextMine: { color: '#f5f3ff' },
     reactionPill: {
       position: 'absolute', bottom: -10, left: 10,
       backgroundColor: colors.surface, borderRadius: 10, borderWidth: 1, borderColor: colors.border,
