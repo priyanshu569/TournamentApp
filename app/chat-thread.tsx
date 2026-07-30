@@ -434,7 +434,7 @@ function MessageBubble({
 export default function ChatThreadScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { colors } = useAppTheme();
+  const { colors, theme } = useAppTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
   const [myId, setMyId] = useState<string | null>(null);
   const [conversation, setConversation] = useState<any>(null);
@@ -1253,18 +1253,25 @@ export default function ChatThreadScreen() {
         onRequestClose={() => setPreviewImageUrl(null)}
       >
         <TouchableOpacity
-          style={styles.imagePreviewOverlay}
+          style={[styles.imagePreviewOverlay, { backgroundColor: theme === 'dark' ? '#000' : '#fff' }]}
           activeOpacity={1}
           onPress={() => setPreviewImageUrl(null)}
         >
           <View style={styles.imagePreviewTopBar}>
-            <TouchableOpacity style={styles.imagePreviewIconBtn} onPress={() => setPreviewImageUrl(null)}>
-              <Ionicons name="close" size={24} color="#fff" />
+            <TouchableOpacity
+              style={[styles.imagePreviewIconBtn, { backgroundColor: theme === 'dark' ? '#ffffff22' : '#00000014' }]}
+              onPress={() => setPreviewImageUrl(null)}
+            >
+              <Ionicons name="close" size={24} color={theme === 'dark' ? '#fff' : '#000'} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.imagePreviewIconBtn} onPress={handleSaveImage} disabled={savingImage}>
+            <TouchableOpacity
+              style={[styles.imagePreviewIconBtn, { backgroundColor: theme === 'dark' ? '#ffffff22' : '#00000014' }]}
+              onPress={handleSaveImage}
+              disabled={savingImage}
+            >
               {savingImage
-                ? <ActivityIndicator size="small" color="#fff" />
-                : <Ionicons name="download-outline" size={22} color="#fff" />
+                ? <ActivityIndicator size="small" color={theme === 'dark' ? '#fff' : '#000'} />
+                : <Ionicons name="download-outline" size={22} color={theme === 'dark' ? '#fff' : '#000'} />
               }
             </TouchableOpacity>
           </View>
@@ -1563,14 +1570,14 @@ function getStyles(colors: ThemeColors) {
       borderWidth: 1, borderColor: colors.border,
     },
     imagePreviewOverlay: {
-      flex: 1, backgroundColor: '#000000ee', justifyContent: 'center', alignItems: 'center',
+      flex: 1, justifyContent: 'center', alignItems: 'center',
     },
     imagePreviewTopBar: {
       position: 'absolute', top: 56, left: 20, right: 20, zIndex: 1,
       flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     },
     imagePreviewIconBtn: {
-      width: 40, height: 40, borderRadius: 20, backgroundColor: '#ffffff22',
+      width: 40, height: 40, borderRadius: 20,
       justifyContent: 'center', alignItems: 'center',
     },
     imagePreviewFull: { width: '100%', height: '80%' },
