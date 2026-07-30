@@ -61,7 +61,8 @@
           "savePhotosPermission": "Fragify saves photos you choose from chat to your gallery.",
           "isAccessMediaLocationEnabled": false
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true,
