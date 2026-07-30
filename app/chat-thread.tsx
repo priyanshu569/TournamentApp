@@ -432,19 +432,6 @@ function MessageBubble({
               : <View style={styles.avatarSpacer} />
           )}
           <View style={styles.bubbleWrap}>
-            {replyToMessage && !isDeleted && (
-              <TouchableOpacity
-                style={[styles.replyPreview, isMine && styles.replyPreviewMine]}
-                onPress={() => onReplyPreviewPress(message.reply_to_id)}
-              >
-                <Text style={[styles.replyPreviewName, isMine && styles.replyPreviewNameMine]} numberOfLines={1}>
-                  {replyToSenderName}
-                </Text>
-                <Text style={[styles.replyPreviewText, isMine && styles.replyPreviewTextMine]} numberOfLines={1}>
-                  {replyPreviewSnippet(replyToMessage)}
-                </Text>
-              </TouchableOpacity>
-            )}
             <GestureDetector gesture={longPressGesture}>
               <Animated.View style={[
                 styles.bubble,
@@ -455,6 +442,19 @@ function MessageBubble({
               ]}>
                 {showSenderName && !isDeleted && (
                   <Text style={[styles.senderName, message.image_url && !message.view_once && styles.senderNameOnImage]}>{senderName}</Text>
+                )}
+                {replyToMessage && !isDeleted && (
+                  <TouchableOpacity
+                    style={[styles.replyPreview, isMine && styles.replyPreviewMine]}
+                    onPress={() => onReplyPreviewPress(message.reply_to_id)}
+                  >
+                    <Text style={[styles.replyPreviewName, isMine && styles.replyPreviewNameMine]} numberOfLines={1}>
+                      {replyToSenderName}
+                    </Text>
+                    <Text style={[styles.replyPreviewText, isMine && styles.replyPreviewTextMine]} numberOfLines={1}>
+                      {replyPreviewSnippet(replyToMessage)}
+                    </Text>
+                  </TouchableOpacity>
                 )}
                 {isDeleted ? (
                   <View style={styles.deletedRow}>
@@ -1754,12 +1754,16 @@ function getStyles(colors: ThemeColors) {
     forwardedRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 3 },
     forwardedText: { fontSize: 11, fontStyle: 'italic', color: colors.textFaint },
     forwardedTextMine: { color: '#ffffffaa' },
+    // Nested inside the bubble as its own small card (WhatsApp's
+    // approach) rather than a separate chip above it -- uniform
+    // corners + a small margin on every side so it reads as "inside"
+    // the bubble even when the bubble itself has zero padding (images).
     replyPreview: {
       borderLeftWidth: 3, borderLeftColor: colors.accent,
       backgroundColor: colors.surfaceAlt,
-      borderTopLeftRadius: 12, borderTopRightRadius: 12,
-      borderBottomLeftRadius: 4, borderBottomRightRadius: 4,
-      paddingHorizontal: 10, paddingVertical: 7, marginBottom: 3,
+      borderRadius: 8,
+      paddingHorizontal: 10, paddingVertical: 7,
+      margin: 4, marginBottom: 6,
     },
     // WhatsApp tints the quote a shade of the bubble it belongs to
     // rather than a translucent wash -- accentMutedStrong is a ~13%
