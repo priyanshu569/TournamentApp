@@ -293,6 +293,14 @@ function ImageMessage({ message, isMine, styles, colors, onPress }: {
   );
 }
 
+function ViewOnceGlyph({ color, styles }: { color: string; styles: ReturnType<typeof getStyles> }) {
+  return (
+    <View style={[styles.viewOnceGlyphCircle, { borderColor: color }]}>
+      <Text style={[styles.viewOnceGlyphText, { color }]}>1</Text>
+    </View>
+  );
+}
+
 function ViewOnceImageMessage({ message, isMine, styles, onReveal, revealing }: {
   message: any;
   isMine: boolean;
@@ -314,7 +322,7 @@ function ViewOnceImageMessage({ message, isMine, styles, onReveal, revealing }: 
   if (isMine) {
     return (
       <View style={[styles.viewOnceBubble, styles.viewOnceBubbleMine]}>
-        <Ionicons name="flame" size={16} color="#ffffffcc" />
+        <ViewOnceGlyph color="#ffffffcc" styles={styles} />
         <Text style={[styles.viewOnceBubbleText, styles.viewOnceBubbleTextMine]}>Photo · View once</Text>
       </View>
     );
@@ -328,7 +336,7 @@ function ViewOnceImageMessage({ message, isMine, styles, onReveal, revealing }: 
     >
       {revealing
         ? <ActivityIndicator size="small" color="#fff" />
-        : <Ionicons name="flame" size={16} color="#fff" />
+        : <ViewOnceGlyph color="#fff" styles={styles} />
       }
       <Text style={[styles.viewOnceBubbleText, styles.viewOnceBubbleTextMine]}>
         {revealing ? 'Opening...' : 'View Once Photo'}
@@ -1392,19 +1400,6 @@ export default function ChatThreadScreen() {
             >
               <Ionicons name="close" size={24} color={theme === 'dark' ? '#fff' : '#000'} />
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.imagePreviewIconBtn,
-                { backgroundColor: pendingViewOnce ? colors.accent : (theme === 'dark' ? '#ffffff22' : '#00000014') },
-              ]}
-              onPress={() => setPendingViewOnce((v) => !v)}
-            >
-              <Ionicons
-                name={pendingViewOnce ? 'flame' : 'flame-outline'}
-                size={22}
-                color={pendingViewOnce ? '#fff' : (theme === 'dark' ? '#fff' : '#000')}
-              />
-            </TouchableOpacity>
           </View>
 
           {pendingImage && (
@@ -1417,17 +1412,28 @@ export default function ChatThreadScreen() {
 
           {pendingViewOnce && (
             <View style={styles.viewOnceHint}>
-              <Ionicons name="flame" size={14} color={colors.accent} />
+              <ViewOnceGlyph color={colors.accent} styles={styles} />
               <Text style={styles.viewOnceHintText}>View once — disappears after it's opened</Text>
             </View>
           )}
 
-          <TouchableOpacity style={styles.pendingSendBtn} onPress={handleSendPendingImage} disabled={uploadingImage}>
-            {uploadingImage
-              ? <ActivityIndicator size="small" color="#fff" />
-              : <Ionicons name="send" size={22} color="#fff" />
-            }
-          </TouchableOpacity>
+          <View style={styles.pendingBottomRow}>
+            <TouchableOpacity
+              style={[
+                styles.pendingViewOnceBtn,
+                { backgroundColor: pendingViewOnce ? colors.accent : (theme === 'dark' ? '#ffffff22' : '#00000014') },
+              ]}
+              onPress={() => setPendingViewOnce((v) => !v)}
+            >
+              <ViewOnceGlyph color={pendingViewOnce ? '#fff' : (theme === 'dark' ? '#fff' : '#000')} styles={styles} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.pendingSendBtn} onPress={handleSendPendingImage} disabled={uploadingImage}>
+              {uploadingImage
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Ionicons name="send" size={16} color="#fff" />
+              }
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
 
@@ -1455,7 +1461,7 @@ export default function ChatThreadScreen() {
             <Image source={{ uri: viewOnceImageUrl }} style={styles.imagePreviewFull} resizeMode="contain" />
           )}
           <View style={styles.viewOnceHint}>
-            <Ionicons name="flame" size={14} color={colors.accent} />
+            <ViewOnceGlyph color={colors.accent} styles={styles} />
             <Text style={styles.viewOnceHintText}>This photo has disappeared for both of you</Text>
           </View>
         </TouchableOpacity>
@@ -1774,9 +1780,21 @@ function getStyles(colors: ThemeColors) {
       borderWidth: 1, borderColor: colors.border,
     },
     viewOnceHintText: { color: colors.textPrimary, fontSize: 12, fontWeight: '600' },
-    pendingSendBtn: {
+    viewOnceGlyphCircle: {
+      width: 18, height: 18, borderRadius: 9, borderWidth: 1.5,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    viewOnceGlyphText: { fontSize: 10, fontWeight: '800' },
+    pendingBottomRow: {
       position: 'absolute', bottom: 40, right: 24,
-      width: 56, height: 56, borderRadius: 28,
+      flexDirection: 'row', alignItems: 'center', gap: 14,
+    },
+    pendingViewOnceBtn: {
+      width: 44, height: 44, borderRadius: 22,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    pendingSendBtn: {
+      width: 52, height: 52, borderRadius: 26,
       backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center',
       shadowColor: colors.accent, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 4,
     },
