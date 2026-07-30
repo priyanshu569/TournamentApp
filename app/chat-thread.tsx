@@ -1500,7 +1500,7 @@ function getStyles(colors: ThemeColors) {
     bubble: { borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10 },
     bubbleTheirs: { backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border },
     bubbleMine: { backgroundColor: colors.accent },
-    bubbleImage: { padding: 0, overflow: 'hidden' },
+    bubbleImage: { padding: 0, overflow: 'hidden', borderWidth: 0 },
     bubbleDeleted: { opacity: 0.6 },
     senderName: { color: colors.accent, fontSize: 11, fontWeight: '700', marginBottom: 2 },
     senderNameOnImage: { paddingHorizontal: 14, paddingTop: 10 },
