@@ -91,6 +91,13 @@ function replyPreviewSnippet(message: any): string {
   return message.content;
 }
 
+const IMAGE_PLACEHOLDER_CONTENT = ['📷 Photo', '📷 View once photo'];
+
+function imageCaption(message: any): string | null {
+  if (!message.content || IMAGE_PLACEHOLDER_CONTENT.includes(message.content)) return null;
+  return message.content;
+}
+
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 
 function summarizeReactions(reactions: { user_id: string; emoji: string }[]): string {
@@ -387,6 +394,7 @@ function MessageBubble({
   }));
 
   const isDeleted = !!message.deleted_at;
+  const caption = imageCaption(message);
 
   const replySwipeGesture = Gesture.Pan()
     .activeOffsetX([15, 999])
@@ -454,15 +462,29 @@ function MessageBubble({
                     <Text style={[styles.deletedText, isMine && styles.deletedTextMine]}>This message was deleted</Text>
                   </View>
                 ) : message.view_once ? (
-                  <ViewOnceImageMessage
-                    message={message}
-                    isMine={isMine}
-                    styles={styles}
-                    onReveal={onRevealViewOnce}
-                    revealing={revealingViewOnce}
-                  />
+                  <>
+                    <ViewOnceImageMessage
+                      message={message}
+                      isMine={isMine}
+                      styles={styles}
+                      onReveal={onRevealViewOnce}
+                      revealing={revealingViewOnce}
+                    />
+                    {caption && (
+                      <Text style={[styles.messageText, styles.viewOnceCaption, isMine ? styles.messageTextMine : styles.messageTextTheirs]}>
+                        {caption}
+                      </Text>
+                    )}
+                  </>
                 ) : message.image_url ? (
-                  <ImageMessage message={message} isMine={isMine} styles={styles} colors={colors} onPress={onImagePress} />
+                  <>
+                    <ImageMessage message={message} isMine={isMine} styles={styles} colors={colors} onPress={onImagePress} />
+                    {caption && (
+                      <Text style={[styles.messageText, styles.imageCaption, isMine ? styles.messageTextMine : styles.messageTextTheirs]}>
+                        {caption}
+                      </Text>
+                    )}
+                  </>
                 ) : message.audio_url ? (
                   <VoiceMessagePlayer message={message} isMine={isMine} styles={styles} colors={colors} />
                 ) : (
@@ -529,6 +551,7 @@ export default function ChatThreadScreen() {
   const [savingImage, setSavingImage] = useState(false);
   const [pendingImage, setPendingImage] = useState<PickedChatImage | null>(null);
   const [pendingViewOnce, setPendingViewOnce] = useState(false);
+  const [pendingCaption, setPendingCaption] = useState('');
   const [viewOnceImageUrl, setViewOnceImageUrl] = useState<string | null>(null);
   const [revealingViewOnce, setRevealingViewOnce] = useState(false);
   const listRef = useRef<FlatList>(null);
@@ -761,6 +784,7 @@ export default function ChatThreadScreen() {
       if (!picked) return;
       setPendingImage(picked);
       setPendingViewOnce(false);
+      setPendingCaption('');
     } catch (err: any) {
       Alert.alert('Could not open image', err?.message ?? 'Please try again.');
     }
@@ -769,14 +793,17 @@ export default function ChatThreadScreen() {
   function handleCancelPendingImage() {
     setPendingImage(null);
     setPendingViewOnce(false);
+    setPendingCaption('');
   }
 
   async function handleSendPendingImage() {
     if (!myId || !pendingImage) return;
     const picked = pendingImage;
     const viewOnce = pendingViewOnce;
+    const caption = pendingCaption.trim();
     setPendingImage(null);
     setPendingViewOnce(false);
+    setPendingCaption('');
     setUploadingImage(true);
 
     try {
@@ -784,7 +811,7 @@ export default function ChatThreadScreen() {
       const { error } = await supabase.from('messages').insert({
         conversation_id: id,
         sender_id: myId,
-        content: viewOnce ? '📷 View once photo' : '📷 Photo',
+        content: caption || (viewOnce ? '📷 View once photo' : '📷 Photo'),
         image_url: path,
         image_width: picked.width,
         image_height: picked.height,
@@ -1427,10 +1454,23 @@ export default function ChatThreadScreen() {
             >
               <ViewOnceGlyph color={pendingViewOnce ? '#fff' : (theme === 'dark' ? '#fff' : '#000')} styles={styles} />
             </TouchableOpacity>
+            <TextInput
+              style={[
+                styles.pendingCaptionInput,
+                {
+                  backgroundColor: theme === 'dark' ? '#ffffff22' : '#00000014',
+                  color: theme === 'dark' ? '#fff' : '#000',
+                },
+              ]}
+              placeholder="Add a message..."
+              placeholderTextColor={theme === 'dark' ? '#ffffff88' : '#00000088'}
+              value={pendingCaption}
+              onChangeText={setPendingCaption}
+            />
             <TouchableOpacity style={styles.pendingSendBtn} onPress={handleSendPendingImage} disabled={uploadingImage}>
               {uploadingImage
                 ? <ActivityIndicator size="small" color="#fff" />
-                : <Ionicons name="send" size={16} color="#fff" />
+                : <Ionicons name="send" size={18} color="#fff" />
               }
             </TouchableOpacity>
           </View>
@@ -1700,6 +1740,8 @@ function getStyles(colors: ThemeColors) {
     bubbleDeleted: { opacity: 0.6 },
     senderName: { color: colors.accent, fontSize: 11, fontWeight: '700', marginBottom: 2 },
     senderNameOnImage: { paddingHorizontal: 14, paddingTop: 10 },
+    imageCaption: { paddingHorizontal: 14, paddingTop: 6, paddingBottom: 10 },
+    viewOnceCaption: { marginTop: 8 },
     imageBubble: { borderRadius: 14 },
     imageBubbleCenter: { justifyContent: 'center', alignItems: 'center', gap: 6 },
     imageErrorText: { color: colors.textFaint, fontSize: 12, fontWeight: '600' },
@@ -1786,15 +1828,19 @@ function getStyles(colors: ThemeColors) {
     },
     viewOnceGlyphText: { fontSize: 10, fontWeight: '800' },
     pendingBottomRow: {
-      position: 'absolute', bottom: 40, right: 24,
-      flexDirection: 'row', alignItems: 'center', gap: 14,
+      position: 'absolute', bottom: 40, left: 20, right: 20,
+      flexDirection: 'row', alignItems: 'center', gap: 10,
     },
     pendingViewOnceBtn: {
       width: 44, height: 44, borderRadius: 22,
       justifyContent: 'center', alignItems: 'center',
     },
+    pendingCaptionInput: {
+      flex: 1, height: 44, borderRadius: 22,
+      paddingHorizontal: 16, fontSize: 14,
+    },
     pendingSendBtn: {
-      width: 52, height: 52, borderRadius: 26,
+      width: 44, height: 44, borderRadius: 22,
       backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center',
       shadowColor: colors.accent, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 4,
     },
