@@ -366,7 +366,7 @@ function MessageBubble({
               ? <Avatar avatarId={senderAvatarId} avatarUrl={senderAvatarUrl} username={senderName} size={28} />
               : <View style={styles.avatarSpacer} />
           )}
-          <View>
+          <View style={styles.bubbleWrap}>
             <GestureDetector gesture={longPressGesture}>
               <Animated.View style={[
                 styles.bubble,
@@ -1491,7 +1491,13 @@ function getStyles(colors: ThemeColors) {
     messageRowLast: { marginBottom: 10 },
     avatarSpacer: { width: 28 },
     replyHint: { position: 'absolute', left: 2, bottom: 8 },
-    bubble: { maxWidth: '78%', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10 },
+    // maxWidth lives here, not on `bubble` -- this View is messageRow's
+    // direct flex child (a definite width to resolve % against), and
+    // alignItems:flex-start stops the bubble from stretching to fill
+    // this wrapper's own (content-sized, circularly-undetermined)
+    // width, which was collapsing text to wrap one character per line.
+    bubbleWrap: { maxWidth: '78%', alignItems: 'flex-start' },
+    bubble: { borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10 },
     bubbleTheirs: { backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border },
     bubbleMine: { backgroundColor: colors.accent },
     bubbleImage: { padding: 0, overflow: 'hidden' },
