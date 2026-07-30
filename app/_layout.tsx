@@ -5,15 +5,10 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 import * as Notifications from 'expo-notifications';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { registerGlobals } from '@livekit/react-native';
 
 import { supabase } from '@/lib/supabase';
 import { registerForPushNotificationsAsync } from '@/lib/notifications';
 import { AppThemeProvider, useAppTheme } from '@/lib/ThemeContext';
-
-// Must run once, before any LiveKit usage -- registers the WebRTC
-// globals (RTCPeerConnection, MediaStream, etc.) LiveKit's SDK needs.
-registerGlobals();
 
 export default function RootLayout() {
   return (

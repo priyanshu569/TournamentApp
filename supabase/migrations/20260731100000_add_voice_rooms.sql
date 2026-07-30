@@ -1,15 +1,14 @@
 -- Persistent, joinable voice room per conversation (both direct and
 -- group). No ringing/call-state machine -- a row here just means
--- "this user is currently in this conversation's voice room", driving
--- the live "N in voice chat" indicator shown to people who haven't
--- joined yet. LiveKit's own room state (via useParticipants) is the
--- source of truth once you're actually connected -- a participant's
--- LiveKit identity is just their user_id directly, so no separate
--- numeric-id-to-profile mapping is needed here.
+-- "this user is currently in this conversation's voice room", which
+-- both drives the live "N in voice chat" indicator and lets a client
+-- map an Agora numeric uid (received via SDK join/leave events) back
+-- to a Fragify user/avatar.
 
 create table public.voice_room_participants (
   conversation_id uuid not null references public.conversations(id) on delete cascade,
   user_id uuid not null references public."Profiles"(id),
+  agora_uid integer not null,
   joined_at timestamptz not null default now(),
   primary key (conversation_id, user_id)
 );
