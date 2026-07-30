@@ -132,6 +132,7 @@ function RootLayoutInner() {
           <Stack.Screen name="world-chat" options={{ headerShown: false }} />
           <Stack.Screen name="world-chat-thread" options={{ headerShown: false }} />
           <Stack.Screen name="new-group" options={{ headerShown: false }} />
+          <Stack.Screen name="group-info" options={{ headerShown: false }} />
           <Stack.Screen name="admin-reports" options={{ headerShown: false }} />
           <Stack.Screen name="leaderboard" options={{ headerShown: false }} />
           <Stack.Screen name="live-scoreboard" options={{ headerShown: false }} />

@@ -1219,11 +1219,19 @@ export default function ChatThreadScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.headerTitleRow}
-            onPress={() => otherUser?.id && router.push(`/user-profile?id=${otherUser.id}`)}
-            disabled={!otherUser}
+            onPress={() => {
+              if (conversation?.conversation_type === 'direct') {
+                if (otherUser?.id) router.push(`/user-profile?id=${otherUser.id}`);
+              } else {
+                router.push(`/group-info?id=${id}`);
+              }
+            }}
+            disabled={conversation?.conversation_type === 'direct' && !otherUser}
           >
             {conversation?.conversation_type === 'direct' ? (
               <Avatar avatarId={otherUser?.avatar_id} avatarUrl={otherUser?.avatar_url} username={otherUser?.display_name} size={32} />
+            ) : conversation?.avatar_url ? (
+              <Avatar avatarUrl={conversation.avatar_url} username={conversation.name} size={32} />
             ) : (
               <LinearGradient colors={['#7C3AED', '#4C1D95']} style={styles.groupIconSmall}>
                 <Ionicons name="people" size={16} color="#fff" />
@@ -1266,6 +1274,15 @@ export default function ChatThreadScreen() {
                 return (
                   <View style={styles.dateSeparatorRow}>
                     <Text style={styles.dateSeparatorText}>{item.label}</Text>
+                  </View>
+                );
+              }
+
+              if (item.is_system) {
+                const actor = item.sender_id === myId ? 'You' : (participantProfiles.get(item.sender_id)?.display_name ?? 'Someone');
+                return (
+                  <View style={styles.systemMessageRow}>
+                    <Text style={styles.systemMessageText}>{actor} {item.content}</Text>
                   </View>
                 );
               }
@@ -1718,6 +1735,12 @@ function getStyles(colors: ThemeColors) {
       backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.borderMuted,
       paddingHorizontal: 12, paddingVertical: 5, borderRadius: 12,
       overflow: 'hidden',
+    },
+    systemMessageRow: { alignItems: 'center', marginVertical: 6 },
+    systemMessageText: {
+      color: colors.textFaint, fontSize: 12, fontWeight: '600', textAlign: 'center',
+      backgroundColor: colors.surfaceAlt, paddingHorizontal: 12, paddingVertical: 5,
+      borderRadius: 10, overflow: 'hidden', maxWidth: '80%',
     },
     messageRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginBottom: 2 },
     messageRowMine: { justifyContent: 'flex-end' },

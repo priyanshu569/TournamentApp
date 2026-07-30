@@ -113,6 +113,9 @@ export default function ChatInboxScreen() {
         avatarId = otherProfile?.avatar_id ?? null;
         avatarUrl = otherProfile?.avatar_url ?? null;
         avatarUsername = otherProfile?.display_name ?? null;
+      } else {
+        avatarUrl = c.avatar_url ?? null;
+        avatarUsername = title;
       }
 
       return {
@@ -207,6 +210,8 @@ export default function ChatInboxScreen() {
                 <View style={[styles.avatarRing, isUnread && styles.avatarRingUnread]}>
                   {item.type === 'direct' ? (
                     <Avatar avatarId={item.avatarId} avatarUrl={item.avatarUrl} username={item.avatarUsername} size={50} />
+                  ) : item.avatarUrl ? (
+                    <Avatar avatarUrl={item.avatarUrl} username={item.avatarUsername} size={50} />
                   ) : (
                     <LinearGradient colors={['#7C3AED', '#4C1D95']} style={styles.groupIcon}>
                       <Ionicons name="people" size={22} color="#fff" />
