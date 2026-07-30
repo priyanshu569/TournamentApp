@@ -17,7 +17,6 @@ import {
 } from 'expo-audio';
 import { supabase } from '@/lib/supabase';
 import Avatar from '@/components/Avatar';
-import VoiceRoomBar from '@/components/VoiceRoomBar';
 import { formatClockTime, formatDayLabel, formatRelativeTime, isSameDay } from '@/lib/time';
 import { uploadVoiceMessage, getSignedVoiceMessageUrl, formatAudioDuration } from '@/lib/voiceMessage';
 import {
@@ -1241,8 +1240,6 @@ export default function ChatThreadScreen() {
             <Ionicons name="ellipsis-vertical" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
-
-        {myId && <VoiceRoomBar conversationId={id} myId={myId} participantProfiles={participantProfiles} />}
 
         {pinnedMessage && (
           <TouchableOpacity style={styles.pinnedBanner} onPress={() => handleReplyPreviewPress(pinnedMessage.id)}>
