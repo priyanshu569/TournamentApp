@@ -54,6 +54,13 @@
         {
           "microphonePermission": "Fragify uses your microphone to record voice messages in chat."
         }
+      ],
+      [
+        "expo-media-library",
+        {
+          "savePhotosPermission": "Fragify saves photos you choose from chat to your gallery.",
+          "isAccessMediaLocationEnabled": false
+        }
       ]
     ],
     "experiments": {

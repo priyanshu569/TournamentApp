@@ -1,5 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
+import { File, Directory, Paths } from 'expo-file-system';
+import * as MediaLibrary from 'expo-media-library';
 import { decode } from 'base64-arraybuffer';
 import { supabase } from './supabase';
 
@@ -10,7 +12,9 @@ import { supabase } from './supabase';
 const MAX_DIMENSION = 1600;
 const CHAT_IMAGE_QUALITY = 0.75;
 
-export async function pickChatImage(source: 'camera' | 'library'): Promise<{ base64: string } | null> {
+export type PickedChatImage = { base64: string; width: number; height: number };
+
+export async function pickChatImage(source: 'camera' | 'library'): Promise<PickedChatImage | null> {
   const permission = source === 'camera'
     ? await ImagePicker.requestCameraPermissionsAsync()
     : await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -38,11 +42,10 @@ export async function pickChatImage(source: 'camera' | 'library'): Promise<{ bas
   if (result.canceled) return null;
 
   const asset = result.assets[0];
-  const base64 = await resizeAndCompress(asset.uri, asset.width, asset.height);
-  return { base64 };
+  return resizeAndCompress(asset.uri, asset.width, asset.height);
 }
 
-async function resizeAndCompress(uri: string, width: number, height: number): Promise<string> {
+async function resizeAndCompress(uri: string, width: number, height: number): Promise<PickedChatImage> {
   const context = ImageManipulator.manipulate(uri);
 
   if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
@@ -61,7 +64,7 @@ async function resizeAndCompress(uri: string, width: number, height: number): Pr
   });
 
   if (!result.base64) throw new Error('Failed to process image.');
-  return result.base64;
+  return { base64: result.base64, width: result.width, height: result.height };
 }
 
 export async function uploadChatImage(
@@ -86,4 +89,29 @@ export async function getSignedChatImageUrl(path: string): Promise<string> {
 
   if (error) throw error;
   return data.signedUrl;
+}
+
+// MediaLibrary needs a local file, not a remote URL -- download the
+// signed URL to cache first, then hand that off and clean up.
+export async function saveChatImageToGallery(signedUrl: string): Promise<void> {
+  const permission = await MediaLibrary.requestPermissionsAsync(true);
+  if (!permission.granted) {
+    throw new Error('Photo library access is required to save this image.');
+  }
+
+  const cacheDir = new Directory(Paths.cache, 'fragify-downloads');
+  try {
+    cacheDir.create({ intermediates: true });
+  } catch {
+    // Already exists -- fine.
+  }
+
+  const destination = new File(cacheDir, `${Date.now()}.jpg`);
+  const downloaded = await File.downloadFileAsync(signedUrl, destination);
+
+  try {
+    await MediaLibrary.saveToLibraryAsync(downloaded.uri);
+  } finally {
+    downloaded.delete();
+  }
 }
