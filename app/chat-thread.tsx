@@ -1759,7 +1759,7 @@ function getStyles(colors: ThemeColors) {
     // corners + a small margin on every side so it reads as "inside"
     // the bubble even when the bubble itself has zero padding (images).
     replyPreview: {
-      borderLeftWidth: 3, borderLeftColor: colors.accent,
+      borderLeftWidth: 2, borderLeftColor: colors.accent,
       backgroundColor: colors.surfaceAlt,
       borderRadius: 8,
       paddingHorizontal: 10, paddingVertical: 7,
