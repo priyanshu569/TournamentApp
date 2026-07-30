@@ -1,17 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { IRtcEngine, IRtcEngineEventHandler } from 'react-native-agora';
+import { LiveKitRoom, useParticipants, useLocalParticipant } from '@livekit/react-native';
 import { supabase } from '@/lib/supabase';
 import {
-  requestMicPermission, getVoiceEngine, fetchVoiceToken, recordVoicePresence,
-  clearVoicePresence, generateVoiceUid, releaseVoiceEngine,
+  requestMicPermission, fetchLiveKitToken, recordVoicePresence, clearVoicePresence,
+  LiveKitCredentials,
 } from '@/lib/voiceCall';
 import Avatar from '@/components/Avatar';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
-
-type VoiceParticipant = { user_id: string; agora_uid: number };
 
 export default function VoiceRoomBar({ conversationId, myId, participantProfiles }: {
   conversationId: string;
@@ -20,23 +18,19 @@ export default function VoiceRoomBar({ conversationId, myId, participantProfiles
 }) {
   const { colors } = useAppTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
-  const [participants, setParticipants] = useState<VoiceParticipant[]>([]);
-  const [inCall, setInCall] = useState(false);
+  const [presence, setPresence] = useState<{ user_id: string }[]>([]);
   const [joining, setJoining] = useState(false);
-  const [micMuted, setMicMuted] = useState(false);
-  const myUidRef = useRef<number | null>(null);
-  const handlerRef = useRef<IRtcEngineEventHandler | null>(null);
-  const engineRef = useRef<IRtcEngine | null>(null);
+  const [credentials, setCredentials] = useState<LiveKitCredentials | null>(null);
 
   useEffect(() => {
-    loadParticipants();
+    loadPresence();
 
     const channel = supabase
       .channel(`voice_room_${conversationId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'voice_room_participants', filter: `conversation_id=eq.${conversationId}` },
-        () => { loadParticipants(); }
+        () => { loadPresence(); }
       )
       .subscribe();
 
@@ -48,26 +42,20 @@ export default function VoiceRoomBar({ conversationId, myId, participantProfiles
   // can't see or control would be worse than just ending it.
   useEffect(() => {
     return () => {
-      if (myUidRef.current !== null && myId) {
-        clearVoicePresence(conversationId, myId);
-      }
-      if (handlerRef.current && engineRef.current) {
-        engineRef.current.unregisterEventHandler(handlerRef.current);
-      }
-      releaseVoiceEngine();
+      if (myId) clearVoicePresence(conversationId, myId);
     };
   }, [conversationId, myId]);
 
-  async function loadParticipants() {
+  async function loadPresence() {
     const { data } = await supabase
       .from('voice_room_participants')
-      .select('user_id, agora_uid')
+      .select('user_id')
       .eq('conversation_id', conversationId);
-    setParticipants(data ?? []);
+    setPresence(data ?? []);
   }
 
   async function handleJoin() {
-    if (!myId || joining || inCall) return;
+    if (!myId || joining || credentials) return;
     setJoining(true);
     try {
       const hasMic = await requestMicPermission();
@@ -77,27 +65,9 @@ export default function VoiceRoomBar({ conversationId, myId, participantProfiles
         return;
       }
 
-      const uid = generateVoiceUid();
-      const voiceToken = await fetchVoiceToken(conversationId, uid);
-      const rtcEngine = getVoiceEngine(voiceToken.app_id);
-      engineRef.current = rtcEngine;
-
-      const handler: IRtcEngineEventHandler = {
-        onError: (err, msg) => console.log('Agora error:', err, msg),
-      };
-      rtcEngine.registerEventHandler(handler);
-      handlerRef.current = handler;
-
-      const result = rtcEngine.joinChannel(voiceToken.token, conversationId, uid, {
-        publishMicrophoneTrack: true,
-        autoSubscribeAudio: true,
-      });
-      if (result !== 0) throw new Error('Failed to join voice chat.');
-
-      myUidRef.current = uid;
-      await recordVoicePresence(conversationId, myId, uid);
-      setInCall(true);
-      setMicMuted(false);
+      const creds = await fetchLiveKitToken(conversationId);
+      await recordVoicePresence(conversationId, myId);
+      setCredentials(creds);
     } catch (err: any) {
       Alert.alert('Could not join voice chat', err?.message ?? 'Please try again.');
     }
@@ -105,28 +75,31 @@ export default function VoiceRoomBar({ conversationId, myId, participantProfiles
   }
 
   async function handleLeave() {
-    if (!myId) return;
-    if (handlerRef.current && engineRef.current) {
-      engineRef.current.unregisterEventHandler(handlerRef.current);
-      handlerRef.current = null;
-    }
-    releaseVoiceEngine();
-    engineRef.current = null;
-    myUidRef.current = null;
-    setInCall(false);
-    await clearVoicePresence(conversationId, myId);
+    setCredentials(null);
+    if (myId) await clearVoicePresence(conversationId, myId);
   }
 
-  function handleToggleMute() {
-    if (!engineRef.current) return;
-    const next = !micMuted;
-    engineRef.current.muteLocalAudioStream(next);
-    setMicMuted(next);
+  const otherCount = presence.filter((p) => p.user_id !== myId).length;
+
+  if (credentials) {
+    return (
+      <LiveKitRoom
+        serverUrl={credentials.url}
+        token={credentials.token}
+        audio
+        connect
+        onDisconnected={handleLeave}
+        onError={(err) => {
+          Alert.alert('Voice chat error', err.message);
+          handleLeave();
+        }}
+      >
+        <ActiveCallBar styles={styles} colors={colors} myId={myId} participantProfiles={participantProfiles} onLeave={handleLeave} />
+      </LiveKitRoom>
+    );
   }
 
-  const otherCount = participants.filter((p) => p.user_id !== myId).length;
-
-  if (!inCall && participants.length === 0) {
+  if (presence.length === 0) {
     return (
       <TouchableOpacity style={styles.idleBar} onPress={handleJoin} disabled={joining}>
         <Ionicons name="mic-outline" size={16} color={colors.accent} />
@@ -138,33 +111,46 @@ export default function VoiceRoomBar({ conversationId, myId, participantProfiles
     );
   }
 
-  if (!inCall) {
-    return (
-      <TouchableOpacity style={styles.idleBar} onPress={handleJoin} disabled={joining}>
-        <View style={styles.liveDot} />
-        {joining
-          ? <ActivityIndicator size="small" color={colors.accent} />
-          : (
-            <Text style={styles.idleBarText}>
-              {otherCount} in voice chat — tap to join
-            </Text>
-          )
-        }
-      </TouchableOpacity>
-    );
+  return (
+    <TouchableOpacity style={styles.idleBar} onPress={handleJoin} disabled={joining}>
+      <View style={styles.liveDot} />
+      {joining
+        ? <ActivityIndicator size="small" color={colors.accent} />
+        : (
+          <Text style={styles.idleBarText}>
+            {otherCount} in voice chat — tap to join
+          </Text>
+        )
+      }
+    </TouchableOpacity>
+  );
+}
+
+function ActiveCallBar({ styles, colors, myId, participantProfiles, onLeave }: {
+  styles: ReturnType<typeof getStyles>;
+  colors: ThemeColors;
+  myId: string | null;
+  participantProfiles: Map<string, any>;
+  onLeave: () => void;
+}) {
+  const participants = useParticipants();
+  const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
+
+  function handleToggleMute() {
+    localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled);
   }
 
   return (
     <View style={styles.activeBar}>
       <View style={styles.avatarStack}>
         {participants.slice(0, 4).map((p, i) => {
-          const profile = p.user_id === myId ? null : participantProfiles.get(p.user_id);
+          const profile = p.identity === myId ? null : participantProfiles.get(p.identity);
           return (
-            <View key={p.user_id} style={[styles.avatarStackItem, { marginLeft: i === 0 ? 0 : -10 }]}>
+            <View key={p.identity} style={[styles.avatarStackItem, { marginLeft: i === 0 ? 0 : -10 }]}>
               <Avatar
                 avatarId={profile?.avatar_id}
                 avatarUrl={profile?.avatar_url}
-                username={p.user_id === myId ? 'You' : profile?.display_name}
+                username={p.identity === myId ? 'You' : profile?.display_name}
                 size={28}
               />
             </View>
@@ -175,9 +161,9 @@ export default function VoiceRoomBar({ conversationId, myId, participantProfiles
         {participants.length} in voice chat
       </Text>
       <TouchableOpacity style={styles.micBtn} onPress={handleToggleMute}>
-        <Ionicons name={micMuted ? 'mic-off' : 'mic'} size={18} color={colors.textPrimary} />
+        <Ionicons name={isMicrophoneEnabled ? 'mic' : 'mic-off'} size={18} color={colors.textPrimary} />
       </TouchableOpacity>
-      <TouchableOpacity style={styles.leaveBtn} onPress={handleLeave}>
+      <TouchableOpacity style={styles.leaveBtn} onPress={onLeave}>
         <Ionicons name="call" size={16} color="#fff" style={{ transform: [{ rotate: '135deg' }] }} />
       </TouchableOpacity>
     </View>

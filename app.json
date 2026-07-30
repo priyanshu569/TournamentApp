@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "tournamentapp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
@@ -52,7 +52,7 @@
       [
         "expo-audio",
         {
-          "microphonePermission": "Fragify uses your microphone to record voice messages in chat."
+          "microphonePermission": "Fragify uses your microphone to record voice messages and for voice chat in conversations."
         }
       ],
       [
@@ -62,7 +62,15 @@
           "isAccessMediaLocationEnabled": false
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      "@livekit/react-native-expo-plugin",
+      [
+        "@config-plugins/react-native-webrtc",
+        {
+          "microphonePermission": "Fragify uses your microphone to record voice messages and for voice chat in conversations.",
+          "cameraPermission": "Fragify does not use your camera for voice chat."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
