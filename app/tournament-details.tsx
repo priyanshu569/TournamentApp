@@ -120,10 +120,11 @@ export default function TournamentDetails() {
     setLoading(false);
   }
 
-  async function notifyConfirmedPlayers(title: string, body: string) {
+  async function notifyConfirmedPlayers(title: string, body: string, category: string = 'tournament_updates') {
     try {
       const { data, error } = await supabase.rpc('get_confirmed_players', {
         target_tournament_id: id,
+        p_category: category,
       });
 
       if (error) {
@@ -165,7 +166,8 @@ export default function TournamentDetails() {
 
       notifyConfirmedPlayers(
         '🔑 Room Code Published',
-        `${tournament?.title ?? 'Your tournament'} room code is live — check it now!`
+        `${tournament?.title ?? 'Your tournament'} room code is live — check it now!`,
+        'room_codes'
       );
     }
   };
@@ -201,7 +203,7 @@ export default function TournamentDetails() {
       };
 
       if (statusMessages[s]) {
-        notifyConfirmedPlayers('Tournament Update', statusMessages[s]);
+        notifyConfirmedPlayers('Tournament Update', statusMessages[s], s === 'completed' ? 'results' : 'tournament_updates');
       }
     } else {
       Alert.alert('Error', error.message);

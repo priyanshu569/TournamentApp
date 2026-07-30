@@ -105,13 +105,15 @@ export async function notifyAndLog(
   pushToken: string | null | undefined,
   title: string,
   body: string,
-  tournamentId?: string
+  tournamentId?: string,
+  conversationId?: string,
 ) {
   const { error } = await supabase.rpc('insert_notification', {
     p_user_id: userId,
     p_title: title,
     p_body: body,
     p_tournament_id: tournamentId ?? null,
+    p_conversation_id: conversationId ?? null,
   });
 
   if (error) {
@@ -119,7 +121,7 @@ export async function notifyAndLog(
   }
 
   if (pushToken) {
-    await sendPushNotification([pushToken], title, body, { tournament_id: tournamentId });
+    await sendPushNotification([pushToken], title, body, { tournament_id: tournamentId, conversation_id: conversationId });
   }
 }
 

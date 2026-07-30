@@ -23,6 +23,7 @@ import {
   pickChatImage, uploadChatImage, getSignedChatImageUrl, saveChatImageToGallery, revealViewOnceImage,
   PickedChatImage,
 } from '@/lib/chatImage';
+import { acceptMessageRequest, declineMessageRequest, notifyConversationParticipants } from '@/lib/messageRequests';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 
@@ -540,6 +541,8 @@ export default function ChatThreadScreen() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const [isBlocked, setIsBlocked] = useState(false);
+  const [myStatus, setMyStatus] = useState<'accepted' | 'pending'>('accepted');
+  const [respondingRequest, setRespondingRequest] = useState(false);
   const [replyingTo, setReplyingTo] = useState<any>(null);
   const [activeMenu, setActiveMenu] = useState<{ message: any; isMine: boolean; y: number } | null>(null);
   const [moreExpanded, setMoreExpanded] = useState(false);
@@ -662,8 +665,11 @@ export default function ChatThreadScreen() {
 
     const { data: participants } = await supabase
       .from('conversation_participants')
-      .select('user_id')
+      .select('user_id, status')
       .eq('conversation_id', id);
+
+    const myRow = (participants ?? []).find((p: any) => p.user_id === me);
+    setMyStatus(myRow?.status ?? 'accepted');
 
     const participantIds = (participants ?? []).map((p: any) => p.user_id);
 
@@ -740,22 +746,36 @@ export default function ChatThreadScreen() {
   async function handleSend() {
     if (!text.trim() || !myId) return;
     setSending(true);
+    const body = text.trim();
 
     const { error } = await supabase.from('messages').insert({
       conversation_id: id,
       sender_id: myId,
-      content: text.trim(),
+      content: body,
       reply_to_id: replyingTo?.id ?? null,
     });
 
     if (!error) {
       setText('');
       setReplyingTo(null);
+      notifyOthers(body);
     } else {
       console.log('Failed to send message:', error.message);
       Alert.alert('Message not sent', friendlySendError(error.message));
     }
     setSending(false);
+  }
+
+  // Fire-and-forget push fan-out to every other participant. Never
+  // awaited by callers -- a slow/failed notification must not hold up
+  // or fail the send itself.
+  function notifyOthers(preview: string) {
+    if (!myId) return;
+    const myName = participantProfiles.get(myId)?.display_name ?? 'Someone';
+    const groupName = conversation?.conversation_type === 'group' ? (conversation?.name ?? 'Group') : null;
+    notifyConversationParticipants(id as string, myName, groupName, preview).catch((err) => {
+      console.log('Failed to notify participants:', err?.message);
+    });
   }
 
   async function handleSaveImage() {
@@ -808,10 +828,11 @@ export default function ChatThreadScreen() {
 
     try {
       const path = await uploadChatImage(id, myId, picked.base64);
+      const previewContent = caption || (viewOnce ? '📷 View once photo' : '📷 Photo');
       const { error } = await supabase.from('messages').insert({
         conversation_id: id,
         sender_id: myId,
-        content: caption || (viewOnce ? '📷 View once photo' : '📷 Photo'),
+        content: previewContent,
         image_url: path,
         image_width: picked.width,
         image_height: picked.height,
@@ -820,6 +841,7 @@ export default function ChatThreadScreen() {
       });
       if (error) throw error;
       setReplyingTo(null);
+      notifyOthers(previewContent);
     } catch (err: any) {
       Alert.alert('Photo not sent', friendlySendError(err?.message ?? 'Please try again.'));
     }
@@ -893,6 +915,7 @@ export default function ChatThreadScreen() {
       });
       if (error) throw error;
       setReplyingTo(null);
+      notifyOthers('🎤 Voice message');
     } catch (err: any) {
       console.log('Failed to send voice message:', err.message);
       Alert.alert('Voice message not sent', friendlySendError(err.message ?? 'Please try again.'));
@@ -981,6 +1004,42 @@ export default function ChatThreadScreen() {
       return;
     }
     setIsBlocked(false);
+  }
+
+  async function handleAcceptRequest() {
+    if (!myId) return;
+    setRespondingRequest(true);
+    const myName = participantProfiles.get(myId)?.display_name ?? 'Someone';
+    const { error } = await acceptMessageRequest(id as string, myName);
+    setRespondingRequest(false);
+    if (error) {
+      Alert.alert('Error', error);
+      return;
+    }
+    setMyStatus('accepted');
+  }
+
+  function confirmDeclineRequest() {
+    Alert.alert(
+      'Decline Request?',
+      `You won't see messages from ${otherUser?.display_name ?? 'this person'} unless they message you again.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Decline', style: 'destructive', onPress: handleDeclineRequest },
+      ]
+    );
+  }
+
+  async function handleDeclineRequest() {
+    if (!myId) return;
+    setRespondingRequest(true);
+    const { error } = await declineMessageRequest(id as string, myId);
+    setRespondingRequest(false);
+    if (error) {
+      Alert.alert('Error', error);
+      return;
+    }
+    router.back();
   }
 
   function handleReplyPreviewPress(replyToId: string) {
@@ -1340,7 +1399,25 @@ export default function ChatThreadScreen() {
           </View>
         )}
 
-        {isBlocked ? (
+        {conversation?.conversation_type === 'direct' && myStatus === 'pending' ? (
+          <View style={[styles.requestBar, { paddingBottom: keyboardVisible ? 12 : 34 }]}>
+            <Text style={styles.requestBarText}>
+              {(otherUser?.display_name ?? 'This person')} wants to send you a message
+            </Text>
+            {respondingRequest ? (
+              <ActivityIndicator size="small" color={colors.accent} style={{ marginTop: 10 }} />
+            ) : (
+              <View style={styles.requestBarActions}>
+                <TouchableOpacity style={styles.requestDeclineBtn} onPress={confirmDeclineRequest}>
+                  <Text style={styles.requestDeclineBtnText}>Decline</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.requestAcceptBtn} onPress={handleAcceptRequest}>
+                  <Text style={styles.requestAcceptBtnText}>Accept</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        ) : isBlocked ? (
           <View style={[styles.inputRow, styles.blockedBanner, { paddingBottom: keyboardVisible ? 12 : 34 }]}>
             <Ionicons name="ban" size={16} color={colors.error} />
             <Text style={styles.blockedBannerText}>You've blocked this user.</Text>
@@ -1931,6 +2008,22 @@ function getStyles(colors: ThemeColors) {
     blockedBanner: { justifyContent: 'center', gap: 8 },
     blockedBannerText: { color: colors.textFaint, fontSize: 13, fontWeight: '600' },
     blockedBannerAction: { color: colors.accent, fontSize: 13, fontWeight: '700' },
+    requestBar: {
+      paddingHorizontal: 20, paddingTop: 16, alignItems: 'center',
+      borderTopWidth: 1, borderTopColor: colors.surfaceAlt,
+    },
+    requestBarText: { color: colors.textSecondary, fontSize: 13, fontWeight: '600', textAlign: 'center' },
+    requestBarActions: { flexDirection: 'row', gap: 12, marginTop: 12, width: '100%' },
+    requestDeclineBtn: {
+      flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center',
+      backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border,
+    },
+    requestDeclineBtnText: { color: colors.textSecondary, fontSize: 14, fontWeight: '700' },
+    requestAcceptBtn: {
+      flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: 'center',
+      backgroundColor: colors.accent,
+    },
+    requestAcceptBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
     replyBar: {
       flexDirection: 'row', alignItems: 'center', gap: 10,
       backgroundColor: colors.surfaceAlt, paddingHorizontal: 14, paddingVertical: 8,

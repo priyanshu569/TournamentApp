@@ -93,7 +93,9 @@ function RootLayoutInner() {
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data;
       console.log('Notification tapped:', data);
-      if (data?.tournament_id) {
+      if (data?.conversation_id) {
+        router.push(`/chat-thread?id=${data.conversation_id}`);
+      } else if (data?.tournament_id) {
         router.push(`/tournament-details?id=${data.tournament_id}`);
       }
     });

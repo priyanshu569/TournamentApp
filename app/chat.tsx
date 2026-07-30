@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList,
-  TouchableOpacity, ActivityIndicator
+  TouchableOpacity, ActivityIndicator, Modal, Alert
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase';
 import Avatar from '@/components/Avatar';
 import GradientIconBadge from '@/components/GradientIconBadge';
 import { formatRelativeTime } from '@/lib/time';
+import { acceptMessageRequest, declineMessageRequest } from '@/lib/messageRequests';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 import { useTabNavigation } from '@/lib/tabNavigation';
@@ -22,7 +23,10 @@ export default function ChatInboxScreen() {
   const [conversations, setConversations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [myId, setMyId] = useState<string | null>(null);
-  const [category, setCategory] = useState<'personal' | 'group'>('personal');
+  const [myDisplayName, setMyDisplayName] = useState('You');
+  const [category, setCategory] = useState<'personal' | 'group' | 'requests'>('personal');
+  const [menuFor, setMenuFor] = useState<any | null>(null);
+  const [respondingId, setRespondingId] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -45,12 +49,20 @@ export default function ChatInboxScreen() {
     if (!me) { setLoading(false); return; }
     setMyId(me);
 
+    const { data: myProfile } = await supabase
+      .from('Profiles')
+      .select('display_name')
+      .eq('id', me)
+      .single();
+    if (myProfile?.display_name) setMyDisplayName(myProfile.display_name);
+
     const { data: myParticipation } = await supabase
       .from('conversation_participants')
-      .select('conversation_id')
+      .select('conversation_id, status, pinned, muted')
       .eq('user_id', me);
 
     const conversationIds = (myParticipation ?? []).map((r: any) => r.conversation_id);
+    const myMetaMap = new Map((myParticipation ?? []).map((r: any) => [r.conversation_id, r]));
 
     if (conversationIds.length === 0) {
       setConversations([]);
@@ -99,6 +111,7 @@ export default function ChatInboxScreen() {
 
     const built = (convos ?? []).map((c: any) => {
       const lastMessage = lastMessageMap.get(c.id);
+      const myMeta = myMetaMap.get(c.id);
       let title = c.name ?? 'Group Chat';
       let avatarId: string | null = null;
       let avatarUrl: string | null = null;
@@ -128,13 +141,111 @@ export default function ChatInboxScreen() {
         lastMessage: lastMessage?.content ?? null,
         lastMessageAt: lastMessage?.created_at ?? c.created_at,
         unreadCount: unreadCountMap.get(c.id) ?? 0,
+        status: myMeta?.status ?? 'accepted',
+        pinned: !!myMeta?.pinned,
+        muted: !!myMeta?.muted,
       };
     });
 
-    built.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
+    built.sort((a, b) => {
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+      return new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime();
+    });
 
     setConversations(built);
     setLoading(false);
+  }
+
+  const pendingRequests = conversations.filter((c) => c.type === 'direct' && c.status === 'pending');
+  const visibleConversations = conversations.filter((c) => {
+    if (category === 'requests') return c.type === 'direct' && c.status === 'pending';
+    if (category === 'personal') return c.type === 'direct' && c.status === 'accepted';
+    return c.type === 'group';
+  });
+
+  function openMenu(item: any) {
+    setMenuFor(item);
+  }
+
+  async function togglePinned(item: any) {
+    setMenuFor(null);
+    const next = !item.pinned;
+    setConversations((prev) => prev.map((c) => (c.id === item.id ? { ...c, pinned: next } : c)));
+    const { error } = await supabase
+      .from('conversation_participants')
+      .update({ pinned: next })
+      .eq('conversation_id', item.id)
+      .eq('user_id', myId);
+    if (error) {
+      setConversations((prev) => prev.map((c) => (c.id === item.id ? { ...c, pinned: !next } : c)));
+      Alert.alert('Error', error.message);
+    } else {
+      loadConversations();
+    }
+  }
+
+  async function toggleMuted(item: any) {
+    setMenuFor(null);
+    const next = !item.muted;
+    setConversations((prev) => prev.map((c) => (c.id === item.id ? { ...c, muted: next } : c)));
+    const { error } = await supabase
+      .from('conversation_participants')
+      .update({ muted: next })
+      .eq('conversation_id', item.id)
+      .eq('user_id', myId);
+    if (error) {
+      setConversations((prev) => prev.map((c) => (c.id === item.id ? { ...c, muted: !next } : c)));
+      Alert.alert('Error', error.message);
+    }
+  }
+
+  function confirmDelete(item: any) {
+    setMenuFor(null);
+    const isGroup = item.type === 'group';
+    Alert.alert(
+      isGroup ? 'Leave Group?' : 'Delete Chat?',
+      isGroup
+        ? "You'll no longer see messages in this group."
+        : 'This removes the conversation from your list. The other person can still message you again later.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: isGroup ? 'Leave' : 'Delete', style: 'destructive', onPress: async () => {
+            const { error } = await supabase
+              .from('conversation_participants')
+              .delete()
+              .eq('conversation_id', item.id)
+              .eq('user_id', myId);
+            if (error) { Alert.alert('Error', error.message); return; }
+            setConversations((prev) => prev.filter((c) => c.id !== item.id));
+          }
+        },
+      ]
+    );
+  }
+
+  async function handleAccept(item: any) {
+    setRespondingId(item.id);
+    const { error } = await acceptMessageRequest(item.id, myDisplayName);
+    setRespondingId(null);
+    if (error) { Alert.alert('Error', error); return; }
+    setConversations((prev) => prev.map((c) => (c.id === item.id ? { ...c, status: 'accepted' } : c)));
+  }
+
+  function confirmDecline(item: any) {
+    Alert.alert('Decline Request?', `You won't see messages from ${item.title} unless they message you again.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Decline', style: 'destructive', onPress: async () => {
+          if (!myId) return;
+          setRespondingId(item.id);
+          const { error } = await declineMessageRequest(item.id, myId);
+          setRespondingId(null);
+          if (error) { Alert.alert('Error', error); return; }
+          setConversations((prev) => prev.filter((c) => c.id !== item.id));
+        }
+      },
+    ]);
   }
 
   return (
@@ -169,6 +280,20 @@ export default function ChatInboxScreen() {
           <Ionicons name="people" size={14} color={category === 'group' ? '#fff' : colors.textTertiary} />
           <Text style={[styles.categoryTabText, category === 'group' && styles.categoryTabTextActive]}>Group</Text>
         </TouchableOpacity>
+        <View style={styles.requestsTabWrap}>
+          {pendingRequests.length > 0 && (
+            <View style={styles.requestsBadge}>
+              <Text style={styles.requestsBadgeText}>{pendingRequests.length > 9 ? '9+' : pendingRequests.length}</Text>
+            </View>
+          )}
+          <TouchableOpacity
+            style={[styles.categoryTab, category === 'requests' && styles.categoryTabActive]}
+            onPress={() => setCategory('requests')}
+          >
+            <Ionicons name="person-add" size={14} color={category === 'requests' ? '#fff' : colors.textTertiary} />
+            <Text style={[styles.categoryTabText, category === 'requests' && styles.categoryTabTextActive]}>Requests</Text>
+          </TouchableOpacity>
+        </View>
         <TouchableOpacity style={styles.categoryTab} onPress={() => router.push('/world-chat')}>
           <Ionicons name="globe" size={14} color="#2E9BFF" />
           <Text style={[styles.categoryTabText, { color: '#2E9BFF' }]}>World</Text>
@@ -179,7 +304,7 @@ export default function ChatInboxScreen() {
         <ActivityIndicator size="large" color={colors.accent} style={{ marginTop: 40 }} />
       ) : (
         <FlatList
-          data={conversations.filter((c) => c.type === (category === 'personal' ? 'direct' : 'group'))}
+          data={visibleConversations}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
@@ -195,7 +320,9 @@ export default function ChatInboxScreen() {
               <Text style={styles.emptyText}>
                 {category === 'personal'
                   ? 'No personal chats yet. Message someone from their profile.'
-                  : "No group chats yet. Tap the people icon above to start one."}
+                  : category === 'group'
+                  ? "No group chats yet. Tap the people icon above to start one."
+                  : "No pending requests. New first messages from people you don't chat with yet will show up here."}
               </Text>
             </View>
           }
@@ -206,6 +333,7 @@ export default function ChatInboxScreen() {
                 style={[styles.row, isUnread && styles.rowUnread]}
                 activeOpacity={0.85}
                 onPress={() => router.push(`/chat-thread?id=${item.id}`)}
+                onLongPress={() => category !== 'requests' && openMenu(item)}
               >
                 <View style={[styles.avatarRing, isUnread && styles.avatarRingUnread]}>
                   {item.type === 'direct' ? (
@@ -219,31 +347,76 @@ export default function ChatInboxScreen() {
                   )}
                 </View>
                 <View style={styles.rowInfo}>
-                  <Text style={styles.rowTitle} numberOfLines={1}>{item.title}</Text>
+                  <View style={styles.rowTitleLine}>
+                    {item.pinned && <Ionicons name="pin" size={12} color={colors.textFaint} style={{ marginRight: 4 }} />}
+                    <Text style={styles.rowTitle} numberOfLines={1}>{item.title}</Text>
+                    {item.muted && <Ionicons name="notifications-off" size={12} color={colors.textFaint} style={{ marginLeft: 4 }} />}
+                  </View>
                   <Text
                     style={[styles.rowPreview, isUnread && styles.rowPreviewUnread]}
                     numberOfLines={1}
                   >
-                    {item.lastMessage ?? 'No messages yet'}
+                    {category === 'requests' ? 'wants to send you a message' : (item.lastMessage ?? 'No messages yet')}
                   </Text>
                 </View>
-                <View style={styles.rowRight}>
-                  <Text style={[styles.rowTime, isUnread && styles.rowTimeUnread]}>
-                    {formatRelativeTime(item.lastMessageAt)}
-                  </Text>
-                  {isUnread && (
-                    <View style={styles.unreadBadge}>
-                      <Text style={styles.unreadBadgeText}>
-                        {item.unreadCount > 9 ? '9+' : item.unreadCount}
-                      </Text>
+                {category === 'requests' ? (
+                  respondingId === item.id ? (
+                    <ActivityIndicator size="small" color={colors.accent} />
+                  ) : (
+                    <View style={styles.requestActions}>
+                      <TouchableOpacity style={styles.declineBtn} onPress={() => confirmDecline(item)}>
+                        <Ionicons name="close" size={18} color={colors.textSecondary} />
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.acceptBtn} onPress={() => handleAccept(item)}>
+                        <Ionicons name="checkmark" size={18} color="#fff" />
+                      </TouchableOpacity>
                     </View>
-                  )}
-                </View>
+                  )
+                ) : (
+                  <View style={styles.rowRight}>
+                    <Text style={[styles.rowTime, isUnread && styles.rowTimeUnread]}>
+                      {formatRelativeTime(item.lastMessageAt)}
+                    </Text>
+                    {isUnread && (
+                      <View style={styles.unreadBadge}>
+                        <Text style={styles.unreadBadgeText}>
+                          {item.unreadCount > 9 ? '9+' : item.unreadCount}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                )}
               </TouchableOpacity>
             );
           }}
         />
       )}
+
+      <Modal visible={!!menuFor} transparent animationType="fade" onRequestClose={() => setMenuFor(null)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setMenuFor(null)}>
+          <View style={styles.menuSheet}>
+            <View style={styles.sheetHandle} />
+            {menuFor && (
+              <>
+                <TouchableOpacity style={styles.menuRow} onPress={() => togglePinned(menuFor)}>
+                  <Ionicons name={menuFor.pinned ? 'pin' : 'pin-outline'} size={19} color={colors.textPrimary} />
+                  <Text style={styles.menuRowText}>{menuFor.pinned ? 'Unpin Chat' : 'Pin Chat'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.menuRow} onPress={() => toggleMuted(menuFor)}>
+                  <Ionicons name={menuFor.muted ? 'notifications' : 'notifications-off-outline'} size={19} color={colors.textPrimary} />
+                  <Text style={styles.menuRowText}>{menuFor.muted ? 'Unmute Notifications' : 'Mute Notifications'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.menuRow} onPress={() => confirmDelete(menuFor)}>
+                  <Ionicons name={menuFor.type === 'group' ? 'exit-outline' : 'trash-outline'} size={19} color={colors.error} />
+                  <Text style={[styles.menuRowText, { color: colors.error }]}>
+                    {menuFor.type === 'group' ? 'Leave Group' : 'Delete Chat'}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -274,6 +447,14 @@ function getStyles(colors: ThemeColors) {
     categoryTabActive: { backgroundColor: colors.accent, borderColor: colors.accent },
     categoryTabText: { color: colors.textTertiary, fontSize: 13, fontWeight: '700' },
     categoryTabTextActive: { color: '#fff' },
+    requestsTabWrap: { position: 'relative' },
+    requestsBadge: {
+      position: 'absolute', top: -6, right: -6, zIndex: 1,
+      minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4,
+      backgroundColor: colors.error, justifyContent: 'center', alignItems: 'center',
+      borderWidth: 1.5, borderColor: colors.background,
+    },
+    requestsBadgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
     listContent: { padding: 24, paddingTop: 4 },
     emptyContainer: { alignItems: 'center', marginTop: 60, paddingHorizontal: 20, gap: 16 },
     emptyText: { color: colors.textFaint, textAlign: 'center', lineHeight: 20 },
@@ -299,7 +480,8 @@ function getStyles(colors: ThemeColors) {
       justifyContent: 'center', alignItems: 'center',
     },
     rowInfo: { flex: 1 },
-    rowTitle: { color: colors.textPrimary, fontSize: 15, fontWeight: '700', marginBottom: 3 },
+    rowTitleLine: { flexDirection: 'row', alignItems: 'center', marginBottom: 3 },
+    rowTitle: { color: colors.textPrimary, fontSize: 15, fontWeight: '700' },
     rowPreview: { color: colors.textTertiary, fontSize: 13 },
     rowPreviewUnread: { color: colors.textPrimary, fontWeight: '700' },
     rowRight: { alignItems: 'flex-end', gap: 6 },
@@ -310,5 +492,29 @@ function getStyles(colors: ThemeColors) {
       backgroundColor: colors.accent, justifyContent: 'center', alignItems: 'center',
     },
     unreadBadgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
+    requestActions: { flexDirection: 'row', gap: 8 },
+    declineBtn: {
+      width: 34, height: 34, borderRadius: 17, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.border,
+    },
+    acceptBtn: {
+      width: 34, height: 34, borderRadius: 17, backgroundColor: colors.accent,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    modalOverlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
+    menuSheet: {
+      backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+      paddingHorizontal: 8, paddingTop: 12, paddingBottom: 34,
+      borderWidth: 1, borderColor: colors.border, borderBottomWidth: 0,
+    },
+    sheetHandle: {
+      width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border,
+      alignSelf: 'center', marginBottom: 12,
+    },
+    menuRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 14,
+      paddingHorizontal: 16, paddingVertical: 14,
+    },
+    menuRowText: { color: colors.textPrimary, fontSize: 15, fontWeight: '600' },
   });
 }

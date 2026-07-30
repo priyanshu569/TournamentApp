@@ -22,6 +22,11 @@ export default function SettingsScreen() {
   const [displayName, setDisplayName] = useState('');
   const [role, setRole] = useState('');
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [notifyTournamentUpdates, setNotifyTournamentUpdates] = useState(true);
+  const [notifyRoomCodes, setNotifyRoomCodes] = useState(true);
+  const [notifyResults, setNotifyResults] = useState(true);
+  const [notifyChatMessages, setNotifyChatMessages] = useState(true);
+  const [notifySocial, setNotifySocial] = useState(true);
   const [googleLinked, setGoogleLinked] = useState(false);
   const [linkingGoogle, setLinkingGoogle] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -38,7 +43,7 @@ export default function SettingsScreen() {
 
       const { data: profile } = await supabase
         .from('Profiles')
-        .select('username, display_name, role, follow_list_private, push_enabled')
+        .select('username, display_name, role, follow_list_private, push_enabled, notify_tournament_updates, notify_room_codes, notify_results, notify_chat_messages, notify_social')
         .eq('id', userData.user.id)
         .single();
 
@@ -48,6 +53,11 @@ export default function SettingsScreen() {
         setRole(profile.role || '');
         setFollowListPrivate(!!profile.follow_list_private);
         setNotificationsEnabled(profile.push_enabled !== false);
+        setNotifyTournamentUpdates(profile.notify_tournament_updates !== false);
+        setNotifyRoomCodes(profile.notify_room_codes !== false);
+        setNotifyResults(profile.notify_results !== false);
+        setNotifyChatMessages(profile.notify_chat_messages !== false);
+        setNotifySocial(profile.notify_social !== false);
       }
 
       const { data: identitiesData } = await supabase.auth.getUserIdentities();
@@ -104,6 +114,27 @@ export default function SettingsScreen() {
 
     if (error) {
       setNotificationsEnabled(!value);
+      Alert.alert('Error', error.message);
+    }
+  }
+
+  async function toggleNotifyCategory(
+    column: 'notify_tournament_updates' | 'notify_room_codes' | 'notify_results' | 'notify_chat_messages' | 'notify_social',
+    setter: (v: boolean) => void,
+    value: boolean
+  ) {
+    setter(value);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('Profiles')
+      .update({ [column]: value })
+      .eq('id', user.id);
+
+    if (error) {
+      setter(!value);
       Alert.alert('Error', error.message);
     }
   }
@@ -215,11 +246,72 @@ export default function SettingsScreen() {
         <View style={styles.row}>
           <View style={{ flex: 1 }}>
             <Text style={styles.rowLabel}>Push Notifications</Text>
-            <Text style={styles.rowSubLabel}>Tournament updates, room codes, results</Text>
+            <Text style={styles.rowSubLabel}>Master switch -- turning this off silences everything below</Text>
           </View>
           <Switch
             value={notificationsEnabled}
             onValueChange={toggleNotifications}
+            trackColor={{ false: colors.border, true: colors.accent }}
+            thumbColor="#fff"
+          />
+        </View>
+        <View style={styles.divider} />
+        <View style={[styles.row, !notificationsEnabled && styles.rowDisabled]}>
+          <Text style={styles.rowLabel}>Tournament Updates</Text>
+          <Switch
+            value={notifyTournamentUpdates}
+            onValueChange={(v) => toggleNotifyCategory('notify_tournament_updates', setNotifyTournamentUpdates, v)}
+            disabled={!notificationsEnabled}
+            trackColor={{ false: colors.border, true: colors.accent }}
+            thumbColor="#fff"
+          />
+        </View>
+        <View style={styles.divider} />
+        <View style={[styles.row, !notificationsEnabled && styles.rowDisabled]}>
+          <Text style={styles.rowLabel}>Room Codes</Text>
+          <Switch
+            value={notifyRoomCodes}
+            onValueChange={(v) => toggleNotifyCategory('notify_room_codes', setNotifyRoomCodes, v)}
+            disabled={!notificationsEnabled}
+            trackColor={{ false: colors.border, true: colors.accent }}
+            thumbColor="#fff"
+          />
+        </View>
+        <View style={styles.divider} />
+        <View style={[styles.row, !notificationsEnabled && styles.rowDisabled]}>
+          <Text style={styles.rowLabel}>Results</Text>
+          <Switch
+            value={notifyResults}
+            onValueChange={(v) => toggleNotifyCategory('notify_results', setNotifyResults, v)}
+            disabled={!notificationsEnabled}
+            trackColor={{ false: colors.border, true: colors.accent }}
+            thumbColor="#fff"
+          />
+        </View>
+        <View style={styles.divider} />
+        <View style={[styles.row, !notificationsEnabled && styles.rowDisabled]}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.rowLabel}>Chat Messages</Text>
+            <Text style={styles.rowSubLabel}>Can also be muted per-chat from the Chats tab</Text>
+          </View>
+          <Switch
+            value={notifyChatMessages}
+            onValueChange={(v) => toggleNotifyCategory('notify_chat_messages', setNotifyChatMessages, v)}
+            disabled={!notificationsEnabled}
+            trackColor={{ false: colors.border, true: colors.accent }}
+            thumbColor="#fff"
+          />
+        </View>
+        <View style={styles.divider} />
+        <View style={[styles.row, !notificationsEnabled && styles.rowDisabled]}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.rowLabel}>Message Requests</Text>
+            <Text style={styles.rowSubLabel}>First-time messages from people you haven't chatted with</Text>
+          </View>
+          <Switch
+            value={notifySocial}
+            onValueChange={(v) => toggleNotifyCategory('notify_social', setNotifySocial, v)}
+            disabled={!notificationsEnabled}
             trackColor={{ false: colors.border, true: colors.accent }}
             thumbColor="#fff"
           />
@@ -308,6 +400,7 @@ function getStyles(colors: ThemeColors) {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
       paddingHorizontal: 16, paddingVertical: 14,
     },
+    rowDisabled: { opacity: 0.4 },
     divider: { height: 1, backgroundColor: colors.border, marginHorizontal: 16 },
     rowLabel: { color: colors.textPrimary, fontSize: 15, fontWeight: '600' },
     rowSubLabel: { color: colors.textTertiary, fontSize: 12, marginTop: 2 },
