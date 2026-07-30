@@ -45,7 +45,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Fragify uses your photos to let you set a tournament banner image."
+          "photosPermission": "Fragify uses your photos to set profile photos, banners, and share photos in chat.",
+          "cameraPermission": "Fragify uses your camera to let you take and share photos in chat."
         }
       ],
       [

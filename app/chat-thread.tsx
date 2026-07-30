@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TextInput,
+  View, Text, StyleSheet, FlatList, TextInput, Image,
   TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Modal, Alert, Keyboard
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -16,6 +16,7 @@ import { supabase } from '@/lib/supabase';
 import Avatar from '@/components/Avatar';
 import { formatClockTime, formatDayLabel, formatRelativeTime, isSameDay } from '@/lib/time';
 import { uploadVoiceMessage, getSignedVoiceMessageUrl, formatAudioDuration } from '@/lib/voiceMessage';
+import { pickChatImage, uploadChatImage, getSignedChatImageUrl } from '@/lib/chatImage';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 
@@ -42,6 +43,16 @@ const VOICE_MESSAGE_PRESET = {
     bitsPerSecond: 32000,
   },
 };
+
+// The RLS insert policy on messages rejects sends between blocked users
+// with a raw "row-level security" error -- covers both directions (I
+// blocked them, or they blocked me), since only my own block is known
+// client-side.
+function friendlySendError(message: string): string {
+  return message.includes('row-level security')
+    ? "You can't send messages in this conversation."
+    : message;
+}
 
 function VoiceMessagePlayer({ message, isMine, styles, colors }: {
   message: any;
@@ -183,7 +194,58 @@ function VoiceMessagePlayerReady({ url, durationLabel, isMine, styles, colors }:
   );
 }
 
-function MessageBubble({ message, isMine, showAvatar, showSenderName, senderName, senderAvatarId, senderAvatarUrl, swipeX, seenLabel, styles, colors }: {
+function ImageMessage({ message, isMine, styles, colors, onPress }: {
+  message: any;
+  isMine: boolean;
+  styles: ReturnType<typeof getStyles>;
+  colors: ThemeColors;
+  onPress: (url: string) => void;
+}) {
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setSignedUrl(null);
+    setLoadError(false);
+    async function load() {
+      if (!message.image_url) return;
+      try {
+        const url = await getSignedChatImageUrl(message.image_url);
+        if (!cancelled) setSignedUrl(url);
+      } catch {
+        if (!cancelled) setLoadError(true);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [message.image_url]);
+
+  if (loadError) {
+    return (
+      <View style={[styles.imageBubble, styles.imageBubbleCenter]}>
+        <Ionicons name="alert-circle" size={20} color={colors.error} />
+        <Text style={styles.imageErrorText}>Couldn't load image</Text>
+      </View>
+    );
+  }
+
+  if (!signedUrl) {
+    return (
+      <View style={[styles.imageBubble, styles.imageBubbleCenter]}>
+        <ActivityIndicator size="small" color={isMine ? '#fff' : colors.textPrimary} />
+      </View>
+    );
+  }
+
+  return (
+    <TouchableOpacity activeOpacity={0.9} onPress={() => onPress(signedUrl)}>
+      <Image source={{ uri: signedUrl }} style={styles.imageBubble} resizeMode="cover" />
+    </TouchableOpacity>
+  );
+}
+
+function MessageBubble({ message, isMine, showAvatar, showSenderName, senderName, senderAvatarId, senderAvatarUrl, swipeX, seenLabel, styles, colors, onImagePress }: {
   message: any;
   isMine: boolean;
   showAvatar: boolean;
@@ -195,6 +257,7 @@ function MessageBubble({ message, isMine, showAvatar, showSenderName, senderName
   seenLabel: string | null;
   styles: ReturnType<typeof getStyles>;
   colors: ThemeColors;
+  onImagePress: (url: string) => void;
 }) {
   const bubbleAnimStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: swipeX.value }],
@@ -211,11 +274,18 @@ function MessageBubble({ message, isMine, showAvatar, showSenderName, senderName
             ? <Avatar avatarId={senderAvatarId} avatarUrl={senderAvatarUrl} username={senderName} size={28} />
             : <View style={styles.avatarSpacer} />
         )}
-        <Animated.View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleTheirs, bubbleAnimStyle]}>
+        <Animated.View style={[
+          styles.bubble,
+          isMine ? styles.bubbleMine : styles.bubbleTheirs,
+          message.image_url && styles.bubbleImage,
+          bubbleAnimStyle,
+        ]}>
           {showSenderName && (
-            <Text style={styles.senderName}>{senderName}</Text>
+            <Text style={[styles.senderName, message.image_url && styles.senderNameOnImage]}>{senderName}</Text>
           )}
-          {message.audio_url ? (
+          {message.image_url ? (
+            <ImageMessage message={message} isMine={isMine} styles={styles} colors={colors} onPress={onImagePress} />
+          ) : message.audio_url ? (
             <VoiceMessagePlayer message={message} isMine={isMine} styles={styles} colors={colors} />
           ) : (
             <Text style={[styles.messageText, isMine ? styles.messageTextMine : styles.messageTextTheirs]}>{message.content}</Text>
@@ -251,6 +321,9 @@ export default function ChatThreadScreen() {
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [uploadingAudio, setUploadingAudio] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [isBlocked, setIsBlocked] = useState(false);
   const listRef = useRef<FlatList>(null);
   const swipeX = useSharedValue(0);
   const recordingStartRef = useRef<number>(0);
@@ -365,6 +438,16 @@ export default function ChatThreadScreen() {
     if (convo?.conversation_type === 'direct') {
       const other = (profiles ?? []).find((p: any) => p.id !== me);
       setOtherUser(other ?? null);
+
+      if (me && other) {
+        const { data: blockRow } = await supabase
+          .from('blocks')
+          .select('id')
+          .eq('blocker_id', me)
+          .eq('blocked_id', other.id)
+          .maybeSingle();
+        setIsBlocked(!!blockRow);
+      }
     }
 
     const { data: msgs, error: msgsError } = await supabase
@@ -400,9 +483,38 @@ export default function ChatThreadScreen() {
       setText('');
     } else {
       console.log('Failed to send message:', error.message);
-      Alert.alert('Message not sent', error.message);
+      Alert.alert('Message not sent', friendlySendError(error.message));
     }
     setSending(false);
+  }
+
+  function showImageSourcePicker() {
+    Alert.alert('Send a Photo', undefined, [
+      { text: 'Take Photo', onPress: () => handlePickImage('camera') },
+      { text: 'Choose from Gallery', onPress: () => handlePickImage('library') },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }
+
+  async function handlePickImage(source: 'camera' | 'library') {
+    if (!myId) return;
+    try {
+      const picked = await pickChatImage(source);
+      if (!picked) return;
+
+      setUploadingImage(true);
+      const path = await uploadChatImage(id, myId, picked.base64);
+      const { error } = await supabase.from('messages').insert({
+        conversation_id: id,
+        sender_id: myId,
+        content: '📷 Photo',
+        image_url: path,
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      Alert.alert('Photo not sent', friendlySendError(err?.message ?? 'Please try again.'));
+    }
+    setUploadingImage(false);
   }
 
   async function startRecording() {
@@ -461,7 +573,7 @@ export default function ChatThreadScreen() {
       if (error) throw error;
     } catch (err: any) {
       console.log('Failed to send voice message:', err.message);
-      Alert.alert('Voice message not sent', err.message ?? 'Please try again.');
+      Alert.alert('Voice message not sent', friendlySendError(err.message ?? 'Please try again.'));
     }
 
     setUploadingAudio(false);
@@ -474,12 +586,24 @@ export default function ChatThreadScreen() {
       "You'll no longer see messages in this group.",
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Leave Group', style: 'destructive', onPress: handleLeaveGroup },
+        { text: 'Leave Group', style: 'destructive', onPress: handleLeaveConversation },
       ]
     );
   }
 
-  async function handleLeaveGroup() {
+  function confirmDeleteChat() {
+    setOptionsVisible(false);
+    Alert.alert(
+      'Delete Chat?',
+      "This removes the conversation from your list. The other person can still message you again later.",
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: handleLeaveConversation },
+      ]
+    );
+  }
+
+  async function handleLeaveConversation() {
     if (!myId) return;
     setLeaving(true);
 
@@ -496,6 +620,45 @@ export default function ChatThreadScreen() {
       return;
     }
     router.back();
+  }
+
+  function confirmToggleBlock() {
+    setOptionsVisible(false);
+    if (isBlocked) {
+      Alert.alert('Unblock User?', "You'll be able to message each other again.", [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Unblock', onPress: handleUnblock },
+      ]);
+    } else {
+      Alert.alert(
+        'Block User?',
+        "Neither of you will be able to send new messages in this chat.",
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Block', style: 'destructive', onPress: handleBlock },
+        ]
+      );
+    }
+  }
+
+  async function handleBlock() {
+    if (!myId || !otherUser) return;
+    const { error } = await supabase.from('blocks').insert({ blocker_id: myId, blocked_id: otherUser.id });
+    if (error) {
+      Alert.alert('Error', error.message);
+      return;
+    }
+    setIsBlocked(true);
+  }
+
+  async function handleUnblock() {
+    if (!myId || !otherUser) return;
+    const { error } = await supabase.from('blocks').delete().eq('blocker_id', myId).eq('blocked_id', otherUser.id);
+    if (error) {
+      Alert.alert('Error', error.message);
+      return;
+    }
+    setIsBlocked(false);
   }
 
   const title = conversation?.conversation_type === 'direct'
@@ -540,13 +703,9 @@ export default function ChatThreadScreen() {
               )}
             </View>
           </TouchableOpacity>
-          {conversation?.conversation_type === 'group' ? (
-            <TouchableOpacity onPress={() => setOptionsVisible(true)} style={styles.reportBtn}>
-              <Ionicons name="ellipsis-vertical" size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
-          ) : (
-            <View style={{ width: 36 }} />
-          )}
+          <TouchableOpacity onPress={() => setOptionsVisible(true)} style={styles.reportBtn}>
+            <Ionicons name="ellipsis-vertical" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
         </View>
 
         <GestureDetector gesture={panGesture}>
@@ -584,13 +743,22 @@ export default function ChatThreadScreen() {
                   }
                   styles={styles}
                   colors={colors}
+                  onImagePress={setPreviewImageUrl}
                 />
               );
             }}
           />
         </GestureDetector>
 
-        {isRecording ? (
+        {isBlocked ? (
+          <View style={[styles.inputRow, styles.blockedBanner, { paddingBottom: keyboardVisible ? 12 : 34 }]}>
+            <Ionicons name="ban" size={16} color={colors.error} />
+            <Text style={styles.blockedBannerText}>You've blocked this user.</Text>
+            <TouchableOpacity onPress={confirmToggleBlock}>
+              <Text style={styles.blockedBannerAction}>Unblock</Text>
+            </TouchableOpacity>
+          </View>
+        ) : isRecording ? (
           <View style={[styles.inputRow, { paddingBottom: keyboardVisible ? 12 : 34 }]}>
             <View style={styles.recordingIndicator}>
               <View style={styles.recordingDot} />
@@ -610,6 +778,12 @@ export default function ChatThreadScreen() {
           </View>
         ) : (
           <View style={[styles.inputRow, { paddingBottom: keyboardVisible ? 12 : 34 }]}>
+            <TouchableOpacity style={styles.cameraBtn} onPress={showImageSourcePicker} disabled={uploadingImage}>
+              {uploadingImage
+                ? <ActivityIndicator size="small" color={colors.accent} />
+                : <Ionicons name="camera" size={20} color={colors.accent} />
+              }
+            </TouchableOpacity>
             <TextInput
               style={styles.input}
               placeholder="Message..."
@@ -632,6 +806,26 @@ export default function ChatThreadScreen() {
       </View>
 
       <Modal
+        visible={!!previewImageUrl}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPreviewImageUrl(null)}
+      >
+        <TouchableOpacity
+          style={styles.imagePreviewOverlay}
+          activeOpacity={1}
+          onPress={() => setPreviewImageUrl(null)}
+        >
+          <TouchableOpacity style={styles.imagePreviewCloseBtn} onPress={() => setPreviewImageUrl(null)}>
+            <Ionicons name="close" size={26} color="#fff" />
+          </TouchableOpacity>
+          {previewImageUrl && (
+            <Image source={{ uri: previewImageUrl }} style={styles.imagePreviewFull} resizeMode="contain" />
+          )}
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal
         visible={optionsVisible}
         transparent
         animationType="fade"
@@ -643,30 +837,63 @@ export default function ChatThreadScreen() {
           onPress={() => setOptionsVisible(false)}
         >
           <View style={styles.reportSheet}>
-            <Text style={styles.reportSheetTitle}>Group Options</Text>
+            {conversation?.conversation_type === 'direct' ? (
+              <>
+                <Text style={styles.reportSheetTitle}>Chat Options</Text>
 
-            <TouchableOpacity style={styles.leaveGroupRow} onPress={confirmLeaveGroup} disabled={leaving}>
-              <Ionicons name="exit-outline" size={18} color={colors.error} />
-              {leaving
-                ? <ActivityIndicator size="small" color={colors.error} />
-                : <Text style={styles.leaveGroupText}>Leave Group</Text>
-              }
-            </TouchableOpacity>
+                <TouchableOpacity style={styles.leaveGroupRow} onPress={confirmToggleBlock}>
+                  <Ionicons name={isBlocked ? 'lock-open-outline' : 'ban-outline'} size={18} color={colors.error} />
+                  <Text style={styles.leaveGroupText}>{isBlocked ? 'Unblock User' : 'Block User'}</Text>
+                </TouchableOpacity>
 
-            <Text style={styles.reportSheetSubtitle}>Report a member</Text>
-            {participantList.map((p) => (
-              <TouchableOpacity
-                key={p.id}
-                style={styles.reportSheetRow}
-                onPress={() => {
-                  setOptionsVisible(false);
-                  router.push(`/report-user?target_user_id=${p.id}`);
-                }}
-              >
-                <Text style={styles.reportSheetRowText}>{p.username}</Text>
-                <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
-              </TouchableOpacity>
-            ))}
+                <TouchableOpacity
+                  style={styles.leaveGroupRow}
+                  onPress={() => {
+                    setOptionsVisible(false);
+                    router.push(`/report-user?target_user_id=${otherUser?.id}`);
+                  }}
+                  disabled={!otherUser}
+                >
+                  <Ionicons name="flag-outline" size={18} color={colors.error} />
+                  <Text style={styles.leaveGroupText}>Report User</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.leaveGroupRow} onPress={confirmDeleteChat} disabled={leaving}>
+                  <Ionicons name="trash-outline" size={18} color={colors.error} />
+                  {leaving
+                    ? <ActivityIndicator size="small" color={colors.error} />
+                    : <Text style={styles.leaveGroupText}>Delete Chat</Text>
+                  }
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={styles.reportSheetTitle}>Group Options</Text>
+
+                <TouchableOpacity style={styles.leaveGroupRow} onPress={confirmLeaveGroup} disabled={leaving}>
+                  <Ionicons name="exit-outline" size={18} color={colors.error} />
+                  {leaving
+                    ? <ActivityIndicator size="small" color={colors.error} />
+                    : <Text style={styles.leaveGroupText}>Leave Group</Text>
+                  }
+                </TouchableOpacity>
+
+                <Text style={styles.reportSheetSubtitle}>Report a member</Text>
+                {participantList.map((p) => (
+                  <TouchableOpacity
+                    key={p.id}
+                    style={styles.reportSheetRow}
+                    onPress={() => {
+                      setOptionsVisible(false);
+                      router.push(`/report-user?target_user_id=${p.id}`);
+                    }}
+                  >
+                    <Text style={styles.reportSheetRowText}>{p.username}</Text>
+                    <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
+                  </TouchableOpacity>
+                ))}
+              </>
+            )}
           </View>
         </TouchableOpacity>
       </Modal>
@@ -710,7 +937,12 @@ function getStyles(colors: ThemeColors) {
     bubble: { maxWidth: '78%', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10 },
     bubbleTheirs: { backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border },
     bubbleMine: { backgroundColor: colors.accent },
+    bubbleImage: { padding: 0, overflow: 'hidden' },
     senderName: { color: colors.accent, fontSize: 11, fontWeight: '700', marginBottom: 2 },
+    senderNameOnImage: { paddingHorizontal: 14, paddingTop: 10 },
+    imageBubble: { width: 220, height: 220, borderRadius: 14 },
+    imageBubbleCenter: { justifyContent: 'center', alignItems: 'center', gap: 6 },
+    imageErrorText: { color: colors.textFaint, fontSize: 12, fontWeight: '600' },
     messageText: { fontSize: 14, lineHeight: 20 },
     messageTextMine: { color: '#fff' },
     messageTextTheirs: { color: colors.textPrimary },
@@ -738,6 +970,20 @@ function getStyles(colors: ThemeColors) {
       justifyContent: 'center', alignItems: 'center',
       borderWidth: 1, borderColor: colors.border,
     },
+    cameraBtn: {
+      width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center',
+      borderWidth: 1, borderColor: colors.border,
+    },
+    imagePreviewOverlay: {
+      flex: 1, backgroundColor: '#000000ee', justifyContent: 'center', alignItems: 'center',
+    },
+    imagePreviewCloseBtn: {
+      position: 'absolute', top: 56, right: 20, zIndex: 1,
+      width: 40, height: 40, borderRadius: 20, backgroundColor: '#ffffff22',
+      justifyContent: 'center', alignItems: 'center',
+    },
+    imagePreviewFull: { width: '100%', height: '80%' },
     recordingIndicator: {
       flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8,
       backgroundColor: colors.surfaceAlt, borderRadius: 20,
@@ -781,6 +1027,9 @@ function getStyles(colors: ThemeColors) {
       paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border,
     },
     leaveGroupText: { color: colors.error, fontSize: 15, fontWeight: '700' },
+    blockedBanner: { justifyContent: 'center', gap: 8 },
+    blockedBannerText: { color: colors.textFaint, fontSize: 13, fontWeight: '600' },
+    blockedBannerAction: { color: colors.accent, fontSize: 13, fontWeight: '700' },
     reportSheetSubtitle: { color: colors.textMuted, fontSize: 12, fontWeight: '700', marginTop: 14, marginBottom: 4 },
     reportSheetRow: {
       flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
