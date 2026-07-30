@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase';
 import Avatar from '@/components/Avatar';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import { formatRelativeTime } from '@/lib/time';
+import { getWorldChatRetryMessage } from '@/lib/worldChatRateLimit';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 
@@ -119,7 +120,7 @@ export default function WorldChatThreadScreen() {
 
     if (error) {
       const friendly = error.message.includes('row-level security')
-        ? "You're posting too fast — please wait a few minutes and try again."
+        ? await getWorldChatRetryMessage('world_chat_replies', myId)
         : error.message;
       Alert.alert('Could not reply', friendly);
       return;
