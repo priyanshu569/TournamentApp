@@ -270,15 +270,19 @@ export default function ChatInboxScreen() {
           style={[styles.categoryTab, category === 'personal' && styles.categoryTabActive]}
           onPress={() => setCategory('personal')}
         >
-          <Ionicons name="person" size={14} color={category === 'personal' ? '#fff' : colors.textTertiary} />
-          <Text style={[styles.categoryTabText, category === 'personal' && styles.categoryTabTextActive]}>Personal</Text>
+          <Ionicons name="person" size={13} color={category === 'personal' ? '#fff' : colors.textTertiary} />
+          <Text style={[styles.categoryTabText, category === 'personal' && styles.categoryTabTextActive]} numberOfLines={1}>Personal</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.categoryTab, category === 'group' && styles.categoryTabActive]}
           onPress={() => setCategory('group')}
         >
-          <Ionicons name="people" size={14} color={category === 'group' ? '#fff' : colors.textTertiary} />
-          <Text style={[styles.categoryTabText, category === 'group' && styles.categoryTabTextActive]}>Group</Text>
+          <Ionicons name="people" size={13} color={category === 'group' ? '#fff' : colors.textTertiary} />
+          <Text style={[styles.categoryTabText, category === 'group' && styles.categoryTabTextActive]} numberOfLines={1}>Group</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.categoryTab} onPress={() => router.push('/world-chat')}>
+          <Ionicons name="globe" size={13} color="#2E9BFF" />
+          <Text style={[styles.categoryTabText, { color: '#2E9BFF' }]} numberOfLines={1}>World</Text>
         </TouchableOpacity>
         <View style={styles.requestsTabWrap}>
           {pendingRequests.length > 0 && (
@@ -287,17 +291,13 @@ export default function ChatInboxScreen() {
             </View>
           )}
           <TouchableOpacity
-            style={[styles.categoryTab, category === 'requests' && styles.categoryTabActive]}
+            style={[styles.categoryTab, styles.categoryTabFull, category === 'requests' && styles.categoryTabActive]}
             onPress={() => setCategory('requests')}
           >
-            <Ionicons name="person-add" size={14} color={category === 'requests' ? '#fff' : colors.textTertiary} />
-            <Text style={[styles.categoryTabText, category === 'requests' && styles.categoryTabTextActive]}>Requests</Text>
+            <Ionicons name="person-add" size={13} color={category === 'requests' ? '#fff' : colors.textTertiary} />
+            <Text style={[styles.categoryTabText, category === 'requests' && styles.categoryTabTextActive]} numberOfLines={1}>Requests</Text>
           </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.categoryTab} onPress={() => router.push('/world-chat')}>
-          <Ionicons name="globe" size={14} color="#2E9BFF" />
-          <Text style={[styles.categoryTabText, { color: '#2E9BFF' }]}>World</Text>
-        </TouchableOpacity>
       </View>
 
       {loading ? (
@@ -437,17 +437,18 @@ function getStyles(colors: ThemeColors) {
       borderWidth: 1, borderColor: colors.accentMutedStrong,
     },
     categoryRow: {
-      flexDirection: 'row', gap: 10, paddingHorizontal: 24, paddingBottom: 16,
+      flexDirection: 'row', gap: 6, paddingHorizontal: 16, paddingBottom: 16,
     },
     categoryTab: {
-      flexDirection: 'row', alignItems: 'center', gap: 6,
-      paddingHorizontal: 14, paddingVertical: 8, borderRadius: 18,
+      flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4,
+      paddingHorizontal: 6, paddingVertical: 8, borderRadius: 18,
       backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border,
     },
+    categoryTabFull: { flex: 1, width: '100%' },
     categoryTabActive: { backgroundColor: colors.accent, borderColor: colors.accent },
-    categoryTabText: { color: colors.textTertiary, fontSize: 13, fontWeight: '700' },
+    categoryTabText: { color: colors.textTertiary, fontSize: 12, fontWeight: '700' },
     categoryTabTextActive: { color: '#fff' },
-    requestsTabWrap: { position: 'relative' },
+    requestsTabWrap: { position: 'relative', flex: 1 },
     requestsBadge: {
       position: 'absolute', top: -6, right: -6, zIndex: 1,
       minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4,
