@@ -74,29 +74,21 @@ export async function pickRawChatImage(source: 'camera' | 'library'): Promise<Ra
   return { uri: asset.uri, width: asset.width, height: asset.height };
 }
 
-// ratio = width/height, or null for "Original" (no crop). Always
-// center-cropped -- there's no drag-to-reposition, just pick a ratio
-// and see the result.
-export async function cropImageToRatio(image: RawImage, ratio: number | null): Promise<RawImage> {
-  if (ratio === null) return image;
-
-  const { uri, width, height } = image;
-  const currentRatio = width / height;
-  let cropWidth = width;
-  let cropHeight = height;
-  let originX = 0;
-  let originY = 0;
-
-  if (currentRatio > ratio) {
-    cropWidth = Math.round(height * ratio);
-    originX = Math.round((width - cropWidth) / 2);
-  } else {
-    cropHeight = Math.round(width / ratio);
-    originY = Math.round((height - cropHeight) / 2);
-  }
-
+// Crops to an exact pixel rect in the source image's own coordinate
+// space. The rect is computed by the caller (ImageCropPreview, from
+// wherever the user dragged the image under the fixed crop frame) --
+// this is just the primitive that applies it.
+export async function cropImageToRect(
+  uri: string,
+  rect: { originX: number; originY: number; width: number; height: number }
+): Promise<RawImage> {
   const context = ImageManipulator.manipulate(uri);
-  context.crop({ originX, originY, width: cropWidth, height: cropHeight });
+  context.crop({
+    originX: Math.round(rect.originX),
+    originY: Math.round(rect.originY),
+    width: Math.round(rect.width),
+    height: Math.round(rect.height),
+  });
   const rendered = await context.renderAsync();
   const result = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: 0.95 });
 
