@@ -25,6 +25,7 @@ import {
 } from '@/lib/chatImage';
 import ImageCropPreview from '@/components/ImageCropPreview';
 import { acceptMessageRequest, declineMessageRequest, notifyConversationParticipants } from '@/lib/messageRequests';
+import { getChatSendRetryMessage } from '@/lib/chatRateLimit';
 import { useAvatarPreview } from '@/lib/AvatarPreviewContext';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
@@ -556,6 +557,7 @@ export default function ChatThreadScreen() {
   const [replyingTo, setReplyingTo] = useState<any>(null);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const [reactionGridOpen, setReactionGridOpen] = useState(false);
+  const [reactionGridMessageId, setReactionGridMessageId] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchMatchIndex, setSearchMatchIndex] = useState(0);
@@ -800,7 +802,10 @@ export default function ChatThreadScreen() {
       notifyOthers(body);
     } else {
       console.log('Failed to send message:', error.message);
-      Alert.alert('Message not sent', friendlySendError(error.message));
+      const friendly = error.message.includes('row-level security')
+        ? await getChatSendRetryMessage(myId, false, isBlocked)
+        : friendlySendError(error.message);
+      Alert.alert('Message not sent', friendly);
     }
     setSending(false);
   }
@@ -888,7 +893,10 @@ export default function ChatThreadScreen() {
       setReplyingTo(null);
       notifyOthers(previewContent);
     } catch (err: any) {
-      Alert.alert('Photo not sent', friendlySendError(err?.message ?? 'Please try again.'));
+      const friendly = err?.message?.includes('row-level security')
+        ? await getChatSendRetryMessage(myId, true, isBlocked)
+        : friendlySendError(err?.message ?? 'Please try again.');
+      Alert.alert('Photo not sent', friendly);
     }
     setUploadingImage(false);
   }
@@ -963,7 +971,10 @@ export default function ChatThreadScreen() {
       notifyOthers('🎤 Voice message');
     } catch (err: any) {
       console.log('Failed to send voice message:', err.message);
-      Alert.alert('Voice message not sent', friendlySendError(err.message ?? 'Please try again.'));
+      const friendly = err.message?.includes('row-level security')
+        ? await getChatSendRetryMessage(myId, false, isBlocked)
+        : friendlySendError(err.message ?? 'Please try again.');
+      Alert.alert('Voice message not sent', friendly);
     }
 
     setUploadingAudio(false);
@@ -1104,11 +1115,12 @@ export default function ChatThreadScreen() {
     setMoreExpanded(false);
   }
 
-  async function handleReact(emoji: string) {
-    if (!myId || !activeMenu) return;
-    const messageId = activeMenu.message.id;
+  async function handleReact(emoji: string, targetMessageId?: string) {
+    const messageId = targetMessageId ?? activeMenu?.message.id;
+    if (!myId || !messageId) return;
     const mine = reactionsByMessage.get(messageId)?.find((r) => r.user_id === myId);
     closeMenu();
+    setReactionGridOpen(false);
 
     if (mine?.emoji === emoji) {
       await supabase.from('message_reactions').delete().eq('message_id', messageId).eq('user_id', myId);
@@ -1117,6 +1129,20 @@ export default function ChatThreadScreen() {
         .from('message_reactions')
         .upsert({ message_id: messageId, user_id: myId, emoji }, { onConflict: 'message_id,user_id' });
     }
+  }
+
+  // The floating context menu and the reaction grid are both Modals --
+  // two React Native Modals visible at once render unreliably (the
+  // second can fail to show or intercept touches), so opening the grid
+  // must close the menu first. activeMenu.message.id is captured into
+  // its own state before that happens, since handleReact needs to know
+  // the target message after activeMenu is gone.
+  function openReactionGrid() {
+    if (!activeMenu) return;
+    setReactionGridMessageId(activeMenu.message.id);
+    setActiveMenu(null);
+    setMoreExpanded(false);
+    setReactionGridOpen(true);
   }
 
   function handleMenuReply() {
@@ -1808,7 +1834,7 @@ export default function ChatThreadScreen() {
                     <Text style={styles.reactionOptionText}>{emoji}</Text>
                   </TouchableOpacity>
                 ))}
-                <TouchableOpacity style={styles.reactionMoreOption} onPress={() => setReactionGridOpen(true)}>
+                <TouchableOpacity style={styles.reactionMoreOption} onPress={openReactionGrid}>
                   <Ionicons name="add" size={18} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
@@ -1908,7 +1934,7 @@ export default function ChatThreadScreen() {
                 <TouchableOpacity
                   key={`${emoji}-${index}`}
                   style={styles.emojiPanelItem}
-                  onPress={() => { handleReact(emoji); setReactionGridOpen(false); }}
+                  onPress={() => handleReact(emoji, reactionGridMessageId ?? undefined)}
                 >
                   <Text style={styles.emojiPanelItemText}>{emoji}</Text>
                 </TouchableOpacity>
