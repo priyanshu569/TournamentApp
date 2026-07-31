@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Switch, ActivityIndicator, Alert
+  Switch, ActivityIndicator, Alert, Modal, TextInput
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,6 +30,8 @@ export default function SettingsScreen() {
   const [googleLinked, setGoogleLinked] = useState(false);
   const [linkingGoogle, setLinkingGoogle] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [followListPrivate, setFollowListPrivate] = useState(false);
 
   useEffect(() => {
@@ -157,14 +159,8 @@ export default function SettingsScreen() {
   }
 
   function handleDeleteAccount() {
-    Alert.alert(
-      'Delete Account',
-      'This permanently deletes your account and personal info. Your tournament history stays on record (anonymized) so other players\' results aren\'t affected. This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete Account', style: 'destructive', onPress: confirmDeleteAccount },
-      ]
-    );
+    setDeleteConfirmText('');
+    setDeleteModalVisible(true);
   }
 
   async function confirmDeleteAccount() {
@@ -333,6 +329,11 @@ export default function SettingsScreen() {
             thumbColor="#fff"
           />
         </View>
+        <View style={styles.divider} />
+        <TouchableOpacity style={styles.row} onPress={() => router.push('/blocked-users')}>
+          <Text style={styles.rowLabel}>Blocked Accounts</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
+        </TouchableOpacity>
       </View>
 
       {/* Appearance */}
@@ -368,6 +369,56 @@ export default function SettingsScreen() {
           }
         </TouchableOpacity>
       </View>
+
+      <Modal
+        visible={deleteModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDeleteModalVisible(false)}
+      >
+        <View style={styles.deleteModalOverlay}>
+          <View style={styles.deleteModalCard}>
+            <View style={styles.deleteWarningIcon}>
+              <Ionicons name="warning" size={26} color={colors.error} />
+            </View>
+            <Text style={styles.deleteModalTitle}>Delete Your Account?</Text>
+            <Text style={styles.deleteModalBody}>
+              This permanently deletes your account and personal info. You'll lose access to your chats, follows,
+              and profile. Your tournament history stays on record (anonymized) so other players' results aren't
+              affected.{'\n\n'}This cannot be undone.
+            </Text>
+            <Text style={styles.deleteConfirmLabel}>Type DELETE to confirm</Text>
+            <TextInput
+              style={styles.deleteConfirmInput}
+              placeholder="DELETE"
+              placeholderTextColor={colors.textDisabled}
+              value={deleteConfirmText}
+              onChangeText={setDeleteConfirmText}
+              autoCapitalize="characters"
+              autoCorrect={false}
+            />
+            <View style={styles.deleteModalActions}>
+              <TouchableOpacity
+                style={styles.deleteCancelBtn}
+                onPress={() => setDeleteModalVisible(false)}
+                disabled={deleting}
+              >
+                <Text style={styles.deleteCancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.deleteConfirmBtn, deleteConfirmText !== 'DELETE' && styles.deleteConfirmBtnDisabled]}
+                onPress={confirmDeleteAccount}
+                disabled={deleteConfirmText !== 'DELETE' || deleting}
+              >
+                {deleting
+                  ? <ActivityIndicator size="small" color="#fff" />
+                  : <Text style={styles.deleteConfirmBtnText}>Delete Account</Text>
+                }
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -405,5 +456,36 @@ function getStyles(colors: ThemeColors) {
     rowLabel: { color: colors.textPrimary, fontSize: 15, fontWeight: '600' },
     rowSubLabel: { color: colors.textTertiary, fontSize: 12, marginTop: 2 },
     rowValue: { color: colors.textSecondary, fontSize: 14 },
+    deleteModalOverlay: {
+      flex: 1, backgroundColor: colors.overlay, justifyContent: 'center', alignItems: 'center', padding: 24,
+    },
+    deleteModalCard: {
+      width: '100%', maxWidth: 400, backgroundColor: colors.surface, borderRadius: 20,
+      padding: 24, alignItems: 'center', borderWidth: 1, borderColor: colors.border,
+    },
+    deleteWarningIcon: {
+      width: 52, height: 52, borderRadius: 26, backgroundColor: colors.errorMuted,
+      justifyContent: 'center', alignItems: 'center', marginBottom: 14,
+    },
+    deleteModalTitle: { color: colors.textPrimary, fontSize: 18, fontWeight: '800', marginBottom: 10 },
+    deleteModalBody: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, textAlign: 'center', marginBottom: 18 },
+    deleteConfirmLabel: { color: colors.textMuted, fontSize: 12, fontWeight: '700', alignSelf: 'flex-start', marginBottom: 6 },
+    deleteConfirmInput: {
+      width: '100%', backgroundColor: colors.surfaceAlt, color: colors.textPrimary, borderRadius: 10,
+      paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, fontWeight: '700',
+      borderWidth: 1, borderColor: colors.error, marginBottom: 18, textAlign: 'center',
+    },
+    deleteModalActions: { flexDirection: 'row', gap: 10, width: '100%' },
+    deleteCancelBtn: {
+      flex: 1, paddingVertical: 13, borderRadius: 12, alignItems: 'center',
+      backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border,
+    },
+    deleteCancelBtnText: { color: colors.textSecondary, fontSize: 14, fontWeight: '700' },
+    deleteConfirmBtn: {
+      flex: 1, paddingVertical: 13, borderRadius: 12, alignItems: 'center',
+      backgroundColor: colors.error,
+    },
+    deleteConfirmBtnDisabled: { opacity: 0.4 },
+    deleteConfirmBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
   });
 }
