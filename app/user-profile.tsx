@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import Avatar from '@/components/Avatar';
 import VerifiedBadge from '@/components/VerifiedBadge';
+import { useAvatarPreview } from '@/lib/AvatarPreviewContext';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 
@@ -31,6 +32,7 @@ export default function UserProfileScreen() {
   const router = useRouter();
   const { colors } = useAppTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
+  const showAvatarPreview = useAvatarPreview();
   const [profile, setProfile] = useState<any>(null);
   const [games, setGames] = useState<any[]>([]);
   const [myId, setMyId] = useState<string | null>(null);
@@ -219,9 +221,13 @@ export default function UserProfileScreen() {
         end={{ x: 1, y: 1 }}
         style={styles.hero}
       >
-        <View style={styles.avatarRing}>
+        <TouchableOpacity
+          style={styles.avatarRing}
+          activeOpacity={1}
+          onLongPress={() => showAvatarPreview({ avatarId: profile.avatar_id, avatarUrl: profile.avatar_url, username: profile.display_name })}
+        >
           <Avatar avatarId={profile.avatar_id} avatarUrl={profile.avatar_url} username={profile.display_name} size={84} />
-        </View>
+        </TouchableOpacity>
         <View style={styles.nameRow}>
           <Text style={styles.username}>{profile.display_name ?? 'Unknown'}</Text>
           {profile.is_verified && <VerifiedBadge size={16} />}

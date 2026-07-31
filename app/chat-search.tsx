@@ -9,6 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '@/lib/supabase';
 import Avatar from '@/components/Avatar';
 import VerifiedBadge from '@/components/VerifiedBadge';
+import { useAvatarPreview } from '@/lib/AvatarPreviewContext';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 
@@ -18,6 +19,7 @@ export default function ChatSearchScreen() {
   const router = useRouter();
   const { colors } = useAppTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
+  const showAvatarPreview = useAvatarPreview();
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [myId, setMyId] = useState<string | null>(null);
@@ -118,7 +120,11 @@ export default function ChatSearchScreen() {
 
   function renderChatRow(item: any) {
     return (
-      <TouchableOpacity style={styles.row} onPress={() => router.replace(`/chat-thread?id=${item.id}`)}>
+      <TouchableOpacity
+        style={styles.row}
+        onPress={() => router.replace(`/chat-thread?id=${item.id}`)}
+        onLongPress={() => showAvatarPreview({ avatarId: item.avatarId, avatarUrl: item.avatarUrl, username: item.title })}
+      >
         {item.isGroup ? (
           item.avatarUrl ? (
             <Avatar avatarUrl={item.avatarUrl} username={item.title} size={46} />
@@ -143,7 +149,12 @@ export default function ChatSearchScreen() {
 
   function renderSuggestedRow(item: any) {
     return (
-      <TouchableOpacity style={styles.row} onPress={() => startChat(item.id)} disabled={startingId === item.id}>
+      <TouchableOpacity
+        style={styles.row}
+        onPress={() => startChat(item.id)}
+        onLongPress={() => showAvatarPreview({ avatarId: item.avatar_id, avatarUrl: item.avatar_url, username: item.display_name })}
+        disabled={startingId === item.id}
+      >
         <Avatar avatarId={item.avatar_id} avatarUrl={item.avatar_url} username={item.display_name} size={46} />
         <View style={styles.rowInfo}>
           <View style={styles.nameRow}>

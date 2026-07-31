@@ -9,11 +9,14 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { supabase } from '@/lib/supabase';
 import { registerForPushNotificationsAsync } from '@/lib/notifications';
 import { AppThemeProvider, useAppTheme } from '@/lib/ThemeContext';
+import { AvatarPreviewProvider } from '@/lib/AvatarPreviewContext';
 
 export default function RootLayout() {
   return (
     <AppThemeProvider>
-      <RootLayoutInner />
+      <AvatarPreviewProvider>
+        <RootLayoutInner />
+      </AvatarPreviewProvider>
     </AppThemeProvider>
   );
 }

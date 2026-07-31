@@ -11,6 +11,7 @@ import Avatar from '@/components/Avatar';
 import GradientIconBadge from '@/components/GradientIconBadge';
 import { formatRelativeTime } from '@/lib/time';
 import { acceptMessageRequest, declineMessageRequest } from '@/lib/messageRequests';
+import { useAvatarPreview } from '@/lib/AvatarPreviewContext';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 import { useTabNavigation } from '@/lib/tabNavigation';
@@ -20,6 +21,7 @@ export default function ChatInboxScreen() {
   const tabNav = useTabNavigation();
   const { colors } = useAppTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
+  const showAvatarPreview = useAvatarPreview();
   const [conversations, setConversations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [myId, setMyId] = useState<string | null>(null);
@@ -338,7 +340,12 @@ export default function ChatInboxScreen() {
                 onPress={() => router.push(`/chat-thread?id=${item.id}`)}
                 onLongPress={() => category !== 'requests' && openMenu(item)}
               >
-                <View style={[styles.avatarRing, isUnread && styles.avatarRingUnread]}>
+                <TouchableOpacity
+                  style={[styles.avatarRing, isUnread && styles.avatarRingUnread]}
+                  activeOpacity={0.85}
+                  onPress={() => router.push(`/chat-thread?id=${item.id}`)}
+                  onLongPress={() => showAvatarPreview({ avatarId: item.avatarId, avatarUrl: item.avatarUrl, username: item.avatarUsername })}
+                >
                   {item.type === 'direct' ? (
                     <Avatar avatarId={item.avatarId} avatarUrl={item.avatarUrl} username={item.avatarUsername} size={50} />
                   ) : item.avatarUrl ? (
@@ -348,7 +355,7 @@ export default function ChatInboxScreen() {
                       <Ionicons name="people" size={22} color="#fff" />
                     </LinearGradient>
                   )}
-                </View>
+                </TouchableOpacity>
                 <View style={styles.rowInfo}>
                   <View style={styles.rowTitleLine}>
                     {item.pinned && <Ionicons name="pin" size={12} color={colors.textFaint} style={{ marginRight: 4 }} />}

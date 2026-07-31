@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import Avatar from '@/components/Avatar';
+import { useAvatarPreview } from '@/lib/AvatarPreviewContext';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 
@@ -14,6 +15,7 @@ export default function BlockedUsersScreen() {
   const router = useRouter();
   const { colors } = useAppTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
+  const showAvatarPreview = useAvatarPreview();
   const [blocked, setBlocked] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [myId, setMyId] = useState<string | null>(null);
@@ -91,7 +93,12 @@ export default function BlockedUsersScreen() {
           }
           renderItem={({ item }) => (
             <View style={styles.row}>
-              <Avatar avatarId={item.profile?.avatar_id} avatarUrl={item.profile?.avatar_url} username={item.profile?.display_name} size={44} />
+              <TouchableOpacity
+                activeOpacity={1}
+                onLongPress={() => showAvatarPreview({ avatarId: item.profile?.avatar_id, avatarUrl: item.profile?.avatar_url, username: item.profile?.display_name })}
+              >
+                <Avatar avatarId={item.profile?.avatar_id} avatarUrl={item.profile?.avatar_url} username={item.profile?.display_name} size={44} />
+              </TouchableOpacity>
               <View style={styles.rowInfo}>
                 <Text style={styles.displayName} numberOfLines={1}>{item.profile?.display_name ?? 'Unknown'}</Text>
                 {item.profile?.username && <Text style={styles.handle}>@{item.profile.username}</Text>}

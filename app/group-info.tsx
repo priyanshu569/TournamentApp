@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { pickAndUploadGroupPhoto } from '@/lib/groupAvatar';
 import Avatar from '@/components/Avatar';
+import { useAvatarPreview } from '@/lib/AvatarPreviewContext';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 
@@ -16,6 +17,7 @@ export default function GroupInfoScreen() {
   const router = useRouter();
   const { colors } = useAppTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
+  const showAvatarPreview = useAvatarPreview();
 
   const [loading, setLoading] = useState(true);
   const [myId, setMyId] = useState<string | null>(null);
@@ -263,7 +265,12 @@ export default function GroupInfoScreen() {
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.photoSection}>
-          <TouchableOpacity onPress={handleChangePhoto} disabled={!isAdmin || uploadingPhoto} activeOpacity={isAdmin ? 0.8 : 1}>
+          <TouchableOpacity
+            onPress={handleChangePhoto}
+            onLongPress={() => conversation?.avatar_url && showAvatarPreview({ avatarUrl: conversation.avatar_url, username: conversation.name })}
+            disabled={uploadingPhoto}
+            activeOpacity={isAdmin ? 0.8 : 1}
+          >
             {conversation?.avatar_url ? (
               <Avatar avatarUrl={conversation.avatar_url} username={conversation.name} size={96} />
             ) : (
@@ -347,7 +354,13 @@ export default function GroupInfoScreen() {
             onPress={() => member.id !== myId && router.push(`/user-profile?id=${member.id}`)}
             onLongPress={() => openMemberMenu(member)}
           >
-            <Avatar avatarId={member.avatar_id} avatarUrl={member.avatar_url} username={member.display_name} size={44} />
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={() => member.id !== myId && router.push(`/user-profile?id=${member.id}`)}
+              onLongPress={() => showAvatarPreview({ avatarId: member.avatar_id, avatarUrl: member.avatar_url, username: member.display_name })}
+            >
+              <Avatar avatarId={member.avatar_id} avatarUrl={member.avatar_url} username={member.display_name} size={44} />
+            </TouchableOpacity>
             <View style={{ flex: 1 }}>
               <Text style={styles.memberName}>
                 {member.display_name ?? 'Unknown'}{member.id === myId ? ' (You)' : ''}
