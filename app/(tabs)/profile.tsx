@@ -122,7 +122,6 @@ export default function ProfileScreen() {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Player', onPress: () => setBrowsingMode('player') },
       { text: 'Host', onPress: () => setBrowsingMode('host') },
-      { text: 'My Real Role', onPress: () => setBrowsingMode(null) },
     ]);
   }
 
