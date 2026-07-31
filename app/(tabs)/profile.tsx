@@ -141,13 +141,21 @@ export default function ProfileScreen() {
     );
   }
 
-  const canBecomeHost = profile?.role !== 'host' && profile?.host_status !== 'pending';
+  const everApprovedHost = profile?.role === 'host' || profile?.host_status === 'approved';
+  const canBecomeHost = !everApprovedHost && profile?.host_status !== 'pending';
   const isAdmin = !!profile?.is_admin;
 
   const menuSections: MenuSection[] = [
     {
       title: 'ACCOUNT',
       items: [
+        ...(profile?.role === 'host' ? [{
+          key: 'view-as-player', icon: 'person' as const, color: colors.accent,
+          label: 'Switch to Player View', onPress: () => switchRole('player'),
+        }] : everApprovedHost ? [{
+          key: 'view-as-host', icon: 'trophy' as const, color: colors.accent,
+          label: 'Switch to Host View', onPress: () => switchRole('host'),
+        }] : []),
         ...(canBecomeHost ? [{
           key: 'become-host', icon: 'trophy' as const, color: colors.warning,
           label: 'Become a Host', onPress: () => router.push('/request-host-access'),
@@ -161,7 +169,7 @@ export default function ProfileScreen() {
       items: [
         { key: 'admin-broadcast', icon: 'megaphone' as const, color: colors.accent, label: 'Admin Broadcast', onPress: () => router.push('/admin-broadcast') },
         { key: 'admin-host-requests', icon: 'trophy' as const, color: colors.accent, label: 'Host Requests', onPress: () => router.push('/admin-host-requests') },
-        { key: 'switch-role', icon: 'sync' as const, color: colors.accent, label: 'Switch Role', onPress: handleSwitchRole },
+        { key: 'switch-role', icon: 'sync' as const, color: colors.accent, label: 'Preview Any Role', onPress: handleSwitchRole },
         { key: 'admin-reports', icon: 'warning' as const, color: colors.accent, label: 'Reports', onPress: () => router.push('/admin-reports') },
       ],
     }] : []),
