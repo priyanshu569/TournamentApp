@@ -82,10 +82,14 @@ export default function TournamentDetails() {
     if (userData.user) {
       const { data: profile } = await supabase
         .from('Profiles')
-        .select('role')
+        .select('role, browsing_mode')
         .eq('id', userData.user.id)
         .single();
-      if (profile) setRole(profile.role);
+      // role state holds the *effective* role for this viewer (a host
+      // browsing as a player sees player-facing controls here) -- it's
+      // only used for local UI gating on this screen, never shown to
+      // other users, so this doesn't affect how anyone else sees them.
+      if (profile) setRole(profile.role === 'host' && profile.browsing_mode === 'player' ? 'player' : profile.role);
 
       const { data: reg } = await supabase
         .from('registrations')

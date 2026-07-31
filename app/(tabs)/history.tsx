@@ -16,6 +16,7 @@ export default function HistoryScreen() {
   const { colors } = useAppTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
   const [role, setRole] = useState<string | null>(null);
+  const [browsingMode, setBrowsingMode] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any[]>([]);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
@@ -41,14 +42,17 @@ export default function HistoryScreen() {
 
     const { data: profile } = await supabase
       .from('Profiles')
-      .select('role')
+      .select('role, browsing_mode')
       .eq('id', userData.user.id)
       .single();
 
     if (!profile) { setLoading(false); return; }
     setRole(profile.role);
+    setBrowsingMode(profile.browsing_mode);
 
-    if (profile.role === 'player') {
+    const effectiveIsHost = profile.role === 'host' && profile.browsing_mode !== 'player';
+
+    if (!effectiveIsHost) {
       const { data: regs } = await supabase
         .from('registrations')
         .select('id, tournament_id, status, teams(name), tournaments(title, game, entry_fee)')
@@ -105,7 +109,7 @@ export default function HistoryScreen() {
     );
   }
 
-  const isPlayer = role === 'player';
+  const isPlayer = role !== 'host' || browsingMode === 'player';
 
   return (
     <View style={styles.container}>

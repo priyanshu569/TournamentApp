@@ -73,7 +73,9 @@ export default function ProfileScreen() {
 
     setFollowCounts({ followers: followers ?? 0, following: following ?? 0 });
 
-    if (p?.role === 'player') {
+    const effectiveIsHost = p?.role === 'host' && p?.browsing_mode !== 'player';
+
+    if (!effectiveIsHost) {
       const { count: regCount } = await supabase
         .from('registrations')
         .select('id', { count: 'exact', head: true })
@@ -92,25 +94,17 @@ export default function ProfileScreen() {
     setLoading(false);
   }
 
-  async function handleSwitchRole() {
-    Alert.alert('Switch Role', 'Preview the app as a different role.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Player', onPress: () => switchRole('player') },
-      { text: 'Host', onPress: () => switchRole('host') },
-    ]);
-  }
-
-  async function switchRole(newRole: 'player' | 'host') {
+  // Purely a personal view preference -- never touches role/host_status,
+  // so a host browsing as a player is still shown as "Host" everywhere
+  // else in the app (world chat, chat, profile badges all read role
+  // directly and are unaffected by this).
+  async function setBrowsingMode(mode: 'player' | null) {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return;
 
     const { error } = await supabase
       .from('Profiles')
-      .update(
-        newRole === 'host'
-          ? { role: newRole, host_status: 'approved' }
-          : { role: newRole }
-      )
+      .update({ browsing_mode: mode })
       .eq('id', userData.user.id);
 
     if (error) {
@@ -141,21 +135,20 @@ export default function ProfileScreen() {
     );
   }
 
-  const everApprovedHost = profile?.role === 'host' || profile?.host_status === 'approved';
-  const canBecomeHost = !everApprovedHost && profile?.host_status !== 'pending';
+  const isHost = profile?.role === 'host';
+  const browsingAsPlayer = isHost && profile?.browsing_mode === 'player';
+  const canBecomeHost = !isHost && profile?.host_status !== 'pending';
   const isAdmin = !!profile?.is_admin;
 
   const menuSections: MenuSection[] = [
     {
       title: 'ACCOUNT',
       items: [
-        ...(profile?.role === 'host' ? [{
-          key: 'view-as-player', icon: 'person' as const, color: colors.accent,
-          label: 'Switch to Player View', onPress: () => switchRole('player'),
-        }] : everApprovedHost ? [{
-          key: 'view-as-host', icon: 'trophy' as const, color: colors.accent,
-          label: 'Switch to Host View', onPress: () => switchRole('host'),
-        }] : []),
+        ...(isHost ? [
+          browsingAsPlayer
+            ? { key: 'view-as-host', icon: 'trophy' as const, color: colors.accent, label: 'Switch to Host View', onPress: () => setBrowsingMode(null) }
+            : { key: 'view-as-player', icon: 'person' as const, color: colors.accent, label: 'Switch to Player View', onPress: () => setBrowsingMode('player') }
+        ] : []),
         ...(canBecomeHost ? [{
           key: 'become-host', icon: 'trophy' as const, color: colors.warning,
           label: 'Become a Host', onPress: () => router.push('/request-host-access'),
@@ -169,7 +162,6 @@ export default function ProfileScreen() {
       items: [
         { key: 'admin-broadcast', icon: 'megaphone' as const, color: colors.accent, label: 'Admin Broadcast', onPress: () => router.push('/admin-broadcast') },
         { key: 'admin-host-requests', icon: 'trophy' as const, color: colors.accent, label: 'Host Requests', onPress: () => router.push('/admin-host-requests') },
-        { key: 'switch-role', icon: 'sync' as const, color: colors.accent, label: 'Preview Any Role', onPress: handleSwitchRole },
         { key: 'admin-reports', icon: 'warning' as const, color: colors.accent, label: 'Reports', onPress: () => router.push('/admin-reports') },
       ],
     }] : []),
@@ -215,6 +207,7 @@ export default function ProfileScreen() {
               {profile?.is_admin ? 'ADMIN' : (profile?.role?.toUpperCase() ?? 'PLAYER')}
             </Text>
           </LinearGradient>
+          {browsingAsPlayer && <Text style={styles.browsingModeHint}>Browsing as Player</Text>}
         </View>
       </LinearGradient>
 
@@ -224,7 +217,7 @@ export default function ProfileScreen() {
           <Ionicons name="trophy" size={16} color={colors.accent} style={styles.statIcon} />
           <Text style={styles.statValue}>{stats.tournaments}</Text>
           <Text style={styles.statLabel}>
-            {profile?.role === 'host' ? 'Created' : 'Joined'}
+            {isHost && !browsingAsPlayer ? 'Created' : 'Joined'}
           </Text>
         </TouchableOpacity>
         <View style={styles.statDivider} />
@@ -329,6 +322,7 @@ function getStyles(colors: ThemeColors) {
     },
     roleText: { color: '#fff', fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
     roleTextAdmin: { color: '#4a2f00' },
+    browsingModeHint: { color: '#c9b8ea', fontSize: 11, fontWeight: '600', marginTop: 6 },
 
     statsCard: {
       flexDirection: 'row', marginHorizontal: 24, marginBottom: 24,
