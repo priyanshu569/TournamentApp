@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TextInput, Image,
+  View, Text, StyleSheet, FlatList, TextInput, Image, ScrollView,
   TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Modal, Alert, Keyboard, Dimensions
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -100,6 +100,13 @@ function imageCaption(message: any): string | null {
 }
 
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+
+const KEYBOARD_EMOJIS = [
+  '😀', '😂', '🥰', '😎', '🤔', '😭', '😡', '😴',
+  '😅', '🥳', '😜', '🤯', '😱', '🙄', '😇', '🤗',
+  '👍', '👎', '👏', '🙏', '💪', '🙌', '👀', '🤝',
+  '❤️', '🔥', '💯', '🎉', '⚡', '✅', '❌', '🏆',
+];
 
 function summarizeReactions(reactions: { user_id: string; emoji: string }[]): string {
   const counts = new Map<string, number>();
@@ -544,6 +551,10 @@ export default function ChatThreadScreen() {
   const [myStatus, setMyStatus] = useState<'accepted' | 'pending'>('accepted');
   const [respondingRequest, setRespondingRequest] = useState(false);
   const [replyingTo, setReplyingTo] = useState<any>(null);
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchMatchIndex, setSearchMatchIndex] = useState(0);
   const [activeMenu, setActiveMenu] = useState<{ message: any; isMine: boolean; y: number } | null>(null);
   const [moreExpanded, setMoreExpanded] = useState(false);
   const [reactionsByMessage, setReactionsByMessage] = useState<Map<string, { user_id: string; emoji: string }[]>>(new Map());
@@ -636,6 +647,29 @@ export default function ChatThreadScreen() {
     }
     return result;
   }, [messages, myDeletions]);
+
+  const searchMatches = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return [];
+    return rows.filter((r) => r.type === 'message' && !r.is_system && r.content?.toLowerCase().includes(q));
+  }, [rows, searchQuery]);
+
+  useEffect(() => {
+    if (searchMatches.length === 0) return;
+    const target = searchMatches[Math.min(searchMatchIndex, searchMatches.length - 1)];
+    if (target) listRef.current?.scrollToItem({ item: target, animated: true });
+  }, [searchMatchIndex, searchMatches]);
+
+  function stepSearch(direction: 1 | -1) {
+    if (searchMatches.length === 0) return;
+    setSearchMatchIndex((prev) => (prev + direction + searchMatches.length) % searchMatches.length);
+  }
+
+  function closeSearch() {
+    setSearchOpen(false);
+    setSearchQuery('');
+    setSearchMatchIndex(0);
+  }
 
   const lastMessage = messages[messages.length - 1];
   const showSeenOnLast = conversation?.conversation_type === 'direct'
@@ -1272,41 +1306,74 @@ export default function ChatThreadScreen() {
       keyboardVerticalOffset={0}
     >
       <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.headerTitleRow}
-            onPress={() => {
-              if (conversation?.conversation_type === 'direct') {
-                if (otherUser?.id) router.push(`/user-profile?id=${otherUser.id}`);
-              } else {
-                router.push(`/group-info?id=${id}`);
-              }
-            }}
-            disabled={conversation?.conversation_type === 'direct' && !otherUser}
-          >
-            {conversation?.conversation_type === 'direct' ? (
-              <Avatar avatarId={otherUser?.avatar_id} avatarUrl={otherUser?.avatar_url} username={otherUser?.display_name} size={32} />
-            ) : conversation?.avatar_url ? (
-              <Avatar avatarUrl={conversation.avatar_url} username={conversation.name} size={32} />
-            ) : (
-              <LinearGradient colors={['#7C3AED', '#4C1D95']} style={styles.groupIconSmall}>
-                <Ionicons name="people" size={16} color="#fff" />
-              </LinearGradient>
+        {searchOpen ? (
+          <View style={styles.header}>
+            <TouchableOpacity onPress={closeSearch} style={styles.backBtn}>
+              <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
+            </TouchableOpacity>
+            <TextInput
+              style={styles.searchHeaderInput}
+              placeholder="Search in this chat..."
+              placeholderTextColor={colors.textFaint}
+              value={searchQuery}
+              onChangeText={(t) => { setSearchQuery(t); setSearchMatchIndex(0); }}
+              autoFocus
+              returnKeyType="search"
+            />
+            {searchQuery.trim().length > 0 && (
+              <View style={styles.searchNav}>
+                <Text style={styles.searchNavCount}>
+                  {searchMatches.length > 0 ? `${searchMatchIndex + 1}/${searchMatches.length}` : '0/0'}
+                </Text>
+                <TouchableOpacity onPress={() => stepSearch(-1)} disabled={searchMatches.length === 0} style={styles.searchNavBtn}>
+                  <Ionicons name="chevron-up" size={18} color={searchMatches.length ? colors.textPrimary : colors.textDisabled} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => stepSearch(1)} disabled={searchMatches.length === 0} style={styles.searchNavBtn}>
+                  <Ionicons name="chevron-down" size={18} color={searchMatches.length ? colors.textPrimary : colors.textDisabled} />
+                </TouchableOpacity>
+              </View>
             )}
-            <View style={{ flex: 1 }}>
-              <Text style={styles.headerTitle} numberOfLines={1}>{title}</Text>
-              {conversation?.conversation_type === 'direct' && otherUser?.username && (
-                <Text style={styles.headerSubtitle} numberOfLines={1}>@{otherUser.username}</Text>
+          </View>
+        ) : (
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+              <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.headerTitleRow}
+              onPress={() => {
+                if (conversation?.conversation_type === 'direct') {
+                  if (otherUser?.id) router.push(`/user-profile?id=${otherUser.id}`);
+                } else {
+                  router.push(`/group-info?id=${id}`);
+                }
+              }}
+              disabled={conversation?.conversation_type === 'direct' && !otherUser}
+            >
+              {conversation?.conversation_type === 'direct' ? (
+                <Avatar avatarId={otherUser?.avatar_id} avatarUrl={otherUser?.avatar_url} username={otherUser?.display_name} size={32} />
+              ) : conversation?.avatar_url ? (
+                <Avatar avatarUrl={conversation.avatar_url} username={conversation.name} size={32} />
+              ) : (
+                <LinearGradient colors={['#7C3AED', '#4C1D95']} style={styles.groupIconSmall}>
+                  <Ionicons name="people" size={16} color="#fff" />
+                </LinearGradient>
               )}
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setOptionsVisible(true)} style={styles.reportBtn}>
-            <Ionicons name="ellipsis-vertical" size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.headerTitle} numberOfLines={1}>{title}</Text>
+                {conversation?.conversation_type === 'direct' && otherUser?.username && (
+                  <Text style={styles.headerSubtitle} numberOfLines={1}>@{otherUser.username}</Text>
+                )}
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setSearchOpen(true)} style={styles.reportBtn}>
+              <Ionicons name="search" size={19} color={colors.textSecondary} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setOptionsVisible(true)} style={styles.reportBtn}>
+              <Ionicons name="ellipsis-vertical" size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
+        )}
 
         {pinnedMessage && (
           <TouchableOpacity style={styles.pinnedBanner} onPress={() => handleReplyPreviewPress(pinnedMessage.id)}>
@@ -1445,6 +1512,12 @@ export default function ChatThreadScreen() {
           </View>
         ) : (
           <View style={[styles.inputRow, { paddingBottom: keyboardVisible ? 12 : 34 }]}>
+            <TouchableOpacity
+              style={styles.emojiBtn}
+              onPress={() => { Keyboard.dismiss(); setEmojiPickerOpen((v) => !v); }}
+            >
+              <Ionicons name={emojiPickerOpen ? 'close' : 'happy-outline'} size={22} color={colors.accent} />
+            </TouchableOpacity>
             <TouchableOpacity style={styles.cameraBtn} onPress={showImageSourcePicker} disabled={uploadingImage}>
               {uploadingImage
                 ? <ActivityIndicator size="small" color={colors.accent} />
@@ -1457,6 +1530,7 @@ export default function ChatThreadScreen() {
               placeholderTextColor={colors.textFaint}
               value={text}
               onChangeText={setText}
+              onFocus={() => setEmojiPickerOpen(false)}
               multiline
             />
             <TouchableOpacity style={styles.micBtn} onPress={startRecording}>
@@ -1468,6 +1542,22 @@ export default function ChatThreadScreen() {
                 : <Ionicons name="send" size={18} color="#fff" />
               }
             </TouchableOpacity>
+          </View>
+        )}
+
+        {emojiPickerOpen && (
+          <View style={styles.emojiPanel}>
+            <ScrollView contentContainerStyle={styles.emojiPanelGrid} keyboardShouldPersistTaps="handled">
+              {KEYBOARD_EMOJIS.map((emoji, index) => (
+                <TouchableOpacity
+                  key={`${emoji}-${index}`}
+                  style={styles.emojiPanelItem}
+                  onPress={() => setText((t) => t + emoji)}
+                >
+                  <Text style={styles.emojiPanelItemText}>{emoji}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
         )}
       </View>
@@ -1805,6 +1895,14 @@ function getStyles(colors: ThemeColors) {
     headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
     headerTitle: { color: colors.textPrimary, fontSize: 16, fontWeight: '800', flexShrink: 1 },
     headerSubtitle: { color: colors.textFaint, fontSize: 12, fontWeight: '600', marginTop: 1 },
+    searchHeaderInput: {
+      flex: 1, color: colors.textPrimary, fontSize: 15,
+      backgroundColor: colors.surfaceAlt, borderRadius: 10,
+      paddingHorizontal: 12, paddingVertical: 8, marginRight: 8,
+    },
+    searchNav: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+    searchNavCount: { color: colors.textFaint, fontSize: 12, fontWeight: '600', marginRight: 4 },
+    searchNavBtn: { padding: 4 },
     messagesList: { padding: 16, paddingBottom: 24 },
     dateSeparatorRow: { alignItems: 'center', marginVertical: 12 },
     dateSeparatorText: {
@@ -1911,6 +2009,22 @@ function getStyles(colors: ThemeColors) {
       justifyContent: 'center', alignItems: 'center',
       borderWidth: 1, borderColor: colors.border,
     },
+    emojiBtn: {
+      width: 40, height: 40, borderRadius: 20, backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center', alignItems: 'center',
+      borderWidth: 1, borderColor: colors.border,
+    },
+    emojiPanel: {
+      height: 220, borderTopWidth: 1, borderTopColor: colors.surfaceAlt,
+      backgroundColor: colors.surface,
+    },
+    emojiPanelGrid: {
+      flexDirection: 'row', flexWrap: 'wrap', padding: 10,
+    },
+    emojiPanelItem: {
+      width: '12.5%', aspectRatio: 1, justifyContent: 'center', alignItems: 'center',
+    },
+    emojiPanelItemText: { fontSize: 26 },
     imagePreviewOverlay: {
       flex: 1, justifyContent: 'center', alignItems: 'center',
     },

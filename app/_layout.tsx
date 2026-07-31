@@ -131,6 +131,8 @@ function RootLayoutInner() {
           <Stack.Screen name="report-user" options={{ headerShown: false }} />
           <Stack.Screen name="chat" options={{ headerShown: false }} />
           <Stack.Screen name="chat-thread" options={{ headerShown: false }} />
+          <Stack.Screen name="chat-search" options={{ headerShown: false }} />
+          <Stack.Screen name="blocked-users" options={{ headerShown: false }} />
           <Stack.Screen name="world-chat" options={{ headerShown: false }} />
           <Stack.Screen name="world-chat-thread" options={{ headerShown: false }} />
           <Stack.Screen name="new-group" options={{ headerShown: false }} />

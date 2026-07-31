@@ -256,7 +256,10 @@ export default function ChatInboxScreen() {
           <Text style={styles.headerTitle}>Chats</Text>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity onPress={() => router.push('/search-users')} style={styles.headerBtn}>
+          <TouchableOpacity
+            onPress={() => router.push(category === 'group' ? '/chat-search?mode=group' : '/chat-search?mode=personal')}
+            style={styles.headerBtn}
+          >
             <Ionicons name="search" size={18} color={colors.accent} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push('/new-group')} style={styles.headerBtn}>
