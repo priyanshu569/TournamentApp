@@ -45,6 +45,64 @@ export async function pickChatImage(source: 'camera' | 'library'): Promise<Picke
   return resizeAndCompress(asset.uri, asset.width, asset.height);
 }
 
+export type RawImage = { uri: string; width: number; height: number };
+
+// Picks without compressing -- used by flows that show a crop step
+// before the final compress pass (compressing twice would stack JPEG
+// artifacts for no benefit, same reasoning as pickChatImage above).
+export async function pickRawChatImage(source: 'camera' | 'library'): Promise<RawImage | null> {
+  const permission = source === 'camera'
+    ? await ImagePicker.requestCameraPermissionsAsync()
+    : await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+  if (!permission.granted) {
+    throw new Error(
+      source === 'camera'
+        ? 'Camera access is required to take a photo.'
+        : 'Photo library access is required to choose a photo.'
+    );
+  }
+
+  const options: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], quality: 1 };
+  const result = source === 'camera'
+    ? await ImagePicker.launchCameraAsync(options)
+    : await ImagePicker.launchImageLibraryAsync(options);
+
+  if (result.canceled) return null;
+
+  const asset = result.assets[0];
+  return { uri: asset.uri, width: asset.width, height: asset.height };
+}
+
+// ratio = width/height, or null for "Original" (no crop). Always
+// center-cropped -- there's no drag-to-reposition, just pick a ratio
+// and see the result.
+export async function cropImageToRatio(image: RawImage, ratio: number | null): Promise<RawImage> {
+  if (ratio === null) return image;
+
+  const { uri, width, height } = image;
+  const currentRatio = width / height;
+  let cropWidth = width;
+  let cropHeight = height;
+  let originX = 0;
+  let originY = 0;
+
+  if (currentRatio > ratio) {
+    cropWidth = Math.round(height * ratio);
+    originX = Math.round((width - cropWidth) / 2);
+  } else {
+    cropHeight = Math.round(width / ratio);
+    originY = Math.round((height - cropHeight) / 2);
+  }
+
+  const context = ImageManipulator.manipulate(uri);
+  context.crop({ originX, originY, width: cropWidth, height: cropHeight });
+  const rendered = await context.renderAsync();
+  const result = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: 0.95 });
+
+  return { uri: result.uri, width: result.width, height: result.height };
+}
+
 export async function resizeAndCompress(uri: string, width: number, height: number): Promise<PickedChatImage> {
   const context = ImageManipulator.manipulate(uri);
 

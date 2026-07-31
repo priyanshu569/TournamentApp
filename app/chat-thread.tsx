@@ -20,10 +20,12 @@ import Avatar from '@/components/Avatar';
 import { formatClockTime, formatDayLabel, formatRelativeTime, isSameDay } from '@/lib/time';
 import { uploadVoiceMessage, getSignedVoiceMessageUrl, formatAudioDuration } from '@/lib/voiceMessage';
 import {
-  pickChatImage, uploadChatImage, getSignedChatImageUrl, saveChatImageToGallery, revealViewOnceImage,
-  PickedChatImage,
+  pickRawChatImage, resizeAndCompress, uploadChatImage, getSignedChatImageUrl, saveChatImageToGallery, revealViewOnceImage,
+  PickedChatImage, RawImage,
 } from '@/lib/chatImage';
+import ImageCropPreview from '@/components/ImageCropPreview';
 import { acceptMessageRequest, declineMessageRequest, notifyConversationParticipants } from '@/lib/messageRequests';
+import { useAvatarPreview } from '@/lib/AvatarPreviewContext';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 
@@ -531,6 +533,7 @@ export default function ChatThreadScreen() {
   const router = useRouter();
   const { colors, theme } = useAppTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
+  const showAvatarPreview = useAvatarPreview();
   const [myId, setMyId] = useState<string | null>(null);
   const [conversation, setConversation] = useState<any>(null);
   const [otherUser, setOtherUser] = useState<any>(null);
@@ -552,6 +555,7 @@ export default function ChatThreadScreen() {
   const [respondingRequest, setRespondingRequest] = useState(false);
   const [replyingTo, setReplyingTo] = useState<any>(null);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+  const [reactionGridOpen, setReactionGridOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchMatchIndex, setSearchMatchIndex] = useState(0);
@@ -564,6 +568,7 @@ export default function ChatThreadScreen() {
   const [forwarding, setForwarding] = useState(false);
   const [savingImage, setSavingImage] = useState(false);
   const [pendingImage, setPendingImage] = useState<PickedChatImage | null>(null);
+  const [rawPickedImage, setRawPickedImage] = useState<RawImage | null>(null);
   const [pendingViewOnce, setPendingViewOnce] = useState(false);
   const [pendingCaption, setPendingCaption] = useState('');
   const [viewOnceImageUrl, setViewOnceImageUrl] = useState<string | null>(null);
@@ -834,14 +839,20 @@ export default function ChatThreadScreen() {
 
   async function handlePickImage(source: 'camera' | 'library') {
     try {
-      const picked = await pickChatImage(source);
-      if (!picked) return;
-      setPendingImage(picked);
-      setPendingViewOnce(false);
-      setPendingCaption('');
+      const raw = await pickRawChatImage(source);
+      if (!raw) return;
+      setRawPickedImage(raw);
     } catch (err: any) {
       Alert.alert('Could not open image', err?.message ?? 'Please try again.');
     }
+  }
+
+  async function handleCropConfirm(cropped: RawImage) {
+    setRawPickedImage(null);
+    const compressed = await resizeAndCompress(cropped.uri, cropped.width, cropped.height);
+    setPendingImage(compressed);
+    setPendingViewOnce(false);
+    setPendingCaption('');
   }
 
   function handleCancelPendingImage() {
@@ -1348,6 +1359,13 @@ export default function ChatThreadScreen() {
                   router.push(`/group-info?id=${id}`);
                 }
               }}
+              onLongPress={() => {
+                if (conversation?.conversation_type === 'direct') {
+                  showAvatarPreview({ avatarId: otherUser?.avatar_id, avatarUrl: otherUser?.avatar_url, username: otherUser?.display_name });
+                } else if (conversation?.avatar_url) {
+                  showAvatarPreview({ avatarUrl: conversation.avatar_url, username: conversation.name });
+                }
+              }}
               disabled={conversation?.conversation_type === 'direct' && !otherUser}
             >
               {conversation?.conversation_type === 'direct' ? (
@@ -1597,6 +1615,13 @@ export default function ChatThreadScreen() {
         </TouchableOpacity>
       </Modal>
 
+      <ImageCropPreview
+        visible={!!rawPickedImage}
+        image={rawPickedImage}
+        onCancel={() => setRawPickedImage(null)}
+        onConfirm={handleCropConfirm}
+      />
+
       <Modal
         visible={!!pendingImage}
         transparent
@@ -1783,6 +1808,9 @@ export default function ChatThreadScreen() {
                     <Text style={styles.reactionOptionText}>{emoji}</Text>
                   </TouchableOpacity>
                 ))}
+                <TouchableOpacity style={styles.reactionMoreOption} onPress={() => setReactionGridOpen(true)}>
+                  <Ionicons name="add" size={18} color={colors.textSecondary} />
+                </TouchableOpacity>
               </View>
 
               <View style={styles.menuCard}>
@@ -1867,6 +1895,25 @@ export default function ChatThreadScreen() {
                 </TouchableOpacity>
               ))
             )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal visible={reactionGridOpen} transparent animationType="slide" onRequestClose={() => setReactionGridOpen(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setReactionGridOpen(false)}>
+          <View style={styles.reactionGridSheet} onStartShouldSetResponder={() => true}>
+            <View style={styles.sheetHandle} />
+            <ScrollView contentContainerStyle={styles.emojiPanelGrid}>
+              {KEYBOARD_EMOJIS.map((emoji, index) => (
+                <TouchableOpacity
+                  key={`${emoji}-${index}`}
+                  style={styles.emojiPanelItem}
+                  onPress={() => { handleReact(emoji); setReactionGridOpen(false); }}
+                >
+                  <Text style={styles.emojiPanelItemText}>{emoji}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -2108,6 +2155,15 @@ function getStyles(colors: ThemeColors) {
       shadowOpacity: 0.4, shadowRadius: 8, elevation: 4,
     },
     modalOverlay: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
+    reactionGridSheet: {
+      backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+      paddingTop: 12, paddingBottom: 24, maxHeight: '55%',
+      borderWidth: 1, borderColor: colors.border, borderBottomWidth: 0,
+    },
+    sheetHandle: {
+      width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border,
+      alignSelf: 'center', marginBottom: 12,
+    },
     reportSheet: {
       backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
       paddingHorizontal: 20, paddingTop: 20, paddingBottom: 34,
@@ -2163,6 +2219,10 @@ function getStyles(colors: ThemeColors) {
     },
     reactionOption: { padding: 4 },
     reactionOptionText: { fontSize: 22 },
+    reactionMoreOption: {
+      width: 30, height: 30, borderRadius: 15, marginLeft: 2,
+      justifyContent: 'center', alignItems: 'center', backgroundColor: colors.surfaceAlt,
+    },
     menuCard: {
       backgroundColor: colors.surface, borderRadius: 14, borderWidth: 1, borderColor: colors.border,
       width: 200, overflow: 'hidden',
