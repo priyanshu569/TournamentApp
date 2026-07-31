@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TextInput,
+  View, Text, StyleSheet, FlatList, TextInput, Image,
   TouchableOpacity, ActivityIndicator, Alert, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -9,12 +9,19 @@ import { supabase } from '@/lib/supabase';
 import Avatar from '@/components/Avatar';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import { formatRelativeTime } from '@/lib/time';
-import { getWorldChatRetryMessage } from '@/lib/worldChatRateLimit';
+import { getWorldChatReplyRetryMessage } from '@/lib/worldChatRateLimit';
 import { getDesignation } from '@/lib/designation';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 
-const MAX_LENGTH = 300;
+const MAX_LENGTH = 1000;
+const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+
+function summarizeReactions(reactions: { user_id: string; emoji: string }[]): string {
+  const counts = new Map<string, number>();
+  for (const r of reactions) counts.set(r.emoji, (counts.get(r.emoji) ?? 0) + 1);
+  return [...counts.entries()].map(([emoji, count]) => (count > 1 ? `${emoji} ${count}` : emoji)).join(' ');
+}
 
 export default function WorldChatThreadScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -23,6 +30,8 @@ export default function WorldChatThreadScreen() {
   const styles = useMemo(() => getStyles(colors), [colors]);
   const [post, setPost] = useState<any>(null);
   const [replies, setReplies] = useState<any[]>([]);
+  const [reactions, setReactions] = useState<{ user_id: string; emoji: string }[]>([]);
+  const [reactionPickerOpen, setReactionPickerOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [myId, setMyId] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -46,6 +55,11 @@ export default function WorldChatThreadScreen() {
           setReplies((prev) => prev.filter((r) => r.id !== payload.old.id));
         }
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'world_chat_post_reactions', filter: `post_id=eq.${id}` },
+        () => { loadReactions(); }
+      )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -67,7 +81,7 @@ export default function WorldChatThreadScreen() {
 
     const { data: postRow, error } = await supabase
       .from('world_chat_posts')
-      .select('id, author_id, content, created_at')
+      .select('id, author_id, content, image_url, image_width, image_height, created_at')
       .eq('id', id)
       .single();
 
@@ -84,7 +98,7 @@ export default function WorldChatThreadScreen() {
 
     setPost({ ...postRow, author: authorProfile });
 
-    await loadReplies();
+    await Promise.all([loadReplies(), loadReactions()]);
     setLoading(false);
   }
 
@@ -106,6 +120,35 @@ export default function WorldChatThreadScreen() {
     setReplies(replyRows.map((r) => ({ ...r, author: profileMap.get(r.author_id) ?? null })));
   }
 
+  async function loadReactions() {
+    const { data } = await supabase
+      .from('world_chat_post_reactions')
+      .select('user_id, emoji')
+      .eq('post_id', id);
+    setReactions(data ?? []);
+  }
+
+  async function handleReact(emoji: string) {
+    setReactionPickerOpen(false);
+    if (!myId) return;
+
+    const mine = reactions.find((r) => r.user_id === myId);
+
+    setReactions((prev) => {
+      const rest = prev.filter((r) => r.user_id !== myId);
+      return (!mine || mine.emoji !== emoji) ? [...rest, { user_id: myId, emoji }] : rest;
+    });
+
+    if (mine && mine.emoji === emoji) {
+      await supabase.from('world_chat_post_reactions').delete().eq('post_id', id).eq('user_id', myId);
+    } else {
+      await supabase.from('world_chat_post_reactions').upsert(
+        { post_id: id, user_id: myId, emoji },
+        { onConflict: 'post_id,user_id' }
+      );
+    }
+  }
+
   async function handleReply() {
     const trimmed = text.trim();
     if (!trimmed || !myId) return;
@@ -121,7 +164,7 @@ export default function WorldChatThreadScreen() {
 
     if (error) {
       const friendly = error.message.includes('row-level security')
-        ? await getWorldChatRetryMessage('world_chat_replies', myId)
+        ? await getWorldChatReplyRetryMessage(myId)
         : error.message;
       Alert.alert('Could not reply', friendly);
       return;
@@ -163,6 +206,7 @@ export default function WorldChatThreadScreen() {
   }
 
   const remaining = MAX_LENGTH - text.length;
+  const myReaction = reactions.find((r) => r.user_id === myId)?.emoji;
 
   return (
     <KeyboardAvoidingView
@@ -176,7 +220,13 @@ export default function WorldChatThreadScreen() {
             <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Post</Text>
-          <View style={{ width: 36 }} />
+          {post.author_id !== myId ? (
+            <TouchableOpacity onPress={() => router.push(`/report-user?target_post_id=${post.id}`)} style={styles.backBtn}>
+              <Ionicons name="flag-outline" size={17} color={colors.textSecondary} />
+            </TouchableOpacity>
+          ) : (
+            <View style={{ width: 36 }} />
+          )}
         </View>
 
         <FlatList
@@ -204,7 +254,36 @@ export default function WorldChatThreadScreen() {
                   </View>
                 </View>
               </TouchableOpacity>
-              <Text style={styles.postContent}>{post.content}</Text>
+              {!!post.content && <Text style={styles.postContent}>{post.content}</Text>}
+              {post.image_url && (
+                <Image
+                  source={{ uri: post.image_url }}
+                  style={[
+                    styles.postImage,
+                    post.image_width && post.image_height
+                      ? { aspectRatio: post.image_width / post.image_height }
+                      : { aspectRatio: 1 },
+                  ]}
+                  resizeMode="cover"
+                />
+              )}
+
+              <View style={styles.reactionRow}>
+                <TouchableOpacity style={styles.footerBtn} onPress={() => setReactionPickerOpen((v) => !v)}>
+                  <Ionicons name={myReaction ? 'heart' : 'heart-outline'} size={16} color={myReaction ? colors.error : colors.textFaint} />
+                  <Text style={styles.postFooterText}>{reactions.length > 0 ? summarizeReactions(reactions) : 'React'}</Text>
+                </TouchableOpacity>
+              </View>
+              {reactionPickerOpen && (
+                <View style={styles.reactionStrip}>
+                  {REACTION_EMOJIS.map((emoji) => (
+                    <TouchableOpacity key={emoji} style={styles.reactionOption} onPress={() => handleReact(emoji)}>
+                      <Text style={styles.reactionOptionText}>{emoji}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
               <View style={styles.divider} />
               <Text style={styles.repliesLabel}>
                 {replies.length > 0 ? `${replies.length} repl${replies.length === 1 ? 'y' : 'ies'}` : 'No replies yet'}
@@ -251,7 +330,7 @@ export default function WorldChatThreadScreen() {
             multiline
           />
           <View style={styles.composerFooter}>
-            <Text style={[styles.charCount, remaining < 30 && styles.charCountLow]}>{remaining}</Text>
+            <Text style={[styles.charCount, remaining < 60 && styles.charCountLow]}>{remaining}</Text>
             <TouchableOpacity
               style={styles.postBtn}
               onPress={handleReply}
@@ -296,6 +375,16 @@ function getStyles(colors: ThemeColors) {
     postDesignation: { fontSize: 12, fontWeight: '700' },
     postMetaDot: { color: colors.textFaint, fontSize: 12 },
     postContent: { color: colors.textPrimary, fontSize: 16, lineHeight: 22, marginTop: 14 },
+    postImage: { width: '100%', borderRadius: 14, marginTop: 14, backgroundColor: colors.surfaceAlt },
+    reactionRow: { flexDirection: 'row', marginTop: 14 },
+    footerBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    postFooterText: { color: colors.textFaint, fontSize: 12, fontWeight: '600' },
+    reactionStrip: {
+      flexDirection: 'row', gap: 6, marginTop: 10, padding: 8,
+      backgroundColor: colors.surfaceAlt, borderRadius: 14, alignSelf: 'flex-start',
+    },
+    reactionOption: { paddingHorizontal: 6, paddingVertical: 2 },
+    reactionOptionText: { fontSize: 20 },
     divider: { height: 1, backgroundColor: colors.border, marginTop: 16, marginBottom: 10 },
     repliesLabel: { color: colors.textMuted, fontSize: 12, fontWeight: '700' },
     replyCard: {
@@ -313,8 +402,8 @@ function getStyles(colors: ThemeColors) {
     },
     composerInput: {
       backgroundColor: colors.surfaceAlt, color: colors.textPrimary, borderRadius: 14,
-      paddingHorizontal: 14, paddingVertical: 10, fontSize: 14,
-      borderWidth: 1, borderColor: colors.border, maxHeight: 90, minHeight: 44,
+      paddingHorizontal: 14, paddingVertical: 12, fontSize: 14,
+      borderWidth: 1, borderColor: colors.border, maxHeight: 120, minHeight: 52,
     },
     composerFooter: {
       flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8,

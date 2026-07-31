@@ -45,7 +45,7 @@ export async function pickChatImage(source: 'camera' | 'library'): Promise<Picke
   return resizeAndCompress(asset.uri, asset.width, asset.height);
 }
 
-async function resizeAndCompress(uri: string, width: number, height: number): Promise<PickedChatImage> {
+export async function resizeAndCompress(uri: string, width: number, height: number): Promise<PickedChatImage> {
   const context = ImageManipulator.manipulate(uri);
 
   if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
