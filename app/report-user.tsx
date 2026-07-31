@@ -1,20 +1,23 @@
 import { useMemo, useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity,
+  View, Text, TextInput, TouchableOpacity, Image,
   StyleSheet, Alert, ActivityIndicator, ScrollView
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
+import { pickChatImage, PickedChatImage } from '@/lib/chatImage';
+import { uploadReportProofImage } from '@/lib/reportProof';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 
 const REASONS = ['Spam', 'Harassment', 'Inappropriate content', 'Impersonation', 'Other'];
 
 export default function ReportUserScreen() {
-  const { target_user_id, target_message_id } = useLocalSearchParams<{
+  const { target_user_id, target_message_id, target_post_id } = useLocalSearchParams<{
     target_user_id?: string;
     target_message_id?: string;
+    target_post_id?: string;
   }>();
   const router = useRouter();
   const { colors } = useAppTheme();
@@ -22,6 +25,19 @@ export default function ReportUserScreen() {
   const [reason, setReason] = useState('');
   const [details, setDetails] = useState('');
   const [loading, setLoading] = useState(false);
+  const [proofImage, setProofImage] = useState<PickedChatImage | null>(null);
+  const [pickingImage, setPickingImage] = useState(false);
+
+  async function handlePickProof() {
+    setPickingImage(true);
+    try {
+      const picked = await pickChatImage('library');
+      if (picked) setProofImage(picked);
+    } catch (err: any) {
+      Alert.alert('Could not open image', err?.message ?? 'Please try again.');
+    }
+    setPickingImage(false);
+  }
 
   async function handleSubmit() {
     if (!reason) {
@@ -38,22 +54,31 @@ export default function ReportUserScreen() {
       return;
     }
 
-    const { error } = await supabase.from('reports').insert({
-      reporter_id: user.id,
-      reported_user_id: target_user_id ?? null,
-      reported_message_id: target_message_id ?? null,
-      reason: details.trim() ? `${reason}: ${details.trim()}` : reason,
-    });
+    try {
+      let proofImageUrl: string | null = null;
+      if (proofImage) {
+        proofImageUrl = await uploadReportProofImage(user.id, proofImage.base64);
+      }
 
-    setLoading(false);
+      const { error } = await supabase.from('reports').insert({
+        reporter_id: user.id,
+        reported_user_id: target_user_id ?? null,
+        reported_message_id: target_message_id ?? null,
+        reported_post_id: target_post_id ?? null,
+        reason: details.trim() ? `${reason}: ${details.trim()}` : reason,
+        proof_image_url: proofImageUrl,
+      });
 
-    if (error) {
-      Alert.alert('Error', error.message);
-    } else {
-      Alert.alert('Report Submitted', "Thanks — we'll review this.", [
+      if (error) throw error;
+
+      Alert.alert('Report Submitted', "Thanks — we'll review this and let you know the outcome.", [
         { text: 'OK', onPress: () => router.back() },
       ]);
+    } catch (err: any) {
+      Alert.alert('Error', err.message);
     }
+
+    setLoading(false);
   }
 
   return (
@@ -88,6 +113,25 @@ export default function ReportUserScreen() {
         value={details}
         onChangeText={setDetails}
       />
+
+      <Text style={styles.label}>Photo proof (optional)</Text>
+      {proofImage ? (
+        <View style={styles.proofPreviewRow}>
+          <Image source={{ uri: `data:image/jpeg;base64,${proofImage.base64}` }} style={styles.proofThumb} />
+          <Text style={styles.proofText}>Screenshot attached</Text>
+          <TouchableOpacity onPress={() => setProofImage(null)} style={styles.proofRemoveBtn}>
+            <Ionicons name="close" size={16} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <TouchableOpacity style={styles.proofAddBtn} onPress={handlePickProof} disabled={pickingImage}>
+          {pickingImage
+            ? <ActivityIndicator size="small" color={colors.accent} />
+            : <Ionicons name="image-outline" size={18} color={colors.accent} />
+          }
+          <Text style={styles.proofAddBtnText}>Attach a screenshot</Text>
+        </TouchableOpacity>
+      )}
 
       <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={loading}>
         {loading
@@ -124,6 +168,20 @@ function getStyles(colors: ThemeColors) {
       borderWidth: 1, borderColor: colors.border, height: 100, textAlignVertical: 'top',
       marginBottom: 24,
     },
+    proofAddBtn: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+      backgroundColor: colors.surfaceAlt, borderRadius: 10, paddingVertical: 14,
+      borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed', marginBottom: 24,
+    },
+    proofAddBtnText: { color: colors.accent, fontSize: 14, fontWeight: '700' },
+    proofPreviewRow: {
+      flexDirection: 'row', alignItems: 'center', gap: 10,
+      backgroundColor: colors.surfaceAlt, borderRadius: 10, padding: 10, marginBottom: 24,
+      borderWidth: 1, borderColor: colors.border,
+    },
+    proofThumb: { width: 44, height: 44, borderRadius: 8 },
+    proofText: { flex: 1, color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
+    proofRemoveBtn: { padding: 4 },
     button: {
       backgroundColor: colors.error, paddingVertical: 16,
       borderRadius: 12, alignItems: 'center',
