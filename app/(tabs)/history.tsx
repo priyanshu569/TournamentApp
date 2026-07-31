@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 import { useTabNavigation } from '@/lib/tabNavigation';
+import { isEffectivelyHost } from '@/lib/effectiveRole';
 
 export default function HistoryScreen() {
   const router = useRouter();
@@ -17,6 +18,7 @@ export default function HistoryScreen() {
   const styles = useMemo(() => getStyles(colors), [colors]);
   const [role, setRole] = useState<string | null>(null);
   const [browsingMode, setBrowsingMode] = useState<string | null>(null);
+  const [isAdminUser, setIsAdminUser] = useState(false);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any[]>([]);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
@@ -42,15 +44,16 @@ export default function HistoryScreen() {
 
     const { data: profile } = await supabase
       .from('Profiles')
-      .select('role, browsing_mode')
+      .select('role, browsing_mode, is_admin')
       .eq('id', userData.user.id)
       .single();
 
     if (!profile) { setLoading(false); return; }
     setRole(profile.role);
     setBrowsingMode(profile.browsing_mode);
+    setIsAdminUser(!!profile.is_admin);
 
-    const effectiveIsHost = profile.role === 'host' && profile.browsing_mode !== 'player';
+    const effectiveIsHost = isEffectivelyHost(profile);
 
     if (!effectiveIsHost) {
       const { data: regs } = await supabase
@@ -109,7 +112,7 @@ export default function HistoryScreen() {
     );
   }
 
-  const isPlayer = role !== 'host' || browsingMode === 'player';
+  const isPlayer = !isEffectivelyHost({ role, browsing_mode: browsingMode, is_admin: isAdminUser });
 
   return (
     <View style={styles.container}>

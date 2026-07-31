@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import { notifyAndLog } from '@/lib/notifications';
+import { isEffectivelyHost } from '@/lib/effectiveRole';
 import * as Clipboard from 'expo-clipboard';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
@@ -82,14 +83,15 @@ export default function TournamentDetails() {
     if (userData.user) {
       const { data: profile } = await supabase
         .from('Profiles')
-        .select('role, browsing_mode')
+        .select('role, browsing_mode, is_admin')
         .eq('id', userData.user.id)
         .single();
       // role state holds the *effective* role for this viewer (a host
-      // browsing as a player sees player-facing controls here) -- it's
-      // only used for local UI gating on this screen, never shown to
-      // other users, so this doesn't affect how anyone else sees them.
-      if (profile) setRole(profile.role === 'host' && profile.browsing_mode === 'player' ? 'player' : profile.role);
+      // browsing as a player, or an admin previewing as a host, sees
+      // that role's controls here) -- it's only used for local UI
+      // gating on this screen, never shown to other users, so this
+      // doesn't affect how anyone else sees them.
+      if (profile) setRole(isEffectivelyHost(profile) ? 'host' : 'player');
 
       const { data: reg } = await supabase
         .from('registrations')

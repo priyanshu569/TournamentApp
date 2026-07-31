@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase';
 import NotificationBell from '@/components/NotificationBell';
 import Avatar from '@/components/Avatar';
 import { useTabNavigation } from '@/lib/tabNavigation';
+import { isEffectivelyHost } from '@/lib/effectiveRole';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 
@@ -73,7 +74,7 @@ export default function ProfileScreen() {
 
     setFollowCounts({ followers: followers ?? 0, following: following ?? 0 });
 
-    const effectiveIsHost = p?.role === 'host' && p?.browsing_mode !== 'player';
+    const effectiveIsHost = isEffectivelyHost(p);
 
     if (!effectiveIsHost) {
       const { count: regCount } = await supabase
@@ -95,10 +96,11 @@ export default function ProfileScreen() {
   }
 
   // Purely a personal view preference -- never touches role/host_status,
-  // so a host browsing as a player is still shown as "Host" everywhere
-  // else in the app (world chat, chat, profile badges all read role
+  // so a host browsing as a player (or an admin previewing as a host
+  // they aren't) is still shown as their true role everywhere else in
+  // the app (world chat, chat, profile badges all read role/is_admin
   // directly and are unaffected by this).
-  async function setBrowsingMode(mode: 'player' | null) {
+  async function setBrowsingMode(mode: 'player' | 'host' | null) {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return;
 
@@ -113,6 +115,15 @@ export default function ProfileScreen() {
     }
 
     loadProfile();
+  }
+
+  function handlePreviewRole() {
+    Alert.alert('Preview Role', 'See the app as a different role would.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Player', onPress: () => setBrowsingMode('player') },
+      { text: 'Host', onPress: () => setBrowsingMode('host') },
+      { text: 'My Real Role', onPress: () => setBrowsingMode(null) },
+    ]);
   }
 
   const handleLogout = async () => {
@@ -136,9 +147,12 @@ export default function ProfileScreen() {
   }
 
   const isHost = profile?.role === 'host';
-  const browsingAsPlayer = isHost && profile?.browsing_mode === 'player';
-  const canBecomeHost = !isHost && profile?.host_status !== 'pending';
   const isAdmin = !!profile?.is_admin;
+  const browsingAsPlayer = isHost && profile?.browsing_mode === 'player';
+  const browsingAsHost = !isHost && isAdmin && profile?.browsing_mode === 'host';
+  // Admins get an instant preview toggle in Admin Tools instead -- no
+  // need to apply and wait for their own approval.
+  const canBecomeHost = !isHost && profile?.host_status !== 'pending' && !isAdmin;
 
   const menuSections: MenuSection[] = [
     {
@@ -162,6 +176,7 @@ export default function ProfileScreen() {
       items: [
         { key: 'admin-broadcast', icon: 'megaphone' as const, color: colors.accent, label: 'Admin Broadcast', onPress: () => router.push('/admin-broadcast') },
         { key: 'admin-host-requests', icon: 'trophy' as const, color: colors.accent, label: 'Host Requests', onPress: () => router.push('/admin-host-requests') },
+        { key: 'switch-role', icon: 'sync' as const, color: colors.accent, label: 'Switch Role', onPress: handlePreviewRole },
         { key: 'admin-reports', icon: 'warning' as const, color: colors.accent, label: 'Reports', onPress: () => router.push('/admin-reports') },
       ],
     }] : []),
@@ -208,6 +223,7 @@ export default function ProfileScreen() {
             </Text>
           </LinearGradient>
           {browsingAsPlayer && <Text style={styles.browsingModeHint}>Browsing as Player</Text>}
+          {browsingAsHost && <Text style={styles.browsingModeHint}>Previewing as Host</Text>}
         </View>
       </LinearGradient>
 
@@ -217,7 +233,7 @@ export default function ProfileScreen() {
           <Ionicons name="trophy" size={16} color={colors.accent} style={styles.statIcon} />
           <Text style={styles.statValue}>{stats.tournaments}</Text>
           <Text style={styles.statLabel}>
-            {isHost && !browsingAsPlayer ? 'Created' : 'Joined'}
+            {(isHost && !browsingAsPlayer) || browsingAsHost ? 'Created' : 'Joined'}
           </Text>
         </TouchableOpacity>
         <View style={styles.statDivider} />

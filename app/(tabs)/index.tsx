@@ -14,6 +14,7 @@ import FragifyLogo from '@/components/FragifyLogo';
 import LeaderboardIcon from '@/components/LeaderboardIcon';
 import GradientIconBadge from '@/components/GradientIconBadge';
 import { useTabNavigation } from '@/lib/tabNavigation';
+import { isEffectivelyHost } from '@/lib/effectiveRole';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 
@@ -29,6 +30,7 @@ export default function HomeScreen() {
   const styles = useMemo(() => getStyles(colors), [colors]);
   const [role, setRole] = useState<string | null>(null);
   const [browsingMode, setBrowsingMode] = useState<string | null>(null);
+  const [isAdminUser, setIsAdminUser] = useState(false);
   const [hostStatus, setHostStatus] = useState<string | null>(null);
   const [username, setUsername] = useState('');
   const [tournaments, setTournaments] = useState<any[]>([]);
@@ -57,7 +59,7 @@ export default function HomeScreen() {
 
     const { data: profile } = await supabase
       .from('Profiles')
-      .select('role, username, host_status, browsing_mode')
+      .select('role, username, host_status, browsing_mode, is_admin')
       .eq('id', userData.user.id)
       .single();
 
@@ -66,9 +68,10 @@ export default function HomeScreen() {
       setBrowsingMode(profile.browsing_mode);
       setUsername(profile.username || '');
       setHostStatus(profile.host_status);
+      setIsAdminUser(!!profile.is_admin);
     }
 
-    const isHost = profile?.role === 'host' && profile?.browsing_mode !== 'player';
+    const isHost = isEffectivelyHost(profile);
     const query = supabase
       .from('tournaments')
       .select('*, host:public_profiles!host_id(display_name, is_verified)')
@@ -107,7 +110,7 @@ export default function HomeScreen() {
     return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
   };
 
-  const isHost = role === 'host' && browsingMode !== 'player';
+  const isHost = isEffectivelyHost({ role, browsing_mode: browsingMode, is_admin: isAdminUser });
   const liveNow = tournaments.filter((t) => t.status === 'ongoing');
   const upcomingCount = tournaments.filter((t) => t.status === 'upcoming').length;
   const startingSoon = [...tournaments.filter((t) => t.status === 'upcoming')]
