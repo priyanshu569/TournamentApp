@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Modal, Image, TouchableOpacity, ActivityIndicator, Alert, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Modal, Image, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming, Easing } from 'react-native-reanimated';
@@ -170,7 +170,12 @@ export default function ImageCropPreview({ visible, image, onCancel, onConfirm }
             </View>
             <Text style={styles.dragHint}>Pinch to zoom, drag to reposition</Text>
 
-            <View style={styles.ratioRow}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.ratioRow}
+              style={styles.ratioScroll}
+            >
               {RATIOS.map((r) => (
                 <TouchableOpacity
                   key={r.key}
@@ -180,7 +185,7 @@ export default function ImageCropPreview({ visible, image, onCancel, onConfirm }
                   <Text style={[styles.ratioChipText, activeRatioKey === r.key && styles.ratioChipTextActive]}>{r.label}</Text>
                 </TouchableOpacity>
               ))}
-            </View>
+            </ScrollView>
 
             <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirm} disabled={processing}>
               {processing
@@ -216,7 +221,8 @@ function getStyles(colors: ThemeColors) {
       borderWidth: 1, borderColor: colors.border,
     },
     dragHint: { color: colors.textFaint, fontSize: 11, fontWeight: '600', marginTop: 8 },
-    ratioRow: { flexDirection: 'row', gap: 8, marginTop: 14, flexWrap: 'wrap', justifyContent: 'center' },
+    ratioScroll: { marginTop: 14, width: '100%' },
+    ratioRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 2 },
     ratioChip: {
       paddingHorizontal: 14, paddingVertical: 9, borderRadius: 18,
       backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border,
