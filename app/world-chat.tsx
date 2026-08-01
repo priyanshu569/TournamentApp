@@ -262,8 +262,15 @@ export default function WorldChatScreen() {
 
       setText('');
       setPendingImage(null);
-      if (viewingSaved) await toggleSavedView();
-      loadPosts();
+      if (viewingSaved) {
+        // Switches back to the main feed and reloads it -- a fresh post
+        // can never already be saved, so staying on "Saved" would leave
+        // the header/bookmark state saying "Saved" while showing the
+        // normal feed underneath it.
+        await toggleSavedView();
+      } else {
+        loadPosts();
+      }
       listRef.current?.scrollToOffset({ offset: 0, animated: true });
     } catch (err: any) {
       const friendly = err.message?.includes('row-level security')
