@@ -499,7 +499,7 @@ export default function TournamentDetails() {
             <View style={styles.resultsBox}>
               {standings.map((s, i) => (
                 <View key={s.team_id} style={styles.resultRow}>
-                  <Text style={styles.resultMedal}>{medal(i + 1)}</Text>
+                  <Text style={styles.resultMedal} numberOfLines={1}>{medal(i + 1)}</Text>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.resultTeam}>{s.team_name ?? 'Unknown Team'}</Text>
                     <Text style={styles.resultSub}>
@@ -736,7 +736,7 @@ function getStyles(colors: ThemeColors) {
       flexDirection: 'row', alignItems: 'center',
       paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border,
     },
-    resultMedal: { width: 32, fontSize: 14, fontWeight: '800', color: colors.textPrimary },
+    resultMedal: { minWidth: 32, fontSize: 14, fontWeight: '800', color: colors.textPrimary },
     resultTeam: { color: colors.textPrimary, fontSize: 14, fontWeight: '600' },
     resultKills: { color: colors.accent, fontSize: 13, fontWeight: '700' },
     resultSub: { color: colors.textFaint, fontSize: 11, marginTop: 2 },

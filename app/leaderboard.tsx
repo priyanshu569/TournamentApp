@@ -161,7 +161,7 @@ export default function Leaderboard() {
 
             return (
               <TouchableOpacity style={styles.row} activeOpacity={linked ? 0.85 : 1} onPress={() => goToProfile(item)} disabled={!linked}>
-                <Text style={styles.rank}>#{index + 1}</Text>
+                <Text style={styles.rank} numberOfLines={1}>#{index + 1}</Text>
                 <View style={[styles.avatarWrap, !linked && styles.avatarWrapUnlinked]}>
                   <Avatar avatarId={item.avatar_id} avatarUrl={item.avatar_url} username={item.username} size={34} />
                 </View>
@@ -249,7 +249,7 @@ function getStyles(colors: ThemeColors) {
     podiumSubStat: { fontSize: 11, marginTop: 2, fontWeight: '600', opacity: 0.8 },
     podiumStatValue: { fontSize: 16, fontWeight: '900' },
     podiumStatLabel: { fontSize: 9, fontWeight: '800', marginTop: 2, opacity: 0.8 },
-    rank: { width: 28, fontSize: 15, fontWeight: '800', color: colors.textMuted, textAlign: 'center' },
+    rank: { minWidth: 28, fontSize: 15, fontWeight: '800', color: colors.textMuted, textAlign: 'center' },
     usernameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     username: { color: colors.textPrimary, fontSize: 15, fontWeight: '700' },
     subStat: { color: colors.textFaint, fontSize: 11, marginTop: 2 },
