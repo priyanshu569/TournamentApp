@@ -1,23 +1,21 @@
 // Shared theme definitions for AnimatedProfileBanner + AnimatedAvatarRing --
 // kept in one place so the two components (background + ring) always stay
 // visually matched for a given theme.
-export type BannerTheme = 'powersurge' | 'inferno' | 'turbo' | 'nebula' | 'dragonwrath';
+export type BannerTheme = 'powersurge' | 'turbo' | 'nebula' | 'dragonwrath';
 
 // Themes that render their own full composition (background + avatar) instead
 // of layering onto the shared base gradient.
 export const PREMIUM_THEMES: BannerTheme[] = ['nebula', 'dragonwrath'];
 
 export const BANNER_THEMES: { key: BannerTheme; label: string; description: string; premium?: boolean }[] = [
-  { key: 'powersurge', label: 'Power Surge', description: 'Radiating gold energy aura with electric sparks' },
-  { key: 'inferno', label: 'Inferno', description: 'Roaring dragon fire with rising embers' },
-  { key: 'turbo', label: 'Turbo Circuit', description: 'High-speed racing streaks and headlight glow' },
+  { key: 'powersurge', label: 'Power Surge', description: 'Radiating gold energy aura with electric sparks and meteors', premium: true },
+  { key: 'turbo', label: 'Turbo Circuit', description: 'High-speed racing streaks and headlight glow', premium: true },
   { key: 'nebula', label: 'Nebula', description: 'Deep-space clouds, drifting stars and a slow light sweep', premium: true },
-  { key: 'dragonwrath', label: "Dragon's Wrath", description: 'A sleeping dragon inside a living volcano', premium: true },
+  { key: 'dragonwrath', label: "Dragon's Wrath", description: 'A living volcano of molten lava, fire and smoke', premium: true },
 ];
 
 export const RING_GRADIENTS: Record<BannerTheme, [string, string, ...string[]]> = {
   powersurge: ['#FFE28A', '#FFB800', '#2E9BFF', '#FFE28A'],
-  inferno: ['#FFD23D', '#FF6B35', '#FF1F1F', '#FFD23D'],
   turbo: ['#FFFFFF', '#2E9BFF', '#FF3D3D', '#FFFFFF'],
   // Nebula renders its own avatar treatment (PremiumAvatarAura); this entry
   // exists only so the maps stay total over BannerTheme.
@@ -27,7 +25,6 @@ export const RING_GRADIENTS: Record<BannerTheme, [string, string, ...string[]]> 
 
 export const RING_ROTATE_MS: Record<BannerTheme, number> = {
   powersurge: 2600,
-  inferno: 4200,
   turbo: 1500,
   nebula: 9000,
   dragonwrath: 6200,
@@ -35,7 +32,6 @@ export const RING_ROTATE_MS: Record<BannerTheme, number> = {
 
 export const BASE_GRADIENTS: Record<BannerTheme, [string, string, ...string[]]> = {
   powersurge: ['#1c1706', '#171233', '#0c0819'],
-  inferno: ['#2a1410', '#1d0f0c', '#0f0705'],
   turbo: ['#12151a', '#0d1420', '#08090c'],
   nebula: ['#07060F', '#0C0A1B', '#050409'],
   dragonwrath: ['#0B0506', '#1A0A09', '#070405'],

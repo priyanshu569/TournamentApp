@@ -8,6 +8,7 @@ import Animated, {
 import { BannerTheme, BASE_GRADIENTS } from './bannerThemes';
 import PremiumNebulaBanner from './premium/PremiumNebulaBanner';
 import DragonWrathBanner from './premium/DragonWrathBanner';
+import SoftOrb from './premium/SoftOrb';
 
 type Props = {
   theme: BannerTheme | null;
@@ -39,7 +40,6 @@ export default function AnimatedProfileBanner({ theme, classicColors, style, chi
     <View style={[style, styles.clip]}>
       <LinearGradient colors={BASE_GRADIENTS[theme]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
       {theme === 'powersurge' && <PowerSurgeLayer />}
-      {theme === 'inferno' && <InfernoLayer />}
       {theme === 'turbo' && <TurboLayer />}
       {children}
     </View>
@@ -64,21 +64,88 @@ function PowerSurgeLayer() {
     );
   }, []);
 
-  const coreStyle = useAnimatedStyle(() => ({
-    opacity: 0.25 + pulse.value * 0.45,
-    transform: [{ scale: 0.85 + pulse.value * 0.35 }],
-  }));
-
   const lineAngles = Array.from({ length: 14 }, (_, i) => i * (360 / 14));
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <Animated.View style={[styles.coreGlow, coreStyle, { backgroundColor: '#FFD23D' }]} />
       {lineAngles.map((angle, i) => (
         <BurstLine key={i} angle={angle} pulse={pulse} color={i % 3 === 0 ? '#2E9BFF' : '#FFE28A'} />
       ))}
       <SparkField colors={['#FFE28A', '#2E9BFF', '#ffffff']} count={7} spread={0.75} />
+      <MeteorField />
     </View>
+  );
+}
+
+// ============================================================
+// Meteors -- a few glowing streaks that occasionally cross the card on the
+// diagonal, bottom-left to top-right. Anchored at the container's
+// bottom-left corner and driven purely by transform, matching the fixed-
+// pixel approximation StreakLine already uses below rather than adding new
+// layout-tracking machinery for one small effect.
+// ============================================================
+
+const METEORS = [
+  { delay: 900, gap: 5200, dur: 950, size: 8, color: '#FFE28A', lane: 0 },
+  { delay: 3400, gap: 6400, dur: 800, size: 6, color: '#2E9BFF', lane: 1 },
+  { delay: 6200, gap: 5800, dur: 1050, size: 7, color: '#FFFFFF', lane: 2 },
+];
+
+function MeteorField() {
+  return (
+    <>
+      {METEORS.map((m, i) => (
+        <Meteor key={i} {...m} />
+      ))}
+    </>
+  );
+}
+
+function Meteor({
+  delay, gap, dur, size, color, lane,
+}: { delay: number; gap: number; dur: number; size: number; color: string; lane: number }) {
+  const t = useSharedValue(0);
+
+  useEffect(() => {
+    t.value = withDelay(
+      delay,
+      withRepeat(
+        withSequence(
+          withTiming(0, { duration: 0 }),
+          withTiming(1, { duration: dur, easing: Easing.linear }),
+          withDelay(gap, withTiming(1, { duration: 0 })),
+        ),
+        -1,
+      ),
+    );
+  }, []);
+
+  const laneX = lane * 26;
+  const laneY = lane * 18;
+
+  const style = useAnimatedStyle(() => ({
+    opacity: t.value > 0 && t.value < 1 ? Math.sin(t.value * Math.PI) : 0,
+    transform: [
+      { translateX: -10 + laneX + t.value * 300 },
+      { translateY: 10 - laneY - t.value * 260 },
+      // Tilts the head (right end of the gradient below) up-and-right so it
+      // points along its own bottom-left-to-top-right travel direction.
+      { rotate: '-40deg' },
+    ],
+  }));
+
+  return (
+    <Animated.View style={[style, styles.meteorAnchor]} pointerEvents="none">
+      <LinearGradient
+        colors={['transparent', color]}
+        start={{ x: 0, y: 0.5 }}
+        end={{ x: 1, y: 0.5 }}
+        style={{ width: 46, height: 2, borderRadius: 1 }}
+      />
+      <View style={{ position: 'absolute', right: -size / 2, top: -(size - 2) / 2 }}>
+        <SoftOrb size={size} color={color} opacity={1} core={0.25} />
+      </View>
+    </Animated.View>
   );
 }
 
@@ -92,41 +159,6 @@ function BurstLine({ angle, pulse, color }: { angle: number; pulse: SharedValue<
     <Animated.View style={[styles.burstAnchor, style]}>
       <View style={[styles.burstLine, { backgroundColor: color }]} />
     </Animated.View>
-  );
-}
-
-// ============================================================
-// Inferno -- dragon fire: rising ember particles plus a periodic
-// bright "roar" flash across the whole card.
-// ============================================================
-
-function InfernoLayer() {
-  const flash = useSharedValue(0);
-
-  useEffect(() => {
-    flash.value = withRepeat(
-      withSequence(
-        withTiming(0.45, { duration: 130, easing: Easing.out(Easing.cubic) }),
-        withTiming(0, { duration: 900, easing: Easing.in(Easing.cubic) }),
-        withDelay(2600, withTiming(0, { duration: 0 })),
-      ),
-      -1,
-    );
-  }, []);
-
-  const flashStyle = useAnimatedStyle(() => ({ opacity: flash.value }));
-
-  return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <LinearGradient
-        colors={['#FF6B3530', '#FF1F1F18', 'transparent']}
-        start={{ x: 0.5, y: 1 }}
-        end={{ x: 0.5, y: 0 }}
-        style={StyleSheet.absoluteFill}
-      />
-      <SparkField colors={['#FFD23D', '#FF6B35', '#FF1F1F']} count={13} spread={1} rise />
-      <Animated.View style={[StyleSheet.absoluteFill, flashStyle, { backgroundColor: '#FF8A3D' }]} />
-    </View>
   );
 }
 
@@ -245,10 +277,6 @@ function SparkParticle({
 
 const styles = StyleSheet.create({
   clip: { overflow: 'hidden' },
-  coreGlow: {
-    position: 'absolute', top: '50%', left: '50%', width: 140, height: 140,
-    marginLeft: -70, marginTop: -70, borderRadius: 70,
-  },
   burstAnchor: { position: 'absolute', top: '50%', left: '50%', width: 0, height: 0 },
   burstLine: { position: 'absolute', left: -1.5, top: -120, width: 3, height: 120, borderRadius: 2 },
   headlight: {
@@ -257,4 +285,5 @@ const styles = StyleSheet.create({
   streak: {
     position: 'absolute', left: -140, height: 3, borderRadius: 2, backgroundColor: '#ffffffcc',
   },
+  meteorAnchor: { position: 'absolute', left: '0%', bottom: 0 },
 });

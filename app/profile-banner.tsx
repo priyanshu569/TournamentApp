@@ -170,7 +170,6 @@ function getStyles(colors: ThemeColors) {
     optionSwatch: { width: 40, height: 40, borderRadius: 20 },
     optionSwatchClassic: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#1a0f2e', borderWidth: 1, borderColor: colors.accent },
     swatch_powersurge: { backgroundColor: '#FFB800' },
-    swatch_inferno: { backgroundColor: '#FF6B35' },
     swatch_turbo: { backgroundColor: '#2E9BFF' },
     swatch_nebula: { backgroundColor: '#6C3EFF' },
     swatch_dragonwrath: { backgroundColor: '#FF7A18' },

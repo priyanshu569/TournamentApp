@@ -5,7 +5,7 @@ import Animated, {
   useAnimatedStyle, SharedValue, withRepeat, withSequence, withDelay, withTiming, Easing,
 } from 'react-native-reanimated';
 import SoftOrb from './SoftOrb';
-import { Flame, ObsidianCracks } from './DragonShapes';
+import { Flame } from './DragonShapes';
 import { useLoopValue } from './useAnimationGate';
 import { DRAGON } from './dragonTokens';
 import { seededRandom as seededDragonRandom } from './premiumTokens';
@@ -19,7 +19,7 @@ type Base = { active: boolean; roar: SharedValue<number> };
 // is being lit from below rather than tinted.
 // ============================================================
 
-export function LavaFlow({ active, roar, width, height, crackGlow }: Base & { width: number; height: number; crackGlow: number }) {
+export function LavaFlow({ active, roar }: Base) {
   const flowA = useLoopValue(active, 0, () =>
     withRepeat(withTiming(1, { duration: 17000, easing: Easing.inOut(Easing.sin) }), -1, true),
   );
@@ -35,10 +35,6 @@ export function LavaFlow({ active, roar, width, height, crackGlow }: Base & { wi
   const sheetB = useAnimatedStyle(() => ({
     opacity: 0.35 + flowB.value * 0.35 + roar.value * 0.2,
     transform: [{ translateX: 50 - flowB.value * 100 }, { translateY: -14 + flowB.value * 28 }, { scale: 1.6 }],
-  }));
-
-  const crackStyle = useAnimatedStyle(() => ({
-    opacity: crackGlow * (0.55 + 0.25 * flowA.value + roar.value * 0.5),
   }));
 
   return (
@@ -62,19 +58,52 @@ export function LavaFlow({ active, roar, width, height, crackGlow }: Base & { wi
         />
       </Animated.View>
 
-      {/* Obsidian shell: darkens everything back down so the lava only shows
-          through the cracks rather than washing the whole card orange. */}
+      {/* Obsidian shell: darkens everything back down so the lava reads as
+          glowing beneath rock rather than washing the whole card orange. */}
       <LinearGradient
         colors={[`${DRAGON.obsidian}E6`, `${DRAGON.ash}C4`, `${DRAGON.obsidian}F2`]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
-
-      <Animated.View style={[StyleSheet.absoluteFill, crackStyle]}>
-        <ObsidianCracks width={width} height={height} />
-      </Animated.View>
     </View>
+  );
+}
+
+// ============================================================
+// Base fire -- a solid glow hugging the bottom edge, so the card reads as
+// standing over a floor of fire rather than only having flame tongues
+// scattered across it.
+// ============================================================
+
+export function BaseFireGlow({ active, height }: { active: boolean; height: number }) {
+  const t = useLoopValue(active, 0, () =>
+    withRepeat(withTiming(1, { duration: 1400, easing: Easing.inOut(Easing.sin) }), -1, true),
+  );
+
+  const bandHeight = Math.max(46, height * 0.4);
+
+  const style = useAnimatedStyle(() => ({
+    opacity: 0.55 + t.value * 0.35,
+    transform: [{ scaleY: 0.9 + t.value * 0.25 }],
+  }));
+
+  return (
+    <Animated.View
+      style={[
+        style,
+        { position: 'absolute', left: 0, right: 0, bottom: 0, height: bandHeight, transformOrigin: 'bottom' },
+      ]}
+      pointerEvents="none"
+    >
+      <LinearGradient
+        colors={[DRAGON.emberCore, DRAGON.molten, DRAGON.deepRed, 'transparent']}
+        locations={[0, 0.25, 0.6, 1]}
+        start={{ x: 0.5, y: 1 }}
+        end={{ x: 0.5, y: 0 }}
+        style={StyleSheet.absoluteFill}
+      />
+    </Animated.View>
   );
 }
 
