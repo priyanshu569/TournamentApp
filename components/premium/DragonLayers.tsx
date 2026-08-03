@@ -71,43 +71,6 @@ export function LavaFlow({ active, roar }: Base) {
 }
 
 // ============================================================
-// Base fire -- a solid glow hugging the bottom edge, so the card reads as
-// standing over a floor of fire rather than only having flame tongues
-// scattered across it.
-// ============================================================
-
-export function BaseFireGlow({ active, height }: { active: boolean; height: number }) {
-  const t = useLoopValue(active, 0, () =>
-    withRepeat(withTiming(1, { duration: 1400, easing: Easing.inOut(Easing.sin) }), -1, true),
-  );
-
-  const bandHeight = Math.max(46, height * 0.4);
-
-  const style = useAnimatedStyle(() => ({
-    opacity: 0.55 + t.value * 0.35,
-    transform: [{ scaleY: 0.9 + t.value * 0.25 }],
-  }));
-
-  return (
-    <Animated.View
-      style={[
-        style,
-        { position: 'absolute', left: 0, right: 0, bottom: 0, height: bandHeight, transformOrigin: 'bottom' },
-      ]}
-      pointerEvents="none"
-    >
-      <LinearGradient
-        colors={[DRAGON.emberCore, DRAGON.molten, DRAGON.deepRed, 'transparent']}
-        locations={[0, 0.25, 0.6, 1]}
-        start={{ x: 0.5, y: 1 }}
-        end={{ x: 0.5, y: 0 }}
-        style={StyleSheet.absoluteFill}
-      />
-    </Animated.View>
-  );
-}
-
-// ============================================================
 // Layer 2 -- Fire. Independent tongues with their own height, sway and
 // flicker so the fire line never pulses as one unit.
 // ============================================================
