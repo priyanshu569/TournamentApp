@@ -12,8 +12,7 @@ import Avatar from '@/components/Avatar';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import AnimatedProfileBanner from '@/components/AnimatedProfileBanner';
 import AnimatedAvatarRing from '@/components/AnimatedAvatarRing';
-import PremiumShimmer from '@/components/premium/PremiumShimmer';
-import { BannerTheme, PREMIUM_THEMES } from '@/components/bannerThemes';
+import { BannerTheme } from '@/components/bannerThemes';
 import { useTabNavigation } from '@/lib/tabNavigation';
 import { useAvatarPreview } from '@/lib/AvatarPreviewContext';
 import { isEffectivelyHost } from '@/lib/effectiveRole';
@@ -186,9 +185,6 @@ export default function ProfileScreen() {
   const genderMeta = getGenderMeta(profile?.gender, colors);
   const location = [profile?.city, profile?.state].filter(Boolean).join(', ');
   const age = profile?.date_of_birth ? computeAge(profile.date_of_birth) : null;
-  const isPremiumBanner = PREMIUM_THEMES.includes(profile?.banner_theme);
-  // Molten gold reads as heat on Dragon's Wrath; white would look like glare.
-  const shimmerColor = profile?.banner_theme === 'dragonwrath' ? '#FFB43D' : '#FFFFFF';
 
   const menuSections: MenuSection[] = [
     {
@@ -251,26 +247,10 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </AnimatedAvatarRing>
         </View>
-        <PremiumShimmer
-          enabled={isPremiumBanner}
-          color={shimmerColor}
-          style={styles.nameRow}
-          periodMs={7000}
-        >
+        <View style={styles.nameRow}>
           <Text style={styles.username}>{profile?.display_name ?? 'Unknown'}</Text>
-          {profile?.is_verified && (
-            <PremiumShimmer
-              enabled={isPremiumBanner}
-              color={shimmerColor}
-              pulse
-              periodMs={9400}
-              travelMs={800}
-              peakOpacity={0.45}
-            >
-              <VerifiedBadge size={16} />
-            </PremiumShimmer>
-          )}
-        </PremiumShimmer>
+          {profile?.is_verified && <VerifiedBadge size={16} />}
+        </View>
         {profile?.username && <Text style={styles.handle}>@{profile.username}</Text>}
 
         {(genderMeta || location || age !== null) && (
