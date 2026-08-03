@@ -9,6 +9,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import Avatar from '@/components/Avatar';
 import VerifiedBadge from '@/components/VerifiedBadge';
+import AnimatedProfileBanner from '@/components/AnimatedProfileBanner';
+import AnimatedAvatarRing from '@/components/AnimatedAvatarRing';
+import { BannerTheme } from '@/components/bannerThemes';
 import { useAvatarPreview } from '@/lib/AvatarPreviewContext';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
@@ -215,19 +218,21 @@ export default function UserProfileScreen() {
       </View>
 
       {/* Hero */}
-      <LinearGradient
-        colors={['#2d1b4e', '#1a0f2e', '#0d0619']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      <AnimatedProfileBanner
+        theme={(profile.banner_theme as BannerTheme) ?? null}
+        classicColors={['#2d1b4e', '#1a0f2e', '#0d0619']}
         style={styles.hero}
       >
-        <TouchableOpacity
-          style={styles.avatarRing}
-          activeOpacity={1}
-          onLongPress={() => showAvatarPreview({ avatarId: profile.avatar_id, avatarUrl: profile.avatar_url, username: profile.display_name })}
-        >
-          <Avatar avatarId={profile.avatar_id} avatarUrl={profile.avatar_url} username={profile.display_name} size={84} />
-        </TouchableOpacity>
+        <View style={{ marginBottom: 14 }}>
+          <AnimatedAvatarRing theme={(profile.banner_theme as BannerTheme) ?? null} size={84}>
+            <TouchableOpacity
+              activeOpacity={1}
+              onLongPress={() => showAvatarPreview({ avatarId: profile.avatar_id, avatarUrl: profile.avatar_url, username: profile.display_name })}
+            >
+              <Avatar avatarId={profile.avatar_id} avatarUrl={profile.avatar_url} username={profile.display_name} size={84} />
+            </TouchableOpacity>
+          </AnimatedAvatarRing>
+        </View>
         <View style={styles.nameRow}>
           <Text style={styles.username}>{profile.display_name ?? 'Unknown'}</Text>
           {profile.is_verified && <VerifiedBadge size={16} />}
@@ -269,7 +274,7 @@ export default function UserProfileScreen() {
             </Text>
           </LinearGradient>
         )}
-      </LinearGradient>
+      </AnimatedProfileBanner>
 
       {/* Stats */}
       <View style={styles.statsCard}>

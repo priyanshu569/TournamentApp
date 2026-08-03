@@ -9,6 +9,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import NotificationBell from '@/components/NotificationBell';
 import Avatar from '@/components/Avatar';
+import AnimatedProfileBanner from '@/components/AnimatedProfileBanner';
+import AnimatedAvatarRing from '@/components/AnimatedAvatarRing';
+import { BannerTheme } from '@/components/bannerThemes';
 import { useTabNavigation } from '@/lib/tabNavigation';
 import { isEffectivelyHost } from '@/lib/effectiveRole';
 import { useAppTheme } from '@/lib/ThemeContext';
@@ -167,6 +170,7 @@ export default function ProfileScreen() {
           label: 'Become a Host', onPress: () => router.push('/request-host-access'),
         }] : []),
         { key: 'edit-profile', icon: 'create' as const, color: colors.success, label: 'Edit Profile', onPress: () => router.push('/edit-profile') },
+        { key: 'profile-banner', icon: 'sparkles' as const, color: colors.accent, label: 'Profile Banner', onPress: () => router.push('/profile-banner') },
         { key: 'game-details', icon: 'game-controller' as const, color: colors.warning, label: 'My Games', onPress: () => router.push('/game-details') },
       ],
     },
@@ -197,15 +201,14 @@ export default function ProfileScreen() {
       </View>
 
       {/* Profile Card */}
-      <LinearGradient
-        colors={['#2d1b4e', '#1a0f2e', '#0d0619']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      <AnimatedProfileBanner
+        theme={(profile?.banner_theme as BannerTheme) ?? null}
+        classicColors={['#2d1b4e', '#1a0f2e', '#0d0619']}
         style={styles.profileCard}
       >
-        <View style={styles.avatarRing}>
+        <AnimatedAvatarRing theme={(profile?.banner_theme as BannerTheme) ?? null} size={72}>
           <Avatar avatarId={profile?.avatar_id} avatarUrl={profile?.avatar_url} username={profile?.display_name} size={72} />
-        </View>
+        </AnimatedAvatarRing>
         <View style={[styles.profileInfo, { marginLeft: 16 }]}>
           <View style={styles.nameRow}>
             <Text style={styles.username}>{profile?.display_name ?? 'Unknown'}</Text>
@@ -224,7 +227,7 @@ export default function ProfileScreen() {
           {browsingAsPlayer && <Text style={styles.browsingModeHint}>Browsing as Player</Text>}
           {browsingAsHost && <Text style={styles.browsingModeHint}>Previewing as Host</Text>}
         </View>
-      </LinearGradient>
+      </AnimatedProfileBanner>
 
       {/* Stats */}
       <View style={styles.statsCard}>

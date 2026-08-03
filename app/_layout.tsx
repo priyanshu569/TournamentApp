@@ -126,6 +126,7 @@ function RootLayoutInner() {
           <Stack.Screen name="request-host-access" options={{ headerShown: false }} />
           <Stack.Screen name="admin-host-requests" options={{ headerShown: false }} />
           <Stack.Screen name="settings" options={{ headerShown: false }} />
+          <Stack.Screen name="profile-banner" options={{ headerShown: false }} />
           <Stack.Screen name="support" options={{ headerShown: false }} />
           <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
           <Stack.Screen name="user-profile" options={{ headerShown: false }} />
