@@ -13,6 +13,7 @@ import NotificationBell from '@/components/NotificationBell';
 import LeaderboardIcon from '@/components/LeaderboardIcon';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
+import { TOURNAMENT_BANNER_RATIO } from '@/constants/banner';
 import { useTabNavigation } from '@/lib/tabNavigation';
 
 const GAMES: { label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
@@ -520,7 +521,8 @@ function getStyles(colors: ThemeColors) {
       shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
       shadowOpacity: 0.4, shadowRadius: 12, elevation: 6,
     },
-    cardHero: { height: 130, position: 'relative' },
+    // aspectRatio, not a fixed height -- see the note in index.tsx.
+    cardHero: { aspectRatio: TOURNAMENT_BANNER_RATIO, position: 'relative' },
     cardBanner: { width: '100%', height: '100%' },
     cardBannerFallback: {
       width: '100%', height: '100%',

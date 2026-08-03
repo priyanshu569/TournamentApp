@@ -14,8 +14,7 @@ import ImageCropPreview from '@/components/ImageCropPreview';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
-
-const BANNER_RATIO = 22 / 9;
+import { TOURNAMENT_BANNER_RATIO } from '@/constants/banner';
 
 const CATEGORIES: { value: 'tournament' | 'scrim'; label: string }[] = [
   { value: 'tournament', label: 'Tournament' },
@@ -448,7 +447,7 @@ export default function EditTournament() {
         <ImageCropPreview
           visible={!!rawBannerImage}
           image={rawBannerImage}
-          fixedRatio={BANNER_RATIO}
+          fixedRatio={TOURNAMENT_BANNER_RATIO}
           onCancel={() => setRawBannerImage(null)}
           onConfirm={handleBannerCropConfirm}
         />
@@ -509,7 +508,8 @@ function getStyles(colors: ThemeColors) {
     },
     killPointRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     bannerBox: {
-      height: 140, borderRadius: 12, backgroundColor: colors.surfaceAlt,
+      aspectRatio: TOURNAMENT_BANNER_RATIO,
+      borderRadius: 12, backgroundColor: colors.surfaceAlt,
       borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed',
       justifyContent: 'center', alignItems: 'center', overflow: 'hidden',
     },

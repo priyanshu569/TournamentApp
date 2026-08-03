@@ -17,6 +17,7 @@ import { useTabNavigation } from '@/lib/tabNavigation';
 import { isEffectivelyHost } from '@/lib/effectiveRole';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
+import { TOURNAMENT_BANNER_RATIO } from '@/constants/banner';
 
 const GAME_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   'free fire': 'flame',
@@ -351,8 +352,14 @@ function getStyles(colors: ThemeColors) {
       width: 220, backgroundColor: colors.surfaceAlt, borderRadius: 14,
       borderWidth: 1, borderColor: colors.border, overflow: 'hidden',
     },
-    compactBanner: { width: '100%', height: 90 },
-    compactBannerFallback: { width: '100%', height: 90, justifyContent: 'center', alignItems: 'center' },
+    // aspectRatio, not a fixed height: the crop frame is exactly this ratio,
+    // so deriving height from width keeps the rendered banner identical to
+    // what the host framed. A fixed height would only match at one width.
+    compactBanner: { width: '100%', aspectRatio: TOURNAMENT_BANNER_RATIO },
+    compactBannerFallback: {
+      width: '100%', aspectRatio: TOURNAMENT_BANNER_RATIO,
+      justifyContent: 'center', alignItems: 'center',
+    },
     compactBody: { padding: 12 },
     gameTag: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, marginBottom: 6 },
     gameTagText: { fontSize: 9, fontWeight: '800' },

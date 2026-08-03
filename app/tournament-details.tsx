@@ -13,6 +13,7 @@ import { isEffectivelyHost } from '@/lib/effectiveRole';
 import * as Clipboard from 'expo-clipboard';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
+import { TOURNAMENT_BANNER_RATIO } from '@/constants/banner';
 
 export default function TournamentDetails() {
   const { id } = useLocalSearchParams();
@@ -705,7 +706,10 @@ function getStyles(colors: ThemeColors) {
       alignItems: 'center', marginTop: 4, marginBottom: 16,
     },
     banner: {
-      width: '100%', height: 180, borderRadius: 14, marginBottom: 16,
+      // aspectRatio, not a fixed height, so this shows exactly the region the
+      // host framed in the crop tool -- same reasoning as index.tsx/events.tsx.
+      width: '100%', aspectRatio: TOURNAMENT_BANNER_RATIO,
+      borderRadius: 14, marginBottom: 16,
       ...cardShadow,
     },
     topRow: {
