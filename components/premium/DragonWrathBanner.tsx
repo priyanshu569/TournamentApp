@@ -28,7 +28,7 @@ export type DragonWrathBannerProps = {
 // and embers. The dragon is present only as its fire, never as a creature.
 //
 // Draw order (far -> near):
-//   base -> lava under obsidian -> dragon breath -> smoke -> flames
+//   base -> lava under obsidian -> dragon breath -> smoke -> continuous fire
 //   -> heat haze -> embers -> sparks -> roar bloom -> border
 //
 // Two global beats are owned here rather than by the layers, so every layer
@@ -114,7 +114,7 @@ export default function DragonWrathBanner({
       <DragonBreath breath={breath} width={width} height={height} />
 
       <SmokeVeil active={active} count={cfg.smokeCount} opacity={cfg.smokeOpacity} />
-      <FlameField active={active} roar={roar} count={cfg.flameCount} opacity={cfg.flameOpacity} width={width} />
+      <FlameField active={active} roar={roar} opacity={cfg.flameOpacity} height={height} />
       {cfg.showHeatHaze && !motionOff && <HeatHaze active={active} width={width} />}
       <EmberField active={active} count={cfg.emberCount} height={height} />
       <SparkBursts active={active} count={cfg.sparkCount} height={height} />

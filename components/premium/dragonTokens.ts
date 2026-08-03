@@ -22,7 +22,6 @@ export const DRAGON = {
 
 type DragonConfig = {
   emberCount: number;
-  flameCount: number;
   sparkCount: number;
   smokeCount: number;
   flameOpacity: number;
@@ -32,9 +31,9 @@ type DragonConfig = {
 };
 
 export const DRAGON_INTENSITY: Record<DragonIntensity, DragonConfig> = {
-  subtle:   { emberCount: 10, flameCount: 5, sparkCount: 3, smokeCount: 2, flameOpacity: 0.55, smokeOpacity: 0.35, roarPeak: 0.5, showHeatHaze: true },
-  balanced: { emberCount: 16, flameCount: 8, sparkCount: 5, smokeCount: 3, flameOpacity: 0.78, smokeOpacity: 0.5,  roarPeak: 0.75, showHeatHaze: true },
-  vivid:    { emberCount: 24, flameCount: 11, sparkCount: 7, smokeCount: 4, flameOpacity: 1.0,  smokeOpacity: 0.65, roarPeak: 1.0, showHeatHaze: true },
+  subtle:   { emberCount: 10, sparkCount: 3, smokeCount: 2, flameOpacity: 0.65, smokeOpacity: 0.35, roarPeak: 0.5, showHeatHaze: true },
+  balanced: { emberCount: 16, sparkCount: 5, smokeCount: 3, flameOpacity: 0.85, smokeOpacity: 0.5,  roarPeak: 0.75, showHeatHaze: true },
+  vivid:    { emberCount: 24, sparkCount: 7, smokeCount: 4, flameOpacity: 1.0,  smokeOpacity: 0.65, roarPeak: 1.0, showHeatHaze: true },
 };
 
 // Applied on top of the chosen intensity. Drops the two most expensive layers
@@ -42,7 +41,6 @@ export const DRAGON_INTENSITY: Record<DragonIntensity, DragonConfig> = {
 // for older devices that can't hold 60fps on the full stack.
 export const LOW_PERFORMANCE_OVERRIDE: Partial<DragonConfig> = {
   emberCount: 6,
-  flameCount: 4,
   sparkCount: 2,
   smokeCount: 1,
   showHeatHaze: false,

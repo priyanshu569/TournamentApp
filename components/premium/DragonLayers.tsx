@@ -5,7 +5,6 @@ import Animated, {
   useAnimatedStyle, SharedValue, withRepeat, withSequence, withDelay, withTiming, Easing,
 } from 'react-native-reanimated';
 import SoftOrb from './SoftOrb';
-import { Flame } from './DragonShapes';
 import { useLoopValue } from './useAnimationGate';
 import { DRAGON } from './dragonTokens';
 import { seededRandom as seededDragonRandom } from './premiumTokens';
@@ -71,67 +70,60 @@ export function LavaFlow({ active, roar }: Base) {
 }
 
 // ============================================================
-// Layer 2 -- Fire. Independent tongues with their own height, sway and
-// flicker so the fire line never pulses as one unit.
+// Layer 2 -- Fire. A continuous burn along the bottom edge rather than
+// separate flame silhouettes: several overlapping gradient sheets, each with
+// its own flicker rate, delay and horizontal drift, so the blend between
+// them reads as one living fire instead of individual outlines.
 // ============================================================
 
-export function FlameField({ active, roar, count, opacity, width }: Base & { count: number; opacity: number; width: number }) {
-  const flames = useMemo(() => {
-    const rand = seededDragonRandom(7714);
-    return Array.from({ length: count }, (_, i) => ({
-      left: (i / count) * 100 + rand() * 6 - 3,
-      w: 26 + rand() * 26,
-      h: 42 + rand() * 54,
-      dur: 900 + rand() * 1100,
-      delay: rand() * 1400,
-      sway: 3 + rand() * 7,
-      alpha: 0.5 + rand() * 0.5,
-    }));
-  }, [count]);
+const FIRE_BANDS = [
+  { colors: [DRAGON.emberCore, DRAGON.molten, DRAGON.deepRed, 'transparent'], heightFrac: 1,    dur: 850,  delay: 0,   drift: 10, alpha: 1 },
+  { colors: [DRAGON.lava, DRAGON.burnt, DRAGON.crimson, 'transparent'],       heightFrac: 0.78, dur: 1150, delay: 260, drift: -14, alpha: 0.7 },
+  { colors: [DRAGON.molten, DRAGON.deepRed, 'transparent'],                  heightFrac: 0.6,  dur: 640,  delay: 480, drift: 8,  alpha: 0.5 },
+] as const;
+
+export function FlameField({ active, roar, opacity, height }: Base & { opacity: number; height: number }) {
+  const bandHeight = Math.max(50, height * 0.5);
 
   return (
-    <View style={[StyleSheet.absoluteFill, { justifyContent: 'flex-end' }]} pointerEvents="none">
-      {flames.map((f, i) => (
-        <FlameTongue key={i} {...f} active={active} roar={roar} layerOpacity={opacity} bannerWidth={width} />
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      {FIRE_BANDS.map((b, i) => (
+        <FireBand key={i} {...b} height={bandHeight * b.heightFrac} active={active} roar={roar} layerOpacity={opacity} />
       ))}
     </View>
   );
 }
 
-function FlameTongue({
-  left, w, h, dur, delay, sway, alpha, active, roar, layerOpacity, bannerWidth,
+function FireBand({
+  colors, height, dur, delay, drift, alpha, active, roar, layerOpacity,
 }: {
-  left: number; w: number; h: number; dur: number; delay: number; sway: number; alpha: number;
-  active: boolean; roar: SharedValue<number>; layerOpacity: number; bannerWidth: number;
+  colors: readonly string[]; height: number; dur: number; delay: number; drift: number; alpha: number;
+  active: boolean; roar: SharedValue<number>; layerOpacity: number;
 }) {
   const t = useLoopValue(active, 0, () =>
-    withDelay(delay, withRepeat(withTiming(1, { duration: dur, easing: Easing.inOut(Easing.quad) }), -1, true)),
+    withDelay(delay, withRepeat(withTiming(1, { duration: dur, easing: Easing.inOut(Easing.sin) }), -1, true)),
   );
 
   const style = useAnimatedStyle(() => ({
-    opacity: layerOpacity * alpha * (0.55 + t.value * 0.45),
-    // transformOrigin below pins the base, so scaleY grows the tip upward
-    // instead of stretching the flame in both directions.
+    opacity: layerOpacity * alpha * (0.6 + t.value * 0.4),
     transform: [
-      { translateX: -sway + t.value * sway * 2 },
-      { scaleY: 0.7 + t.value * 0.5 + roar.value * 0.6 },
-      { scaleX: 0.9 + t.value * 0.2 },
+      { translateX: -drift / 2 + t.value * drift },
+      { scaleY: 0.85 + t.value * 0.25 + roar.value * 0.35 },
     ],
   }));
 
   return (
     <Animated.View
-      style={[
-        style,
-        {
-          position: 'absolute', bottom: -6,
-          left: (left / 100) * bannerWidth,
-          transformOrigin: 'bottom',
-        },
-      ]}
+      style={[style, { position: 'absolute', left: 0, right: 0, bottom: 0, height, transformOrigin: 'bottom' }]}
       pointerEvents="none"
     >
-      <Flame width={w} height={h} />
+      <LinearGradient
+        colors={colors as [string, string, ...string[]]}
+        locations={colors.length === 4 ? [0, 0.25, 0.6, 1] : [0, 0.5, 1]}
+        start={{ x: 0.5, y: 1 }}
+        end={{ x: 0.5, y: 0 }}
+        style={StyleSheet.absoluteFill}
+      />
     </Animated.View>
   );
 }
