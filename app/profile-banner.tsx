@@ -155,9 +155,9 @@ function getStyles(colors: ThemeColors) {
     optionRowActive: { borderColor: colors.accent },
     optionSwatch: { width: 40, height: 40, borderRadius: 20 },
     optionSwatchClassic: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#1a0f2e', borderWidth: 1, borderColor: colors.accent },
-    swatch_aurora: { backgroundColor: '#7C3AED' },
-    swatch_holographic: { backgroundColor: '#FF6EC7' },
-    swatch_ember: { backgroundColor: '#FF6B35' },
+    swatch_powersurge: { backgroundColor: '#FFB800' },
+    swatch_inferno: { backgroundColor: '#FF6B35' },
+    swatch_turbo: { backgroundColor: '#2E9BFF' },
     optionLabel: { color: colors.textPrimary, fontSize: 15, fontWeight: '700' },
     optionDescription: { color: colors.textTertiary, fontSize: 12, marginTop: 2 },
     saveBtn: {

@@ -1,28 +1,28 @@
 // Shared theme definitions for AnimatedProfileBanner + AnimatedAvatarRing --
 // kept in one place so the two components (background + ring) always stay
 // visually matched for a given theme.
-export type BannerTheme = 'aurora' | 'holographic' | 'ember';
+export type BannerTheme = 'powersurge' | 'inferno' | 'turbo';
 
 export const BANNER_THEMES: { key: BannerTheme; label: string; description: string }[] = [
-  { key: 'aurora', label: 'Aurora', description: 'Slow-drifting cool glow — teal, violet, and blue' },
-  { key: 'holographic', label: 'Holographic', description: 'Foil-card shimmer sweep across a prism gradient' },
-  { key: 'ember', label: 'Ember', description: 'Warm glow with rising embers — for a hot streak' },
+  { key: 'powersurge', label: 'Power Surge', description: 'Radiating gold energy aura with electric sparks' },
+  { key: 'inferno', label: 'Inferno', description: 'Roaring dragon fire with rising embers' },
+  { key: 'turbo', label: 'Turbo Circuit', description: 'High-speed racing streaks and headlight glow' },
 ];
 
 export const RING_GRADIENTS: Record<BannerTheme, [string, string, ...string[]]> = {
-  aurora: ['#2E9BFF', '#7C3AED', '#00D4AA', '#2E9BFF'],
-  holographic: ['#FF6EC7', '#7C3AED', '#2E9BFF', '#00E5C7', '#FF6EC7'],
-  ember: ['#FF6B35', '#FFB800', '#FF3D3D', '#FF6B35'],
+  powersurge: ['#FFE28A', '#FFB800', '#2E9BFF', '#FFE28A'],
+  inferno: ['#FFD23D', '#FF6B35', '#FF1F1F', '#FFD23D'],
+  turbo: ['#FFFFFF', '#2E9BFF', '#FF3D3D', '#FFFFFF'],
 };
 
 export const RING_ROTATE_MS: Record<BannerTheme, number> = {
-  aurora: 6000,
-  holographic: 3200,
-  ember: 5000,
+  powersurge: 2600,
+  inferno: 4200,
+  turbo: 1500,
 };
 
 export const BASE_GRADIENTS: Record<BannerTheme, [string, string, ...string[]]> = {
-  aurora: ['#171233', '#140f2b', '#0c0819'],
-  holographic: ['#1c1330', '#160f2b', '#0c0819'],
-  ember: ['#2a1410', '#1d0f0c', '#0f0705'],
+  powersurge: ['#1c1706', '#171233', '#0c0819'],
+  inferno: ['#2a1410', '#1d0f0c', '#0f0705'],
+  turbo: ['#12151a', '#0d1420', '#08090c'],
 };
