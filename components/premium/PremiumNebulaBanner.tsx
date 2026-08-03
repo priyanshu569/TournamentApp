@@ -37,7 +37,7 @@ export default function PremiumNebulaBanner({
 }: PremiumNebulaBannerProps) {
   const { active, motionOff } = useAnimationGate(reduceMotion);
   const { width: windowWidth } = useWindowDimensions();
-  const [width, setWidth] = useState(0);
+  const [size, setSize] = useState({ width: 0, height: 0 });
 
   const cfg = INTENSITY[intensity];
   // The card's radius is owned by the calling screen's style, so read it back
@@ -45,8 +45,12 @@ export default function PremiumNebulaBanner({
   const borderRadius = (StyleSheet.flatten(style)?.borderRadius as number) ?? 22;
 
   function onLayout(e: LayoutChangeEvent) {
-    setWidth(e.nativeEvent.layout.width);
+    const { width: w, height: h } = e.nativeEvent.layout;
+    setSize((prev) => (prev.width === w && prev.height === h ? prev : { width: w, height: h }));
   }
+
+  const width = size.width || windowWidth;
+  const height = size.height || 160;
 
   if (!isPremium) {
     return (
@@ -68,7 +72,7 @@ export default function PremiumNebulaBanner({
 
       {/* Skipped entirely when motion is off -- a frozen mid-screen streak
           would look like a rendering artefact rather than a highlight. */}
-      {!motionOff && <LightSweep active={active} opacity={cfg.sweepOpacity} width={width || windowWidth} />}
+      {!motionOff && <LightSweep active={active} opacity={cfg.sweepOpacity} width={width} height={height} />}
 
       <BorderGlow active={active} opacity={cfg.borderOpacity} borderRadius={borderRadius} />
 

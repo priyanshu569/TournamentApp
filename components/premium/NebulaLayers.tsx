@@ -252,7 +252,7 @@ function GlowParticle({
 // design: it should register as a passing highlight, not a flash.
 // ============================================================
 
-export function LightSweep({ active, opacity, width }: LayerProps & { width: number }) {
+export function LightSweep({ active, opacity, width, height }: LayerProps & { width: number; height: number }) {
   const t = useLoopValue(active, 0, () =>
     withRepeat(
       withSequence(
@@ -264,12 +264,17 @@ export function LightSweep({ active, opacity, width }: LayerProps & { width: num
     ),
   );
 
+  const band = Math.max(50, width * 0.3);
+  // Long enough that the band still spans the card once rotated 45deg.
+  const span = (width + height) * 1.3;
+
   const style = useAnimatedStyle(() => ({
     // Fades in and out across its own travel so it never pops at the edges.
     opacity: Math.sin(t.value * Math.PI) * opacity,
     transform: [
-      { translateX: -width * 0.8 + t.value * width * 1.8 },
-      { rotate: '18deg' },
+      { translateX: -width * 0.7 + t.value * width * 1.6 },
+      { translateY: -height * 0.7 + t.value * height * 1.6 },
+      { rotate: '45deg' },
     ],
   }));
 
@@ -277,7 +282,13 @@ export function LightSweep({ active, opacity, width }: LayerProps & { width: num
     <Animated.View
       style={[
         style,
-        { position: 'absolute', top: -40, bottom: -40, width: width * 0.42 },
+        {
+          position: 'absolute',
+          left: (width - band) / 2,
+          top: (height - span) / 2,
+          width: band,
+          height: span,
+        },
       ]}
       pointerEvents="none"
     >

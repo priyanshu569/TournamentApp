@@ -32,7 +32,8 @@ export default function PremiumShimmer({
 }: Props) {
   const { active: gateActive } = useAnimationGate(reduceMotion);
   const active = gateActive && enabled;
-  const [width, setWidth] = useState(0);
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  const { width, height } = size;
 
   const t = useLoopValue(active, 0, () =>
     withRepeat(
@@ -48,9 +49,15 @@ export default function PremiumShimmer({
     withRepeat(withTiming(1, { duration: 2800, easing: Easing.inOut(Easing.sin) }), -1, true),
   );
 
+  // Travels diagonally (top-left -> bottom-right); the tilt is what reads as
+  // diagonal on a short text row, where the vertical travel is only a few px.
   const sweepStyle = useAnimatedStyle(() => ({
     opacity: Math.sin(t.value * Math.PI) * peakOpacity,
-    transform: [{ translateX: -width * 0.6 + t.value * width * 1.6 }],
+    transform: [
+      { translateX: -width * 0.6 + t.value * width * 1.6 },
+      { translateY: -height * 0.9 + t.value * height * 1.8 },
+      { rotate: '35deg' },
+    ],
   }));
 
   // Intentionally tiny (3%) -- a visible throb on a verified badge reads as a
@@ -60,7 +67,8 @@ export default function PremiumShimmer({
   }));
 
   function onLayout(e: LayoutChangeEvent) {
-    setWidth(e.nativeEvent.layout.width);
+    const { width: w, height: h } = e.nativeEvent.layout;
+    setSize((prev) => (prev.width === w && prev.height === h ? prev : { width: w, height: h }));
   }
 
   return (
@@ -70,7 +78,13 @@ export default function PremiumShimmer({
         <Animated.View
           style={[
             sweepStyle,
-            { position: 'absolute', top: -4, bottom: -4, width: Math.max(28, width * 0.32) },
+            {
+              position: 'absolute',
+              width: Math.max(28, width * 0.32),
+              // Overhang so the tilted band still covers the row's corners.
+              height: height * 2.4,
+              top: -height * 0.7,
+            },
           ]}
           pointerEvents="none"
         >

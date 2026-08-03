@@ -128,7 +128,7 @@ export default function DragonWrathBanner({
       <LavaFlow active={active} roar={roar} width={width} height={height} crackGlow={cfg.crackGlow} />
 
       <DragonPresence active={active} eyes={eyes} width={width} height={height} />
-      <DragonBreath breath={breath} width={width} />
+      <DragonBreath breath={breath} width={width} height={height} />
 
       <SmokeVeil active={active} count={cfg.smokeCount} opacity={cfg.smokeOpacity} />
       <FlameField active={active} roar={roar} count={cfg.flameCount} opacity={cfg.flameOpacity} width={width} />

@@ -12,67 +12,84 @@ function uid(prefix: string, raw: string) {
   return `${prefix}${raw.replace(/[^a-zA-Z0-9]/g, '')}`;
 }
 
-// ---- Eyes -------------------------------------------------------------
-// Angular almonds with vertical slit pupils. Asymmetric on purpose: the far
-// eye is smaller and higher so the head reads as turned slightly away.
-const EYE_NEAR = 'M 8 30 C 28 8, 72 6, 92 26 C 74 46, 26 50, 8 30 Z';
-const EYE_FAR = 'M 116 27 C 134 11, 174 9, 192 25 C 176 43, 132 45, 116 27 Z';
+// ---- Face -------------------------------------------------------------
+// A front-facing, symmetric dragon head used as a large background presence.
+// Front-on is a deliberate choice over a profile view: symmetry is far easier
+// to make read as "dragon" in hand-written path data, and the horn/brow/snout
+// triangle is recognisable even at very low opacity behind smoke.
+const FACE_SKULL = 'M 120 194 C 102 188, 86 170, 76 144 C 66 118, 62 88, 70 62 C 78 40, 98 28, 120 28 C 142 28, 162 40, 170 62 C 178 88, 174 118, 164 144 C 154 170, 138 188, 120 194 Z';
+const HORN_UPPER_L = 'M 84 44 C 68 28, 44 14, 12 6 C 36 20, 56 38, 72 60 Z';
+const HORN_UPPER_R = 'M 156 44 C 172 28, 196 14, 228 6 C 204 20, 184 38, 168 60 Z';
+const HORN_LOWER_L = 'M 74 78 C 56 70, 34 66, 10 68 C 34 76, 54 86, 70 96 Z';
+const HORN_LOWER_R = 'M 166 78 C 184 70, 206 66, 230 68 C 206 76, 186 86, 170 96 Z';
+const BROW_L = 'M 76 96 L 118 108 L 114 118 L 74 106 Z';
+const BROW_R = 'M 164 96 L 122 108 L 126 118 L 166 106 Z';
+const EYE_L = 'M 80 112 C 90 104, 106 110, 114 118 C 104 126, 86 124, 80 112 Z';
+const EYE_R = 'M 160 112 C 150 104, 134 110, 126 118 C 136 126, 154 124, 160 112 Z';
+const SNOUT = 'M 100 132 C 110 128, 130 128, 140 132 L 137 160 C 130 166, 110 166, 103 160 Z';
+const FANG_L = 'M 104 162 L 109 181 L 114 163 Z';
+const FANG_R = 'M 126 163 L 131 181 L 136 162 Z';
+const CHEEK_RIDGES = 'M 82 130 L 96 136 M 80 143 L 94 147 M 158 130 L 144 136 M 160 143 L 146 147';
 
-export const DragonEyes = memo(function DragonEyes({ width }: { width: number }) {
+/** Eye centres as fractions of the face box, so callers can position an
+ *  animated glow exactly over the sockets without hardcoding pixel offsets. */
+export const FACE_EYES = [
+  { x: 97 / 240, y: 116 / 200 },
+  { x: 143 / 240, y: 116 / 200 },
+];
+
+export const FACE_ASPECT = 200 / 240;
+
+export const DragonFace = memo(function DragonFace({ width }: { width: number }) {
   const id = useId();
-  const glowId = uid('eyeglow', id);
-  const irisId = uid('eyeiris', id);
-  const height = width * (60 / 200);
+  const skullId = uid('skull', id);
+  const hornId = uid('fhorn', id);
+  const irisId = uid('firis', id);
+  const height = width * FACE_ASPECT;
 
   return (
-    <Svg width={width} height={height} viewBox="0 0 200 60">
+    <Svg width={width} height={height} viewBox="0 0 240 200">
       <Defs>
-        <RadialGradient id={glowId} cx="50%" cy="50%" r="50%">
-          <Stop offset="0" stopColor={DRAGON.lava} stopOpacity={0.85} />
-          <Stop offset="0.45" stopColor={DRAGON.molten} stopOpacity={0.35} />
-          <Stop offset="1" stopColor={DRAGON.molten} stopOpacity={0} />
-        </RadialGradient>
-        <LinearGradient id={irisId} x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={DRAGON.gold} />
-          <Stop offset="0.5" stopColor={DRAGON.molten} />
-          <Stop offset="1" stopColor={DRAGON.deepRed} />
+        <LinearGradient id={skullId} x1="0.5" y1="0" x2="0.5" y2="1">
+          <Stop offset="0" stopColor={DRAGON.crimson} stopOpacity={0.95} />
+          <Stop offset="0.55" stopColor={DRAGON.obsidian} stopOpacity={0.98} />
+          <Stop offset="1" stopColor={DRAGON.shadowPurple} stopOpacity={0.9} />
         </LinearGradient>
-      </Defs>
-
-      {/* Haze around each socket so the eyes look lit rather than painted. */}
-      <Ellipse cx="50" cy="28" rx="62" ry="34" fill={`url(#${glowId})`} />
-      <Ellipse cx="154" cy="26" rx="52" ry="28" fill={`url(#${glowId})`} />
-
-      <Path d={EYE_NEAR} fill={`url(#${irisId})`} />
-      <Path d={EYE_FAR} fill={`url(#${irisId})`} opacity={0.82} />
-
-      {/* Slit pupils -- the single detail that stops these reading as lamps. */}
-      <Ellipse cx="50" cy="28" rx="4.5" ry="15" fill="#12060A" />
-      <Ellipse cx="154" cy="26" rx="3.5" ry="12" fill="#12060A" opacity={0.9} />
-    </Svg>
-  );
-});
-
-// ---- Horn -------------------------------------------------------------
-const HORN = 'M 10 158 C 24 104, 52 48, 110 4 C 96 60, 70 118, 46 158 Z';
-const HORN_RIDGE = 'M 34 128 C 52 92, 74 52, 100 20';
-
-export const DragonHorn = memo(function DragonHorn({ width }: { width: number }) {
-  const id = useId();
-  const gid = uid('horn', id);
-  const height = width * (160 / 120);
-
-  return (
-    <Svg width={width} height={height} viewBox="0 0 120 160">
-      <Defs>
-        <LinearGradient id={gid} x1="0" y1="1" x2="1" y2="0">
-          <Stop offset="0" stopColor={DRAGON.obsidian} />
-          <Stop offset="0.6" stopColor={DRAGON.crimson} />
+        <LinearGradient id={hornId} x1="1" y1="1" x2="0" y2="0">
+          <Stop offset="0" stopColor={DRAGON.crimson} />
           <Stop offset="1" stopColor={DRAGON.burnt} />
         </LinearGradient>
+        <RadialGradient id={irisId} cx="50%" cy="50%" r="50%">
+          <Stop offset="0" stopColor={DRAGON.gold} />
+          <Stop offset="0.6" stopColor={DRAGON.molten} />
+          <Stop offset="1" stopColor={DRAGON.deepRed} />
+        </RadialGradient>
       </Defs>
-      <Path d={HORN} fill={`url(#${gid})`} />
-      <Path d={HORN_RIDGE} stroke={DRAGON.molten} strokeWidth={1.5} fill="none" opacity={0.5} />
+
+      <Path d={HORN_UPPER_L} fill={`url(#${hornId})`} />
+      <Path d={HORN_UPPER_R} fill={`url(#${hornId})`} />
+      <Path d={HORN_LOWER_L} fill={`url(#${hornId})`} opacity={0.8} />
+      <Path d={HORN_LOWER_R} fill={`url(#${hornId})`} opacity={0.8} />
+
+      <Path d={FACE_SKULL} fill={`url(#${skullId})`} />
+
+      <Path d={BROW_L} fill={DRAGON.obsidian} opacity={0.85} />
+      <Path d={BROW_R} fill={DRAGON.obsidian} opacity={0.85} />
+
+      <Path d={EYE_L} fill={`url(#${irisId})`} />
+      <Path d={EYE_R} fill={`url(#${irisId})`} />
+      {/* Slit pupils -- the detail that stops these reading as lamps. */}
+      <Ellipse cx="97" cy="116" rx="3.5" ry="9" fill="#12060A" />
+      <Ellipse cx="143" cy="116" rx="3.5" ry="9" fill="#12060A" />
+
+      <Path d={SNOUT} fill={DRAGON.obsidian} opacity={0.75} />
+      <Ellipse cx="112" cy="143" rx="3.5" ry="5" fill="#0A0405" />
+      <Ellipse cx="128" cy="143" rx="3.5" ry="5" fill="#0A0405" />
+
+      <Path d={FANG_L} fill={DRAGON.gold} opacity={0.75} />
+      <Path d={FANG_R} fill={DRAGON.gold} opacity={0.75} />
+
+      <Path d={CHEEK_RIDGES} stroke={DRAGON.burnt} strokeWidth={1.4} fill="none" opacity={0.45} />
     </Svg>
   );
 });

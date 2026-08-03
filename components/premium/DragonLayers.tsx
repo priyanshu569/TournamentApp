@@ -5,7 +5,7 @@ import Animated, {
   useAnimatedStyle, SharedValue, withRepeat, withSequence, withDelay, withTiming, Easing,
 } from 'react-native-reanimated';
 import SoftOrb from './SoftOrb';
-import { Flame, ObsidianCracks, DragonEyes, DragonHorn, DragonWing, DragonTail, DragonScales, DragonSilhouette } from './DragonShapes';
+import { Flame, ObsidianCracks, DragonFace, FACE_EYES, FACE_ASPECT, DragonWing, DragonTail, DragonScales, DragonSilhouette } from './DragonShapes';
 import { useLoopValue } from './useAnimationGate';
 import { DRAGON } from './dragonTokens';
 import { seededRandom as seededDragonRandom } from './premiumTokens';
@@ -398,17 +398,59 @@ function Spark({
 // ============================================================
 
 export function DragonPresence({ active, eyes, width, height }: { active: boolean; eyes: SharedValue<number>; width: number; height: number }) {
-  const eyeStyle = useAnimatedStyle(() => ({
-    opacity: eyes.value,
-    transform: [{ scale: 0.94 + eyes.value * 0.1 }],
+  // Sized to fit the card without cropping the horns, then centred. This is a
+  // permanent backdrop rather than a timed reveal -- the face is the world the
+  // banner sits in, and only its eyes come and go.
+  const faceWidth = Math.min(width * 0.68, height * 1.15);
+  const faceHeight = faceWidth * FACE_ASPECT;
+  const faceLeft = (width - faceWidth) / 2;
+  const faceTop = (height - faceHeight) / 2;
+
+  const loom = useLoopValue(active, 0, () =>
+    withRepeat(withTiming(1, { duration: 9000, easing: Easing.inOut(Easing.sin) }), -1, true),
+  );
+
+  // Kept deliberately dim: the face should be something you notice on the
+  // second look, not a portrait competing with the avatar.
+  const faceStyle = useAnimatedStyle(() => ({
+    opacity: 0.2 + loom.value * 0.14,
+    transform: [{ scale: 0.99 + loom.value * 0.03 }],
   }));
+
+  const eyeGlowStyle = useAnimatedStyle(() => ({
+    opacity: eyes.value,
+    transform: [{ scale: 0.8 + eyes.value * 0.5 }],
+  }));
+
+  const glowSize = faceWidth * 0.22;
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <RevealedPart active={active} delay={4000} hold={2400} gap={19000} peak={0.5}
-        style={{ position: 'absolute', left: '-6%', top: '-14%' }}>
-        <DragonHorn width={width * 0.2} />
-      </RevealedPart>
+      <Animated.View
+        style={[faceStyle, { position: 'absolute', left: faceLeft, top: faceTop }]}
+        pointerEvents="none"
+      >
+        <DragonFace width={faceWidth} />
+      </Animated.View>
+
+      {/* Sockets light up on the shared `eyes` beat. Positioned from the
+          face's own eye fractions so they stay aligned at any size. */}
+      {FACE_EYES.map((e, i) => (
+        <Animated.View
+          key={i}
+          style={[
+            eyeGlowStyle,
+            {
+              position: 'absolute',
+              left: faceLeft + faceWidth * e.x - glowSize / 2,
+              top: faceTop + faceHeight * e.y - glowSize / 2,
+            },
+          ]}
+          pointerEvents="none"
+        >
+          <SoftOrb size={glowSize} color={DRAGON.lava} opacity={0.95} core={0.3} />
+        </Animated.View>
+      ))}
 
       <RevealedPart active={active} delay={11000} hold={2600} gap={21000} peak={0.42}
         style={{ position: 'absolute', right: '-14%', top: '2%' }}>
@@ -424,12 +466,6 @@ export function DragonPresence({ active, eyes, width, height }: { active: boolea
         style={{ position: 'absolute', right: '4%', bottom: '18%' }}>
         <DragonScales width={width * 0.34} />
       </RevealedPart>
-
-      {/* Eyes are driven by the banner, not by their own cycle, so the roar
-          can force them open in sync with everything else. */}
-      <Animated.View style={[eyeStyle, { position: 'absolute', left: '18%', top: '22%' }]} pointerEvents="none">
-        <DragonEyes width={width * 0.44} />
-      </Animated.View>
     </View>
   );
 }
@@ -485,15 +521,34 @@ export function RoarFlash({ roar, width, peak }: { roar: SharedValue<number>; wi
 
 // Dragon breath: fire sweeping horizontally BEHIND the avatar, never at the
 // viewer. Short, bright, and gone.
-export function DragonBreath({ breath, width }: { breath: SharedValue<number>; width: number }) {
+export function DragonBreath({ breath, width, height }: { breath: SharedValue<number>; width: number; height: number }) {
+  const bandHeight = Math.max(40, height * 0.42);
+  const bandWidth = (width + height) * 1.2;
+
+  // -45deg puts the band's long axis perpendicular to the travel direction,
+  // so it sweeps corner to corner instead of skidding along its own length.
   const style = useAnimatedStyle(() => ({
     opacity: Math.sin(breath.value * Math.PI) * 0.85,
-    transform: [{ translateX: -width * 0.5 + breath.value * width * 1.3 }, { scaleY: 0.8 + breath.value * 0.6 }],
+    transform: [
+      { translateX: -width * 0.6 + breath.value * width * 1.6 },
+      { translateY: -height * 0.6 + breath.value * height * 1.6 },
+      { rotate: '-45deg' },
+      { scaleY: 0.8 + breath.value * 0.5 },
+    ],
   }));
 
   return (
     <Animated.View
-      style={[style, { position: 'absolute', left: 0, top: '26%', height: '46%', width: width * 0.75 }]}
+      style={[
+        style,
+        {
+          position: 'absolute',
+          left: (width - bandWidth) / 2,
+          top: (height - bandHeight) / 2,
+          width: bandWidth,
+          height: bandHeight,
+        },
+      ]}
       pointerEvents="none"
     >
       <LinearGradient
