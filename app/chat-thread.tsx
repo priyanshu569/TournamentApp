@@ -66,26 +66,32 @@ function friendlySendError(message: string): string {
 
 const IMAGE_BOX_MAX_WIDTH = 240;
 const IMAGE_BOX_MAX_HEIGHT = 320;
-const IMAGE_BOX_MIN_SIZE = 140;
 
 // Older messages sent before image_width/image_height existed fall
 // back to a fixed square rather than stretching/distorting.
+//
+// The box ratio MUST equal the image's own ratio: the bubble renders with
+// resizeMode 'cover', so any mismatch silently crops away part of what the
+// sender framed in the crop tool. This previously applied a 140pt minimum to
+// width and height *independently*, which is exactly what broke that -- a
+// 16:9 crop lost ~4% and wider ones up to ~30%, very tall ones ~17%. No
+// minimum is needed: fitting inside the max bounds always pins one dimension
+// to its own maximum, so a box can never come out arbitrarily small.
+//
+// Returns aspectRatio rather than an explicit height (same approach as
+// world-chat) so the height is derived exactly instead of rounded.
 function computeImageBoxSize(width?: number | null, height?: number | null) {
-  if (!width || !height) return { width: 220, height: 220 };
+  if (!width || !height) return { width: 220, aspectRatio: 1 };
 
   const aspect = width / height;
   let boxWidth = IMAGE_BOX_MAX_WIDTH;
-  let boxHeight = boxWidth / aspect;
 
-  if (boxHeight > IMAGE_BOX_MAX_HEIGHT) {
-    boxHeight = IMAGE_BOX_MAX_HEIGHT;
-    boxWidth = boxHeight * aspect;
+  // Too tall at full width -- pin the height instead and derive width.
+  if (boxWidth / aspect > IMAGE_BOX_MAX_HEIGHT) {
+    boxWidth = IMAGE_BOX_MAX_HEIGHT * aspect;
   }
 
-  boxWidth = Math.max(IMAGE_BOX_MIN_SIZE, boxWidth);
-  boxHeight = Math.max(IMAGE_BOX_MIN_SIZE, Math.min(IMAGE_BOX_MAX_HEIGHT, boxHeight));
-
-  return { width: Math.round(boxWidth), height: Math.round(boxHeight) };
+  return { width: Math.round(boxWidth), aspectRatio: aspect };
 }
 
 function replyPreviewSnippet(message: any): string {
