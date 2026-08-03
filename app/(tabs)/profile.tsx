@@ -9,14 +9,25 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import NotificationBell from '@/components/NotificationBell';
 import Avatar from '@/components/Avatar';
+import VerifiedBadge from '@/components/VerifiedBadge';
 import AnimatedProfileBanner from '@/components/AnimatedProfileBanner';
 import AnimatedAvatarRing from '@/components/AnimatedAvatarRing';
 import PremiumShimmer from '@/components/premium/PremiumShimmer';
 import { BannerTheme, PREMIUM_THEMES } from '@/components/bannerThemes';
 import { useTabNavigation } from '@/lib/tabNavigation';
+import { useAvatarPreview } from '@/lib/AvatarPreviewContext';
 import { isEffectivelyHost } from '@/lib/effectiveRole';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
+
+// Mirrors the helper in user-profile.tsx so the own-profile view renders the
+// exact same gender chip other users see.
+function getGenderMeta(gender: string | null, colors: ThemeColors) {
+  if (gender === 'male') return { icon: 'male' as const, color: '#4FA3FF' };
+  if (gender === 'female') return { icon: 'female' as const, color: '#FF6FA5' };
+  if (gender === 'other') return { icon: 'person' as const, color: colors.textTertiary };
+  return null;
+}
 
 type MenuAction = {
   key: string;
@@ -34,6 +45,7 @@ type MenuSection = {
 export default function ProfileScreen() {
   const router = useRouter();
   const tabNav = useTabNavigation();
+  const showAvatarPreview = useAvatarPreview();
   const { colors } = useAppTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
   const [profile, setProfile] = useState<any>(null);
@@ -156,6 +168,11 @@ export default function ProfileScreen() {
   // Admins get an instant preview toggle in Admin Tools instead -- no
   // need to apply and wait for their own approval.
   const canBecomeHost = !isHost && profile?.host_status !== 'pending' && !isAdmin;
+  const genderMeta = getGenderMeta(profile?.gender, colors);
+  const location = [profile?.city, profile?.state].filter(Boolean).join(', ');
+  const isPremiumBanner = PREMIUM_THEMES.includes(profile?.banner_theme);
+  // Molten gold reads as heat on Dragon's Wrath; white would look like glare.
+  const shimmerColor = profile?.banner_theme === 'dragonwrath' ? '#FFB43D' : '#FFFFFF';
 
   const menuSections: MenuSection[] = [
     {
@@ -201,25 +218,67 @@ export default function ProfileScreen() {
         <NotificationBell />
       </View>
 
-      {/* Profile Card */}
+      {/* Profile Card -- mirrors the hero on user-profile.tsx exactly, so
+          your own view matches what other players see when they visit you. */}
       <AnimatedProfileBanner
         theme={(profile?.banner_theme as BannerTheme) ?? null}
         classicColors={['#2d1b4e', '#1a0f2e', '#0d0619']}
         style={styles.profileCard}
       >
-        <AnimatedAvatarRing theme={(profile?.banner_theme as BannerTheme) ?? null} size={72}>
-          <Avatar avatarId={profile?.avatar_id} avatarUrl={profile?.avatar_url} username={profile?.display_name} size={72} />
-        </AnimatedAvatarRing>
-        <View style={[styles.profileInfo, { marginLeft: 16 }]}>
-          <PremiumShimmer
-            enabled={PREMIUM_THEMES.includes(profile?.banner_theme)}
-            color={profile?.banner_theme === 'dragonwrath' ? '#FFB43D' : '#FFFFFF'}
-            style={styles.nameRow}
-            periodMs={7000}
-          >
-            <Text style={styles.username}>{profile?.display_name ?? 'Unknown'}</Text>
-          </PremiumShimmer>
-          {profile?.username && <Text style={styles.handle}>@{profile.username}</Text>}
+        <View style={{ marginBottom: 14 }}>
+          <AnimatedAvatarRing theme={(profile?.banner_theme as BannerTheme) ?? null} size={84}>
+            <TouchableOpacity
+              activeOpacity={1}
+              onLongPress={() => showAvatarPreview({ avatarId: profile?.avatar_id, avatarUrl: profile?.avatar_url, username: profile?.display_name })}
+            >
+              <Avatar avatarId={profile?.avatar_id} avatarUrl={profile?.avatar_url} username={profile?.display_name} size={84} />
+            </TouchableOpacity>
+          </AnimatedAvatarRing>
+        </View>
+        <PremiumShimmer
+          enabled={isPremiumBanner}
+          color={shimmerColor}
+          style={styles.nameRow}
+          periodMs={7000}
+        >
+          <Text style={styles.username}>{profile?.display_name ?? 'Unknown'}</Text>
+          {profile?.is_verified && (
+            <PremiumShimmer
+              enabled={isPremiumBanner}
+              color={shimmerColor}
+              pulse
+              periodMs={9400}
+              travelMs={800}
+              peakOpacity={0.45}
+            >
+              <VerifiedBadge size={16} />
+            </PremiumShimmer>
+          )}
+        </PremiumShimmer>
+        {profile?.username && <Text style={styles.handle}>@{profile.username}</Text>}
+
+        {(genderMeta || location || profile?.age) && (
+          <View style={styles.infoRow}>
+            {genderMeta && (
+              <View style={styles.infoChip}>
+                <Ionicons name={genderMeta.icon} size={13} color={genderMeta.color} />
+              </View>
+            )}
+            {!!location && (
+              <View style={styles.infoChip}>
+                <Ionicons name="location" size={12} color="#c9b8ea" />
+                <Text style={styles.infoChipText}>{location}</Text>
+              </View>
+            )}
+            {!!profile?.age && (
+              <View style={styles.infoChip}>
+                <Text style={styles.infoChipText}>{profile.age} yrs</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {(profile?.is_admin || profile?.role) && (
           <LinearGradient
             colors={profile?.is_admin ? ['#FFE28A', '#F5B93D', '#B8860B'] : ['#7C3AED', '#4C1D95']}
             start={{ x: 0, y: 0 }}
@@ -227,12 +286,12 @@ export default function ProfileScreen() {
             style={styles.roleBadge}
           >
             <Text style={[styles.roleText, profile?.is_admin && styles.roleTextAdmin]}>
-              {profile?.is_admin ? 'ADMIN' : (profile?.role?.toUpperCase() ?? 'PLAYER')}
+              {profile?.is_admin ? 'ADMIN' : profile.role.toUpperCase()}
             </Text>
           </LinearGradient>
-          {browsingAsPlayer && <Text style={styles.browsingModeHint}>Browsing as Player</Text>}
-          {browsingAsHost && <Text style={styles.browsingModeHint}>Previewing as Host</Text>}
-        </View>
+        )}
+        {browsingAsPlayer && <Text style={styles.browsingModeHint}>Browsing as Player</Text>}
+        {browsingAsHost && <Text style={styles.browsingModeHint}>Previewing as Host</Text>}
       </AnimatedProfileBanner>
 
       {/* Stats */}
@@ -324,23 +383,29 @@ function getStyles(colors: ThemeColors) {
     },
     headerTitle: { fontSize: 26, fontWeight: '800', color: colors.textPrimary },
 
-    handle: { color: '#c9b8ea', fontSize: 13, fontWeight: '600', marginBottom: 8 },
+    handle: { fontSize: 13, color: '#c9b8ea', marginTop: 2, fontWeight: '600' },
 
     profileCard: {
-      flexDirection: 'row', alignItems: 'center',
-      margin: 24, marginTop: 0,
-      borderRadius: 22, padding: 20, borderWidth: 1, borderColor: '#3a2c5c',
+      alignItems: 'center',
+      marginHorizontal: 24, marginTop: 0, marginBottom: 20,
+      borderRadius: 24, padding: 24, borderWidth: 1, borderColor: '#3a2c5c',
       shadowColor: colors.accent, shadowOffset: { width: 0, height: 8 },
       shadowOpacity: 0.3, shadowRadius: 16, elevation: 8,
     },
     avatarRing: {
       padding: 3, borderRadius: 40, borderWidth: 2, borderColor: colors.accent,
     },
-    profileInfo: { flex: 1 },
-    nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
-    username: { fontSize: 20, fontWeight: '800', color: '#fff' },
+    nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    username: { fontSize: 22, fontWeight: '900', color: '#fff' },
+    infoRow: { flexDirection: 'row', gap: 8, marginTop: 12, flexWrap: 'wrap', justifyContent: 'center' },
+    infoChip: {
+      flexDirection: 'row', alignItems: 'center', gap: 5,
+      backgroundColor: '#ffffff14', paddingHorizontal: 10, paddingVertical: 5,
+      borderRadius: 20, borderWidth: 1, borderColor: '#ffffff1f',
+    },
+    infoChipText: { color: '#e5d9fb', fontSize: 12, fontWeight: '600' },
     roleBadge: {
-      alignSelf: 'flex-start',
+      marginTop: 14,
       paddingHorizontal: 12, paddingVertical: 4,
       borderRadius: 20,
     },
