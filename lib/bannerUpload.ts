@@ -12,7 +12,12 @@ export async function pickAndUploadBanner(userId: string): Promise<string | null
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ['images'],
     allowsEditing: true,
-    aspect: [16, 9],
+    // Matches how the banner actually gets displayed: an exact match for
+    // the home screen's compact card (220x90 = 22:9) and close to the
+    // events list card's typical width/130 ratio too. 16:9 was noticeably
+    // taller than either, so `contentFit: 'cover'` was silently cropping
+    // the top/bottom of whatever the user composed in this crop step.
+    aspect: [22, 9],
     quality: 0.7,
     base64: true,
   });
