@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList,
+  View, Text, StyleSheet, FlatList, RefreshControl,
   TouchableOpacity, ActivityIndicator, ScrollView, TextInput, Modal
 } from 'react-native';
 import { Image } from 'expo-image';
@@ -57,6 +57,7 @@ export default function EventsScreen() {
   const [selectedGame, setSelectedGame] = useState('All');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [sortOption, setSortOption] = useState<SortOption>('newest');
   const [sortModalVisible, setSortModalVisible] = useState(false);
   const [eventTab, setEventTab] = useState<'tournament' | 'scrim'>('tournament');
@@ -120,6 +121,12 @@ export default function EventsScreen() {
 
     setFiltered(results);
   }, [selectedGame, search, tournaments, sortOption, eventTab, lobbyFilter]);
+
+  async function onRefresh() {
+    setRefreshing(true);
+    await fetchTournaments();
+    setRefreshing(false);
+  }
 
   async function fetchTournaments() {
     const { data } = await supabase
@@ -294,6 +301,7 @@ export default function EventsScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} colors={[colors.accent]} />}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconCircle}>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TextInput,
-  TouchableOpacity, ActivityIndicator, Alert, Modal, ScrollView,
+  TouchableOpacity, ActivityIndicator, Alert, Modal, ScrollView, RefreshControl,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,6 +20,7 @@ export default function GroupInfoScreen() {
   const showAvatarPreview = useAvatarPreview();
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [myId, setMyId] = useState<string | null>(null);
   const [conversation, setConversation] = useState<any>(null);
   const [members, setMembers] = useState<any[]>([]);
@@ -42,6 +43,12 @@ export default function GroupInfoScreen() {
 
   useEffect(() => { loadInfo(); }, [id]);
 
+  async function onRefresh() {
+    setRefreshing(true);
+    await loadInfo();
+    setRefreshing(false);
+  }
+
   async function loadInfo() {
     const { data: userData } = await supabase.auth.getUser();
     const me = userData.user?.id ?? null;
@@ -53,8 +60,10 @@ export default function GroupInfoScreen() {
       .eq('id', id)
       .single();
     setConversation(convo);
-    setNameDraft(convo?.name ?? '');
-    setDescriptionDraft(convo?.description ?? '');
+    // Refresh can now be triggered while an edit is in progress (pull to
+    // refresh) -- don't clobber unsaved draft text with the server value.
+    if (!editingName) setNameDraft(convo?.name ?? '');
+    if (!editingDescription) setDescriptionDraft(convo?.description ?? '');
 
     const { data: participants } = await supabase
       .from('conversation_participants')
@@ -263,7 +272,10 @@ export default function GroupInfoScreen() {
         <View style={{ width: 36 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} colors={[colors.accent]} />}
+      >
         <View style={styles.photoSection}>
           <TouchableOpacity
             onPress={handleChangePhoto}

@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator, ScrollView, StyleSheet,
+  ActivityIndicator, RefreshControl, ScrollView, StyleSheet,
   Text, TouchableOpacity, View
 } from 'react-native';
 import { Image } from 'expo-image';
@@ -36,6 +36,7 @@ export default function HomeScreen() {
   const [username, setUsername] = useState('');
   const [tournaments, setTournaments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
   const tabNav = useTabNavigation();
 
@@ -53,6 +54,12 @@ export default function HomeScreen() {
       loadData();
     }
   }, [tabNav?.activeTab]);
+
+  async function onRefresh() {
+    setRefreshing(true);
+    await loadData();
+    setRefreshing(false);
+  }
 
   async function loadData() {
     const { data: userData } = await supabase.auth.getUser();
@@ -197,7 +204,12 @@ export default function HomeScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} colors={[colors.accent]} />}
+    >
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
-  FlatList, Alert, TouchableOpacity
+  FlatList, RefreshControl, Alert, TouchableOpacity
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,6 +20,7 @@ export default function HistoryScreen() {
   const [browsingMode, setBrowsingMode] = useState<string | null>(null);
   const [isAdminUser, setIsAdminUser] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [data, setData] = useState<any[]>([]);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
@@ -37,6 +38,12 @@ export default function HistoryScreen() {
       loadHistory();
     }
   }, [tabNav?.activeTab]);
+
+  async function onRefresh() {
+    setRefreshing(true);
+    await loadHistory();
+    setRefreshing(false);
+  }
 
   async function loadHistory() {
     const { data: userData } = await supabase.auth.getUser();
@@ -132,6 +139,7 @@ export default function HistoryScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} colors={[colors.accent]} />}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <View style={styles.emptyIconCircle}>
@@ -202,6 +210,7 @@ export default function HistoryScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} colors={[colors.accent]} />}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <View style={styles.emptyIconCircle}>

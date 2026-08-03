@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList,
+  View, Text, StyleSheet, FlatList, RefreshControl,
   TouchableOpacity, ActivityIndicator, Modal, Alert
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -24,6 +24,7 @@ export default function ChatInboxScreen() {
   const showAvatarPreview = useAvatarPreview();
   const [conversations, setConversations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [myId, setMyId] = useState<string | null>(null);
   const [myDisplayName, setMyDisplayName] = useState('You');
   const [category, setCategory] = useState<'personal' | 'group' | 'requests'>('personal');
@@ -44,6 +45,12 @@ export default function ChatInboxScreen() {
       loadConversations();
     }
   }, [tabNav?.activeTab]);
+
+  async function onRefresh() {
+    setRefreshing(true);
+    await loadConversations();
+    setRefreshing(false);
+  }
 
   async function loadConversations() {
     const { data: userData } = await supabase.auth.getUser();
@@ -313,6 +320,7 @@ export default function ChatInboxScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} colors={[colors.accent]} />}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <GradientIconBadge

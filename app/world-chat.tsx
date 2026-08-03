@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TextInput, Image, ScrollView, Share,
+  View, Text, StyleSheet, FlatList, TextInput, Image, ScrollView, Share, RefreshControl,
   TouchableOpacity, ActivityIndicator, Alert, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -46,6 +46,7 @@ export default function WorldChatScreen() {
   const [savedPostIds, setSavedPostIds] = useState<Set<string>>(new Set());
   const [viewingSaved, setViewingSaved] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [myId, setMyId] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [text, setText] = useState('');
@@ -167,6 +168,25 @@ export default function WorldChatScreen() {
 
     setPosts(built);
     setLoading(false);
+  }
+
+  // Re-fetches whichever view is currently open (World Chat or Saved),
+  // without the full-screen loading spinner toggleSavedView triggers --
+  // loadPosts itself only sets loading=false, never true, so this stays a
+  // silent background refresh under the pull gesture.
+  async function onRefresh() {
+    setRefreshing(true);
+    if (viewingSaved) {
+      const { data: userData } = await supabase.auth.getUser();
+      const me = userData.user?.id;
+      const { data: saves } = me
+        ? await supabase.from('world_chat_post_saves').select('post_id').eq('user_id', me)
+        : { data: [] };
+      await loadPosts((saves ?? []).map((s: any) => s.post_id));
+    } else {
+      await loadPosts();
+    }
+    setRefreshing(false);
   }
 
   async function toggleSavedView() {
@@ -365,6 +385,7 @@ export default function WorldChatScreen() {
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} colors={[colors.accent]} />}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <Ionicons name={viewingSaved ? 'bookmark-outline' : 'globe-outline'} size={32} color={colors.textDisabled} />

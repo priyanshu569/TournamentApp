@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
-  TouchableOpacity, Alert, ScrollView, TextInput, Share
+  TouchableOpacity, Alert, ScrollView, RefreshControl, TextInput, Share
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -33,6 +33,7 @@ export default function TournamentDetails() {
   const [cancelling, setCancelling] = useState(false);
   const [matchResults, setMatchResults] = useState<any[]>([]);
   const [standings, setStandings] = useState<any[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => { fetchData(); }, [id]);
 
@@ -76,6 +77,12 @@ export default function TournamentDetails() {
       return;
     }
     if (data) setStandings(data);
+  }
+
+  async function onRefresh() {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
   }
 
   async function fetchData() {
@@ -342,7 +349,11 @@ export default function TournamentDetails() {
   const hasLiveResults = matchResults.some((r) => !r.placement);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} colors={[colors.accent]} />}
+    >
 
       {/* Header Bar */}
       <View style={styles.headerBar}>

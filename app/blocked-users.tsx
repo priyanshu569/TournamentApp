@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList,
+  View, Text, StyleSheet, FlatList, RefreshControl,
   TouchableOpacity, ActivityIndicator, Alert
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -18,10 +18,17 @@ export default function BlockedUsersScreen() {
   const showAvatarPreview = useAvatarPreview();
   const [blocked, setBlocked] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [myId, setMyId] = useState<string | null>(null);
   const [actingId, setActingId] = useState<string | null>(null);
 
   useEffect(() => { load(); }, []);
+
+  async function onRefresh() {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  }
 
   async function load() {
     const { data: userData } = await supabase.auth.getUser();
@@ -85,6 +92,7 @@ export default function BlockedUsersScreen() {
           data={blocked}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} colors={[colors.accent]} />}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Ionicons name="shield-checkmark-outline" size={32} color={colors.textDisabled} />

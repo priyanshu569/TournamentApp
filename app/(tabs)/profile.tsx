@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
-  TouchableOpacity, ScrollView, Alert
+  TouchableOpacity, ScrollView, RefreshControl, Alert
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -66,6 +66,7 @@ export default function ProfileScreen() {
   const [stats, setStats] = useState({ tournaments: 0 });
   const [followCounts, setFollowCounts] = useState({ followers: 0, following: 0 });
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -79,6 +80,12 @@ export default function ProfileScreen() {
       loadProfile();
     }
   }, [tabNav?.activeTab]);
+
+  async function onRefresh() {
+    setRefreshing(true);
+    await loadProfile();
+    setRefreshing(false);
+  }
 
   async function loadProfile() {
     const { data: userData } = await supabase.auth.getUser();
@@ -223,7 +230,12 @@ export default function ProfileScreen() {
   ];
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} colors={[colors.accent]} />}
+    >
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Profile</Text>

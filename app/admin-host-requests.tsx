@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList,
+  View, Text, StyleSheet, FlatList, RefreshControl,
   TouchableOpacity, ActivityIndicator, Alert
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -20,12 +20,19 @@ export default function AdminHostRequests() {
   const [requests, setRequests] = useState<any[]>([]);
   const [filter, setFilter] = useState<Filter>('pending');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [actingId, setActingId] = useState<string | null>(null);
 
   useEffect(() => { loadRequests(); }, [filter]);
 
-  async function loadRequests() {
-    setLoading(true);
+  async function onRefresh() {
+    setRefreshing(true);
+    await loadRequests(true);
+    setRefreshing(false);
+  }
+
+  async function loadRequests(silent = false) {
+    if (!silent) setLoading(true);
     const { data, error } = await supabase
       .from('host_requests')
       .select('*')
@@ -101,6 +108,7 @@ export default function AdminHostRequests() {
           data={requests}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} colors={[colors.accent]} />}
           ListEmptyComponent={
             <Text style={styles.emptyText}>No {filter} requests.</Text>
           }

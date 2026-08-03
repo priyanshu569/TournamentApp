@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, Image, TextInput,
+  View, Text, StyleSheet, FlatList, Image, TextInput, RefreshControl,
   TouchableOpacity, ActivityIndicator, Alert
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -27,13 +27,20 @@ export default function AdminReportsScreen() {
   const [reports, setReports] = useState<any[]>([]);
   const [filter, setFilter] = useState<Filter>('pending');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [actingId, setActingId] = useState<string | null>(null);
   const [responseText, setResponseText] = useState<Record<string, string>>({});
 
   useEffect(() => { loadReports(); }, [filter]);
 
-  async function loadReports() {
-    setLoading(true);
+  async function onRefresh() {
+    setRefreshing(true);
+    await loadReports(true);
+    setRefreshing(false);
+  }
+
+  async function loadReports(silent = false) {
+    if (!silent) setLoading(true);
 
     const { data, error } = await supabase
       .from('reports')
@@ -195,6 +202,7 @@ export default function AdminReportsScreen() {
           data={reports}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} colors={[colors.accent]} />}
           keyboardShouldPersistTaps="handled"
           ListEmptyComponent={<Text style={styles.emptyText}>No {filter} reports.</Text>}
           renderItem={({ item }) => (

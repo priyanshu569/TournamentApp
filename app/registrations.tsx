@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
-  FlatList, TouchableOpacity
+  FlatList, RefreshControl, TouchableOpacity
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,11 +16,18 @@ export default function Registrations() {
   const styles = useMemo(() => getStyles(colors), [colors]);
   const [registrations, setRegistrations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [tournament, setTournament] = useState<any>(null);
 
   useEffect(() => {
   fetchRegistrations();
 }, [tournament_id]);
+
+  async function onRefresh() {
+    setRefreshing(true);
+    await fetchRegistrations();
+    setRefreshing(false);
+  }
 
   async function fetchRegistrations() {
     const { data: t } = await supabase
@@ -97,6 +104,7 @@ export default function Registrations() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} colors={[colors.accent]} />}
         ListEmptyComponent={
           <Text style={styles.emptyText}>No teams registered yet.</Text>
         }

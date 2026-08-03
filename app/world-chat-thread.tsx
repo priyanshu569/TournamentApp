@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TextInput, Image, ScrollView, Share,
+  View, Text, StyleSheet, FlatList, TextInput, Image, ScrollView, Share, RefreshControl,
   TouchableOpacity, ActivityIndicator, Alert, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -43,6 +43,7 @@ export default function WorldChatThreadScreen() {
   const [reactionGridOpen, setReactionGridOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [myId, setMyId] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [text, setText] = useState('');
@@ -80,6 +81,12 @@ export default function WorldChatThreadScreen() {
 
     return () => { supabase.removeChannel(channel); };
   }, [id]);
+
+  async function onRefresh() {
+    setRefreshing(true);
+    await loadThread();
+    setRefreshing(false);
+  }
 
   async function loadThread() {
     const { data: userData } = await supabase.auth.getUser();
@@ -322,6 +329,7 @@ export default function WorldChatThreadScreen() {
           data={replies}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} colors={[colors.accent]} />}
           ListHeaderComponent={
             <View style={styles.postCard}>
               <TouchableOpacity

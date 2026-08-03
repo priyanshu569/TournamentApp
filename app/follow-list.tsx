@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
-  TouchableOpacity, FlatList, Alert
+  TouchableOpacity, FlatList, RefreshControl, Alert
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,10 +19,17 @@ export default function FollowListScreen() {
   const [people, setPeople] = useState<any[]>([]);
   const [canView, setCanView] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [myId, setMyId] = useState<string | null>(null);
   const [actingId, setActingId] = useState<string | null>(null);
 
   useEffect(() => { loadList(); }, [id, type]);
+
+  async function onRefresh() {
+    setRefreshing(true);
+    await loadList();
+    setRefreshing(false);
+  }
 
   async function loadList() {
     const { data: userData } = await supabase.auth.getUser();
@@ -194,6 +201,7 @@ export default function FollowListScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} colors={[colors.accent]} />}
           ListEmptyComponent={
             <Text style={[styles.emptyText, { marginTop: 40 }]}>
               {type === 'followers' ? 'No followers yet.' : 'Not following anyone yet.'}

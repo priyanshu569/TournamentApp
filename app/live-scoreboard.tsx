@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
-  TouchableOpacity, Alert, ScrollView
+  TouchableOpacity, Alert, ScrollView, RefreshControl
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -39,11 +39,20 @@ export default function LiveScoreboard() {
   const [loading, setLoading] = useState(true);
   const [loadingMatch, setLoadingMatch] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => { loadRoster(); }, [tournament_id]);
   useEffect(() => {
     if (roster.length > 0) loadMatchData(selectedMatch);
   }, [selectedMatch, roster]);
+
+  async function onRefresh() {
+    setRefreshing(true);
+    // loadMatchData isn't called here -- the effect above already re-runs it
+    // once loadRoster's setRoster() lands, since it depends on `roster`.
+    await loadRoster();
+    setRefreshing(false);
+  }
 
   async function loadRoster() {
     const { data: t } = await supabase
@@ -271,7 +280,10 @@ export default function LiveScoreboard() {
         </ScrollView>
       )}
 
-      <ScrollView contentContainerStyle={styles.list}>
+      <ScrollView
+        contentContainerStyle={styles.list}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} colors={[colors.accent]} />}
+      >
         {roster.length === 0 ? (
           <Text style={styles.emptyText}>No confirmed teams yet.</Text>
         ) : loadingMatch || roster.some((t) => !matchState[t.team_id]) ? (

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, ScrollView,
+  View, Text, StyleSheet, FlatList, ScrollView, RefreshControl,
   ActivityIndicator, TouchableOpacity, Alert
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -34,8 +34,15 @@ export default function Leaderboard() {
   const [data, setData] = useState<any[]>([]);
   const [game, setGame] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => { load(game); }, [game]);
+
+  async function onRefresh() {
+    setRefreshing(true);
+    await load(game);
+    setRefreshing(false);
+  }
 
   async function load(p_game: string | null) {
     setLoading(true);
@@ -108,6 +115,7 @@ export default function Leaderboard() {
           keyExtractor={(item) => item.identity_key}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} colors={[colors.accent]} />}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <View style={styles.emptyIconCircle}>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TextInput, Image, ScrollView,
+  View, Text, StyleSheet, FlatList, TextInput, Image, ScrollView, RefreshControl,
   TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Modal, Alert, Keyboard, Dimensions
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -551,6 +551,7 @@ export default function ChatThreadScreen() {
   const [messages, setMessages] = useState<any[]>([]);
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [sending, setSending] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -697,6 +698,12 @@ export default function ChatThreadScreen() {
     .onEnd(() => {
       swipeX.value = withTiming(0, { duration: 220, easing: Easing.out(Easing.cubic) });
     });
+
+  async function onRefresh() {
+    setRefreshing(true);
+    await loadThread();
+    setRefreshing(false);
+  }
 
   async function loadThread() {
     const { data: userData } = await supabase.auth.getUser();
@@ -1445,6 +1452,7 @@ export default function ChatThreadScreen() {
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.messagesList}
             onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.accent} colors={[colors.accent]} />}
             renderItem={({ item }) => {
               if (item.type === 'separator') {
                 return (
