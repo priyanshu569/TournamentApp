@@ -11,6 +11,7 @@ import NotificationBell from '@/components/NotificationBell';
 import Avatar from '@/components/Avatar';
 import AnimatedProfileBanner from '@/components/AnimatedProfileBanner';
 import AnimatedAvatarRing from '@/components/AnimatedAvatarRing';
+import PremiumShimmer from '@/components/premium/PremiumShimmer';
 import { BannerTheme } from '@/components/bannerThemes';
 import { useTabNavigation } from '@/lib/tabNavigation';
 import { isEffectivelyHost } from '@/lib/effectiveRole';
@@ -210,9 +211,9 @@ export default function ProfileScreen() {
           <Avatar avatarId={profile?.avatar_id} avatarUrl={profile?.avatar_url} username={profile?.display_name} size={72} />
         </AnimatedAvatarRing>
         <View style={[styles.profileInfo, { marginLeft: 16 }]}>
-          <View style={styles.nameRow}>
+          <PremiumShimmer enabled={profile?.banner_theme === 'nebula'} style={styles.nameRow} periodMs={7000}>
             <Text style={styles.username}>{profile?.display_name ?? 'Unknown'}</Text>
-          </View>
+          </PremiumShimmer>
           {profile?.username && <Text style={styles.handle}>@{profile.username}</Text>}
           <LinearGradient
             colors={profile?.is_admin ? ['#FFE28A', '#F5B93D', '#B8860B'] : ['#7C3AED', '#4C1D95']}

@@ -6,6 +6,7 @@ import Animated, {
   withRepeat, withSequence, withDelay, withTiming, Easing,
 } from 'react-native-reanimated';
 import { BannerTheme, BASE_GRADIENTS } from './bannerThemes';
+import PremiumNebulaBanner from './premium/PremiumNebulaBanner';
 
 type Props = {
   theme: BannerTheme | null;
@@ -21,6 +22,12 @@ export default function AnimatedProfileBanner({ theme, classicColors, style, chi
         {children}
       </LinearGradient>
     );
+  }
+
+  // Premium themes own their whole composition rather than layering onto the
+  // shared base gradient below.
+  if (theme === 'nebula') {
+    return <PremiumNebulaBanner style={style}>{children}</PremiumNebulaBanner>;
   }
 
   return (

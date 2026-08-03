@@ -11,6 +11,7 @@ import Avatar from '@/components/Avatar';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import AnimatedProfileBanner from '@/components/AnimatedProfileBanner';
 import AnimatedAvatarRing from '@/components/AnimatedAvatarRing';
+import PremiumShimmer from '@/components/premium/PremiumShimmer';
 import { BannerTheme } from '@/components/bannerThemes';
 import { useAvatarPreview } from '@/lib/AvatarPreviewContext';
 import { useAppTheme } from '@/lib/ThemeContext';
@@ -233,10 +234,20 @@ export default function UserProfileScreen() {
             </TouchableOpacity>
           </AnimatedAvatarRing>
         </View>
-        <View style={styles.nameRow}>
+        <PremiumShimmer enabled={profile.banner_theme === 'nebula'} style={styles.nameRow} periodMs={7000}>
           <Text style={styles.username}>{profile.display_name ?? 'Unknown'}</Text>
-          {profile.is_verified && <VerifiedBadge size={16} />}
-        </View>
+          {profile.is_verified && (
+            <PremiumShimmer
+              enabled={profile.banner_theme === 'nebula'}
+              pulse
+              periodMs={9400}
+              travelMs={800}
+              peakOpacity={0.45}
+            >
+              <VerifiedBadge size={16} />
+            </PremiumShimmer>
+          )}
+        </PremiumShimmer>
         {profile.username && (
           <Text style={styles.handle}>@{profile.username}</Text>
         )}

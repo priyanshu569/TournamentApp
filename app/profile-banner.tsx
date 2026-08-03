@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '@/lib/supabase';
 import Avatar from '@/components/Avatar';
 import AnimatedProfileBanner from '@/components/AnimatedProfileBanner';
@@ -110,7 +111,20 @@ export default function ProfileBannerScreen() {
         >
           <View style={[styles.optionSwatch, styles[`swatch_${t.key}` as const]]} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.optionLabel}>{t.label}</Text>
+            <View style={styles.optionLabelRow}>
+              <Text style={styles.optionLabel}>{t.label}</Text>
+              {t.premium && (
+                <LinearGradient
+                  colors={['#7FE6FF', '#4DB7FF', '#6C3EFF']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.premiumPill}
+                >
+                  <Ionicons name="diamond" size={9} color="#fff" />
+                  <Text style={styles.premiumPillText}>PREMIUM</Text>
+                </LinearGradient>
+              )}
+            </View>
             <Text style={styles.optionDescription}>{t.description}</Text>
           </View>
           {selected === t.key && <Ionicons name="checkmark-circle" size={22} color={colors.accent} />}
@@ -158,6 +172,13 @@ function getStyles(colors: ThemeColors) {
     swatch_powersurge: { backgroundColor: '#FFB800' },
     swatch_inferno: { backgroundColor: '#FF6B35' },
     swatch_turbo: { backgroundColor: '#2E9BFF' },
+    swatch_nebula: { backgroundColor: '#6C3EFF' },
+    optionLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    premiumPill: {
+      flexDirection: 'row', alignItems: 'center', gap: 3,
+      paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8,
+    },
+    premiumPillText: { color: '#fff', fontSize: 8, fontWeight: '900', letterSpacing: 0.6 },
     optionLabel: { color: colors.textPrimary, fontSize: 15, fontWeight: '700' },
     optionDescription: { color: colors.textTertiary, fontSize: 12, marginTop: 2 },
     saveBtn: {
