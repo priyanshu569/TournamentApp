@@ -19,14 +19,14 @@ type LayerProps = { active: boolean; opacity: number };
 
 export function GradientDrift({ active, opacity }: LayerProps) {
   const t = useLoopValue(active, 0, () =>
-    withRepeat(withTiming(1, { duration: 38000, easing: Easing.inOut(Easing.sin) }), -1, true),
+    withRepeat(withTiming(1, { duration: 15000, easing: Easing.inOut(Easing.sin) }), -1, true),
   );
 
   const style = useAnimatedStyle(() => ({
     transform: [
-      { translateX: -26 + t.value * 52 },
-      { translateY: -16 + t.value * 32 },
-      { scale: 1.4 },
+      { translateX: -55 + t.value * 110 },
+      { translateY: -30 + t.value * 60 },
+      { scale: 1.45 },
     ],
   }));
 
@@ -50,9 +50,9 @@ export function GradientDrift({ active, opacity }: LayerProps) {
 // ============================================================
 
 const CLOUDS = [
-  { size: 260, color: NEBULA.purple, left: '-18%', top: '-30%', dx: 26, dy: 18, dur: 52000, alpha: 0.55, core: 0.42 },
-  { size: 210, color: NEBULA.blue,   left: '58%',  top: '18%',  dx: -22, dy: -20, dur: 61000, alpha: 0.34, core: 0.38 },
-  { size: 180, color: NEBULA.royal,  left: '22%',  top: '52%',  dx: 18, dy: -14, dur: 47000, alpha: 0.60, core: 0.5 },
+  { size: 260, color: NEBULA.purple, left: '-18%', top: '-30%', dx: 70, dy: 46, dur: 19000, alpha: 0.60, core: 0.42 },
+  { size: 210, color: NEBULA.blue,   left: '58%',  top: '18%',  dx: -62, dy: -52, dur: 24000, alpha: 0.40, core: 0.38 },
+  { size: 180, color: NEBULA.royal,  left: '22%',  top: '52%',  dx: 50, dy: -40, dur: 16000, alpha: 0.65, core: 0.5 },
 ];
 
 export function NebulaClouds({ active, opacity }: LayerProps) {
@@ -73,8 +73,8 @@ export function NebulaClouds({ active, opacity }: LayerProps) {
 // ============================================================
 
 const FOG = [
-  { size: 300, color: NEBULA.violet, left: '-25%', top: '10%',  dx: 34, dy: -12, dur: 34000, alpha: 0.20, core: 0.62 },
-  { size: 250, color: NEBULA.cyan,   left: '48%',  top: '-24%', dx: -28, dy: 20, dur: 26000, alpha: 0.14, core: 0.66 },
+  { size: 300, color: NEBULA.violet, left: '-25%', top: '10%',  dx: 92, dy: -34, dur: 14000, alpha: 0.24, core: 0.62 },
+  { size: 250, color: NEBULA.cyan,   left: '48%',  top: '-24%', dx: -78, dy: 56, dur: 11000, alpha: 0.18, core: 0.66 },
 ];
 
 export function CosmicFog({ active, opacity }: LayerProps) {
@@ -104,7 +104,7 @@ function DriftingOrb({
     transform: [
       { translateX: t.value * dx },
       { translateY: t.value * dy },
-      { scale: 0.94 + t.value * 0.14 },
+      { scale: 0.88 + t.value * 0.30 },
     ],
   }));
 
@@ -128,7 +128,7 @@ function DriftingOrb({
 // while the per-frame work stays flat regardless of star count.
 // ============================================================
 
-const STAR_GROUP_DURATIONS = [2600, 3400, 4300, 5200];
+const STAR_GROUP_DURATIONS = [1500, 2100, 2800, 3500];
 
 export function StarField({ active, count }: { active: boolean; count: number }) {
   const stars = useMemo(() => {
@@ -136,10 +136,12 @@ export function StarField({ active, count }: { active: boolean; count: number })
     return Array.from({ length: count }, () => ({
       left: `${rand() * 96}%` as DimensionValue,
       top: `${rand() * 92}%` as DimensionValue,
-      size: rand() < 0.78 ? 1.5 : 2.5,
+      size: rand() < 0.72 ? 1.8 : 3,
       phase: rand(),
-      base: 0.18 + rand() * 0.22,
-      amp: 0.3 + rand() * 0.45,
+      // Low floor + high swing gives each star real contrast between its dim
+      // and bright states -- a narrow band just reads as a static dot.
+      base: 0.1 + rand() * 0.16,
+      amp: 0.42 + rand() * 0.55,
     }));
   }, [count]);
 
@@ -202,10 +204,10 @@ export function GlowParticles({ active, count }: { active: boolean; count: numbe
       color: palette[i % palette.length],
       left: `${4 + rand() * 84}%` as DimensionValue,
       top: `${6 + rand() * 78}%` as DimensionValue,
-      dx: -18 + rand() * 36,
-      dy: -22 + rand() * 30,
-      dur: 9000 + Math.round(rand() * 11000),
-      alpha: 0.28 + rand() * 0.34,
+      dx: -46 + rand() * 92,
+      dy: -54 + rand() * 76,
+      dur: 5000 + Math.round(rand() * 6000),
+      alpha: 0.34 + rand() * 0.4,
     }));
   }, [count]);
 
@@ -255,8 +257,8 @@ export function LightSweep({ active, opacity, width }: LayerProps & { width: num
     withRepeat(
       withSequence(
         withTiming(0, { duration: 0 }),
-        withDelay(5000, withTiming(1, { duration: 2400, easing: Easing.inOut(Easing.quad) })),
-        withDelay(2600, withTiming(1, { duration: 0 })),
+        withDelay(3400, withTiming(1, { duration: 1800, easing: Easing.inOut(Easing.quad) })),
+        withDelay(1200, withTiming(1, { duration: 0 })),
       ),
       -1,
     ),
@@ -297,12 +299,12 @@ export function LightSweep({ active, opacity, width }: LayerProps & { width: num
 
 export function BorderGlow({ active, opacity, borderRadius }: LayerProps & { borderRadius: number }) {
   const t = useLoopValue(active, 0, () =>
-    withRepeat(withTiming(1, { duration: 6400, easing: Easing.inOut(Easing.sin) }), -1, true),
+    withRepeat(withTiming(1, { duration: 3600, easing: Easing.inOut(Easing.sin) }), -1, true),
   );
 
   const style = useAnimatedStyle(() => ({
-    borderColor: interpolateColor(t.value, [0, 1], [NEBULA.purple, NEBULA.blue]),
-    opacity: opacity * (0.55 + t.value * 0.45),
+    borderColor: interpolateColor(t.value, [0, 1], [NEBULA.purple, NEBULA.cyan]),
+    opacity: opacity * (0.4 + t.value * 0.6),
   }));
 
   return (

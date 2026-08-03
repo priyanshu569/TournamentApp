@@ -29,9 +29,9 @@ type IntensityConfig = {
 // Scales density and brightness together. Lower tiers are also the cheap
 // fallback for low-end devices, not just an aesthetic preference.
 export const INTENSITY: Record<Intensity, IntensityConfig> = {
-  subtle:   { starCount: 14, particleCount: 4, cloudOpacity: 0.50, fogOpacity: 0.40, driftOpacity: 0.18, sweepOpacity: 0.05, borderOpacity: 0.35 },
-  balanced: { starCount: 22, particleCount: 6, cloudOpacity: 0.75, fogOpacity: 0.60, driftOpacity: 0.26, sweepOpacity: 0.08, borderOpacity: 0.55 },
-  vivid:    { starCount: 30, particleCount: 8, cloudOpacity: 1.00, fogOpacity: 0.80, driftOpacity: 0.34, sweepOpacity: 0.11, borderOpacity: 0.75 },
+  subtle:   { starCount: 16, particleCount: 5, cloudOpacity: 0.65, fogOpacity: 0.50, driftOpacity: 0.26, sweepOpacity: 0.13, borderOpacity: 0.50 },
+  balanced: { starCount: 26, particleCount: 7, cloudOpacity: 0.90, fogOpacity: 0.72, driftOpacity: 0.38, sweepOpacity: 0.22, borderOpacity: 0.70 },
+  vivid:    { starCount: 34, particleCount: 9, cloudOpacity: 1.00, fogOpacity: 0.90, driftOpacity: 0.50, sweepOpacity: 0.30, borderOpacity: 0.90 },
 };
 
 // Deterministic PRNG so star/particle layouts are stable across re-renders

@@ -13,9 +13,9 @@ type Props = {
 };
 
 const ORBIT_PARTICLES = [
-  { color: NEBULA.cyan,   size: 10, dur: 11000, offset: 0,    radiusPad: 0 },
-  { color: NEBULA.purple, size: 13, dur: 15000, offset: 140,  radiusPad: 5 },
-  { color: NEBULA.blue,   size: 9,  dur: 19000, offset: 255,  radiusPad: -4 },
+  { color: NEBULA.cyan,   size: 12, dur: 6500,  offset: 0,   radiusPad: 0 },
+  { color: NEBULA.purple, size: 15, dur: 9000,  offset: 140, radiusPad: 6 },
+  { color: NEBULA.blue,   size: 11, dur: 12000, offset: 255, radiusPad: -5 },
 ];
 
 // The avatar treatment for the Nebula banner: a breathing halo that blends the
@@ -29,7 +29,7 @@ export default function PremiumAvatarAura({ size, reduceMotion, showParticles = 
   const wrapSize = ringSize + 34;
 
   const rotation = useLoopValue(active, 0, () =>
-    withRepeat(withTiming(360, { duration: 9000, easing: Easing.linear }), -1),
+    withRepeat(withTiming(360, { duration: 5200, easing: Easing.linear }), -1),
   );
   // 4s in, 4s out -- the "glow expands every 4 seconds" beat from the brief.
   const breath = useLoopValue(active, 0, () =>
@@ -42,8 +42,8 @@ export default function PremiumAvatarAura({ size, reduceMotion, showParticles = 
 
   // Capped low on purpose: the halo must never compete with the avatar itself.
   const haloStyle = useAnimatedStyle(() => ({
-    opacity: 0.5 + breath.value * 0.3,
-    transform: [{ scale: 0.95 + breath.value * 0.12 }],
+    opacity: 0.42 + breath.value * 0.48,
+    transform: [{ scale: 0.9 + breath.value * 0.24 }],
   }));
 
   return (
