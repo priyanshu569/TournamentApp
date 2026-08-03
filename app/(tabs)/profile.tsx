@@ -29,6 +29,21 @@ function getGenderMeta(gender: string | null, colors: ThemeColors) {
   return null;
 }
 
+// The Profiles table only stores date_of_birth -- public_profiles computes
+// "age" for other viewers (gated by age_public). Your own profile has no
+// age column to read, so it's computed here the same way, but always shown
+// regardless of age_public, since that toggle only controls what others see.
+function computeAge(dateOfBirth: string): number {
+  const birth = new Date(dateOfBirth);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const hadBirthdayThisYear =
+    today.getMonth() > birth.getMonth() ||
+    (today.getMonth() === birth.getMonth() && today.getDate() >= birth.getDate());
+  if (!hadBirthdayThisYear) age--;
+  return age;
+}
+
 type MenuAction = {
   key: string;
   icon: keyof typeof Ionicons.glyphMap;
@@ -170,6 +185,7 @@ export default function ProfileScreen() {
   const canBecomeHost = !isHost && profile?.host_status !== 'pending' && !isAdmin;
   const genderMeta = getGenderMeta(profile?.gender, colors);
   const location = [profile?.city, profile?.state].filter(Boolean).join(', ');
+  const age = profile?.date_of_birth ? computeAge(profile.date_of_birth) : null;
   const isPremiumBanner = PREMIUM_THEMES.includes(profile?.banner_theme);
   // Molten gold reads as heat on Dragon's Wrath; white would look like glare.
   const shimmerColor = profile?.banner_theme === 'dragonwrath' ? '#FFB43D' : '#FFFFFF';
@@ -257,7 +273,7 @@ export default function ProfileScreen() {
         </PremiumShimmer>
         {profile?.username && <Text style={styles.handle}>@{profile.username}</Text>}
 
-        {(genderMeta || location || profile?.age) && (
+        {(genderMeta || location || age !== null) && (
           <View style={styles.infoRow}>
             {genderMeta && (
               <View style={styles.infoChip}>
@@ -270,9 +286,9 @@ export default function ProfileScreen() {
                 <Text style={styles.infoChipText}>{location}</Text>
               </View>
             )}
-            {!!profile?.age && (
+            {age !== null && (
               <View style={styles.infoChip}>
-                <Text style={styles.infoChipText}>{profile.age} yrs</Text>
+                <Text style={styles.infoChipText}>{age} yrs</Text>
               </View>
             )}
           </View>
