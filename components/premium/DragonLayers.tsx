@@ -5,7 +5,7 @@ import Animated, {
   useAnimatedStyle, SharedValue, withRepeat, withSequence, withDelay, withTiming, Easing,
 } from 'react-native-reanimated';
 import SoftOrb from './SoftOrb';
-import { Flame, ObsidianCracks, DragonFace, FACE_EYES, FACE_ASPECT, DragonWing, DragonTail, DragonScales, DragonSilhouette } from './DragonShapes';
+import { Flame, ObsidianCracks } from './DragonShapes';
 import { useLoopValue } from './useAnimationGate';
 import { DRAGON } from './dragonTokens';
 import { seededRandom as seededDragonRandom } from './premiumTokens';
@@ -390,132 +390,19 @@ function Spark({
 }
 
 // ============================================================
-// The dragon.
-// Never fully shown. Parts surface on long, mutually-offset cycles so the
-// viewer assembles one enormous creature from glimpses instead of ever
-// seeing it whole. Sits BENEATH smoke in the stack, which is what makes it
-// read as being behind the world rather than pasted on top.
+// The roar: the whole volcano surges. Driven entirely by the shared `roar`
+// value so every layer -- lava glow, flame height, border colour -- spikes
+// on exactly the same frame.
 // ============================================================
 
-export function DragonPresence({ active, eyes, width, height }: { active: boolean; eyes: SharedValue<number>; width: number; height: number }) {
-  // Sized to fit the card without cropping the horns, then centred. This is a
-  // permanent backdrop rather than a timed reveal -- the face is the world the
-  // banner sits in, and only its eyes come and go.
-  const faceWidth = Math.min(width * 0.68, height * 1.15);
-  const faceHeight = faceWidth * FACE_ASPECT;
-  const faceLeft = (width - faceWidth) / 2;
-  const faceTop = (height - faceHeight) / 2;
-
-  const loom = useLoopValue(active, 0, () =>
-    withRepeat(withTiming(1, { duration: 9000, easing: Easing.inOut(Easing.sin) }), -1, true),
-  );
-
-  // Kept deliberately dim: the face should be something you notice on the
-  // second look, not a portrait competing with the avatar.
-  const faceStyle = useAnimatedStyle(() => ({
-    opacity: 0.2 + loom.value * 0.14,
-    transform: [{ scale: 0.99 + loom.value * 0.03 }],
-  }));
-
-  const eyeGlowStyle = useAnimatedStyle(() => ({
-    opacity: eyes.value,
-    transform: [{ scale: 0.8 + eyes.value * 0.5 }],
-  }));
-
-  const glowSize = faceWidth * 0.22;
+export function RoarBloom({ roar, peak }: { roar: SharedValue<number>; peak: number }) {
+  const bloomStyle = useAnimatedStyle(() => ({ opacity: roar.value * 0.5 * peak }));
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <Animated.View
-        style={[faceStyle, { position: 'absolute', left: faceLeft, top: faceTop }]}
-        pointerEvents="none"
-      >
-        <DragonFace width={faceWidth} />
-      </Animated.View>
-
-      {/* Sockets light up on the shared `eyes` beat. Positioned from the
-          face's own eye fractions so they stay aligned at any size. */}
-      {FACE_EYES.map((e, i) => (
-        <Animated.View
-          key={i}
-          style={[
-            eyeGlowStyle,
-            {
-              position: 'absolute',
-              left: faceLeft + faceWidth * e.x - glowSize / 2,
-              top: faceTop + faceHeight * e.y - glowSize / 2,
-            },
-          ]}
-          pointerEvents="none"
-        >
-          <SoftOrb size={glowSize} color={DRAGON.lava} opacity={0.95} core={0.3} />
-        </Animated.View>
-      ))}
-
-      <RevealedPart active={active} delay={11000} hold={2600} gap={21000} peak={0.42}
-        style={{ position: 'absolute', right: '-14%', top: '2%' }}>
-        <DragonWing width={width * 0.62} />
-      </RevealedPart>
-
-      <RevealedPart active={active} delay={17000} hold={2200} gap={17000} peak={0.4}
-        style={{ position: 'absolute', left: '-10%', bottom: '4%' }}>
-        <DragonTail width={width * 0.58} />
-      </RevealedPart>
-
-      <RevealedPart active={active} delay={7000} hold={3000} gap={23000} peak={0.3}
-        style={{ position: 'absolute', right: '4%', bottom: '18%' }}>
-        <DragonScales width={width * 0.34} />
-      </RevealedPart>
-    </View>
-  );
-}
-
-function RevealedPart({
-  active, delay, hold, gap, peak, style, children,
-}: {
-  active: boolean; delay: number; hold: number; gap: number; peak: number;
-  style: object; children: React.ReactNode;
-}) {
-  const t = useLoopValue(active, 0, () =>
-    withDelay(
-      delay,
-      withRepeat(
-        withSequence(
-          withTiming(0, { duration: 0 }),
-          withTiming(1, { duration: 1800, easing: Easing.out(Easing.cubic) }),
-          withDelay(hold, withTiming(0, { duration: 2200, easing: Easing.in(Easing.cubic) })),
-          withDelay(gap, withTiming(0, { duration: 0 })),
-        ),
-        -1,
-      ),
-    ),
-  );
-
-  const anim = useAnimatedStyle(() => ({
-    opacity: t.value * peak,
-    transform: [{ scale: 0.97 + t.value * 0.05 }],
-  }));
-
-  return <Animated.View style={[style, anim]} pointerEvents="none">{children}</Animated.View>;
-}
-
-// The roar: silhouette surfaces, everything blooms. Driven entirely by the
-// shared `roar` value so all layers spike on exactly the same frame.
-export function RoarFlash({ roar, width, peak }: { roar: SharedValue<number>; width: number; peak: number }) {
-  const bloomStyle = useAnimatedStyle(() => ({ opacity: roar.value * 0.38 * peak }));
-
-  const silStyle = useAnimatedStyle(() => ({
-    opacity: roar.value * 0.62 * peak,
-    transform: [{ scale: 1.02 + roar.value * 0.08 }],
-  }));
-
-  return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <Animated.View style={[{ position: 'absolute', left: '4%', top: '8%' }, silStyle]}>
-        <DragonSilhouette width={width * 0.92} />
-      </Animated.View>
-      <Animated.View style={[StyleSheet.absoluteFill, bloomStyle, { backgroundColor: DRAGON.molten }]} />
-    </View>
+    <Animated.View
+      style={[StyleSheet.absoluteFill, bloomStyle, { backgroundColor: DRAGON.molten }]}
+      pointerEvents="none"
+    />
   );
 }
 

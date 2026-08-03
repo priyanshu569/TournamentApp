@@ -6,7 +6,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import {
   LavaFlow, FlameField, HeatHaze, EmberField, SmokeVeil, SparkBursts,
-  DragonPresence, RoarFlash, DragonBreath,
+  RoarBloom, DragonBreath,
 } from './DragonLayers';
 import { useAnimationGate, useLoopValue } from './useAnimationGate';
 import { DRAGON, DragonIntensity, resolveDragonConfig } from './dragonTokens';
@@ -24,17 +24,17 @@ export type DragonWrathBannerProps = {
 
 // "Dragon's Wrath" -- the top-tier profile cosmetic.
 //
-// Draw order (far -> near). The dragon sits UNDER the smoke and fire, which
-// is what sells it as existing behind the volcanic world rather than on top:
+// A living volcano: molten lava beneath cracked obsidian, fire, heat, smoke
+// and embers. The dragon is present only as its fire, never as a creature.
 //
-//   base -> lava + obsidian cracks -> dragon presence -> dragon breath
-//   -> smoke -> flames -> heat haze -> embers -> sparks -> roar -> border
+// Draw order (far -> near):
+//   base -> lava + obsidian cracks -> dragon breath -> smoke -> flames
+//   -> heat haze -> embers -> sparks -> roar bloom -> border
 //
-// Three global beats are owned here rather than by the layers, so every
-// layer spikes on the same frame:
-//   eyes   ~11s   slow open, ~2s hold, slow fade
-//   breath ~14s   fire sweeps behind the avatar
-//   roar   ~26s   silhouette + full bloom, the "wow" beat
+// Two global beats are owned here rather than by the layers, so every layer
+// spikes on the same frame:
+//   breath ~14s   fire sweeps diagonally behind the avatar
+//   roar   ~26s   the whole volcano surges, the "wow" beat
 export default function DragonWrathBanner({
   isPremium = true,
   intensity = 'balanced',
@@ -54,17 +54,6 @@ export default function DragonWrathBanner({
   const height = size.height || 160;
 
   // ---- global beats ----
-  const eyes = useLoopValue(active, 0, () =>
-    withRepeat(
-      withSequence(
-        withTiming(0, { duration: 0 }),
-        withDelay(7000, withTiming(1, { duration: 1300, easing: Easing.out(Easing.cubic) })),
-        withDelay(2000, withTiming(0, { duration: 1500, easing: Easing.in(Easing.cubic) })),
-      ),
-      -1,
-    ),
-  );
-
   const breath = useLoopValue(active, 0, () =>
     withRepeat(
       withSequence(
@@ -88,11 +77,6 @@ export default function DragonWrathBanner({
       -1,
     ),
   );
-
-  // Whole-card warm-up during the roar, applied over everything but the border.
-  const roarWashStyle = useAnimatedStyle(() => ({
-    opacity: roar.value * 0.22 * cfg.roarPeak,
-  }));
 
   // Forged-metal border: gold at rest, white-hot at the roar peak.
   const forgedBorder = useLoopValue(active, 0, () =>
@@ -127,7 +111,6 @@ export default function DragonWrathBanner({
 
       <LavaFlow active={active} roar={roar} width={width} height={height} crackGlow={cfg.crackGlow} />
 
-      <DragonPresence active={active} eyes={eyes} width={width} height={height} />
       <DragonBreath breath={breath} width={width} height={height} />
 
       <SmokeVeil active={active} count={cfg.smokeCount} opacity={cfg.smokeOpacity} />
@@ -136,8 +119,7 @@ export default function DragonWrathBanner({
       <EmberField active={active} count={cfg.emberCount} height={height} />
       <SparkBursts active={active} count={cfg.sparkCount} height={height} />
 
-      <RoarFlash roar={roar} width={width} peak={cfg.roarPeak} />
-      <Animated.View style={[StyleSheet.absoluteFill, roarWashStyle, { backgroundColor: DRAGON.burnt }]} pointerEvents="none" />
+      <RoarBloom roar={roar} peak={cfg.roarPeak} />
 
       <Animated.View
         style={[StyleSheet.absoluteFill, borderStyle, { borderRadius, borderWidth: 1.5 }]}
