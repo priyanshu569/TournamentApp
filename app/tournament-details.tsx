@@ -199,6 +199,33 @@ export default function TournamentDetails() {
       );
       return;
     }
+
+    // Completing a tournament immediately announces "final results" to every
+    // confirmed player. A match can have kills but no placement if it was
+    // only ever scored through live-scoreboard.tsx before placement entry
+    // was added there, or if a host quit before hitting "Finish" -- catching
+    // that here, not just fixing the entry screens, since old incomplete
+    // rows can still exist and this is the last point before results go out.
+    if (s === 'completed') {
+      const hasNoResults = matchResults.length === 0;
+      const hasMissingPlacements = matchResults.some((r: any) => r.placement === null || r.placement === undefined);
+
+      if (hasNoResults || hasMissingPlacements) {
+        Alert.alert(
+          hasNoResults ? 'No Results Entered' : 'Results Look Incomplete',
+          hasNoResults
+            ? 'No match results have been entered yet. Marking this tournament complete now announces final results to every confirmed player with nothing to show.'
+            : "Some recorded results are missing a placement (only kills were saved) -- this will understate their points in the standings. Enter the missing placements first?",
+          [
+            { text: 'Enter Results', onPress: () => router.push(`/enter-results?tournament_id=${tournament.id}`) },
+            { text: 'Mark Complete Anyway', style: 'destructive', onPress: () => applyStatusUpdate(s) },
+            { text: 'Cancel', style: 'cancel' },
+          ]
+        );
+        return;
+      }
+    }
+
     applyStatusUpdate(s);
   };
 

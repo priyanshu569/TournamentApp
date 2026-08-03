@@ -169,13 +169,35 @@ if (tournamentData?.max_teams && (registeredCount ?? 0) >= tournamentData.max_te
       );
     } else {
       // Free tournament — confirm immediately via server-side RPC
-      // (registrations.status can no longer be set directly by clients)
-      const { error: confirmError } = await supabase.rpc('confirm_free_registration', {
+      // (registrations.status can no longer be set directly by clients).
+      // One retry: the RPC is safe to call again on a still-pending row (it
+      // only rejects if status has already moved on), and a transient
+      // network drop is the realistic failure mode here -- there's no "retry
+      // confirmation" action anywhere else in the app (History only offers
+      // Cancel), so silently failing would strand the player on a pending
+      // registration with no way back in short of cancelling and redoing
+      // the whole team form.
+      let { error: confirmError } = await supabase.rpc('confirm_free_registration', {
         p_registration_id: reg.id,
       });
 
       if (confirmError) {
-        console.log('Failed to auto-confirm free registration:', confirmError.message);
+        ({ error: confirmError } = await supabase.rpc('confirm_free_registration', {
+          p_registration_id: reg.id,
+        }));
+      }
+
+      if (confirmError) {
+        setLoading(false);
+        // Team + squad are already saved -- only confirmation failed, so
+        // don't claim success. Tell the truth about the only way forward:
+        // cancel and re-register, since there's no separate retry action.
+        Alert.alert(
+          'Team Saved, Confirmation Failed',
+          `${teamName} was created, but confirming your registration failed: ${confirmError.message}\n\nYou can cancel this registration from My Registrations and register again, or contact support if it keeps happening.`,
+          [{ text: 'OK', onPress: () => router.push('/') }]
+        );
+        return;
       }
 
       try {

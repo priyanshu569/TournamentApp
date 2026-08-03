@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, StyleSheet, ActivityIndicator,
+  View, Text, StyleSheet, ActivityIndicator, TextInput,
   TouchableOpacity, Alert, ScrollView, RefreshControl
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -23,6 +23,7 @@ type RosterTeam = {
 };
 
 type MatchTeamState = {
+  placement: string;
   benchedMemberId: string | null;
   kills: Record<string, number>;
 };
@@ -111,6 +112,19 @@ export default function LiveScoreboard() {
       .eq('match_number', matchNumber)
       .in('team_id', teamIds);
 
+    // Placement lives on match_results, not player_match_results -- without
+    // this, a match scored only through this screen would have kills but no
+    // placement, and get_tournament_standings() silently scores it as 0
+    // placement points (coalesce on a NULL lookup), understating -- possibly
+    // wrongly deciding -- the standings.
+    const { data: placements } = await supabase
+      .from('match_results')
+      .select('team_id, placement')
+      .eq('tournament_id', tournament_id)
+      .eq('match_number', matchNumber)
+      .in('team_id', teamIds);
+
+    const placementMap = new Map((placements ?? []).map((r) => [r.team_id, r.placement]));
     const rows = existing ?? [];
     const nextState: Record<string, MatchTeamState> = {};
 
@@ -134,7 +148,12 @@ export default function LiveScoreboard() {
         kills[m.team_member_id] = row?.kills ?? 0;
       }
 
-      nextState[team.team_id] = { benchedMemberId, kills };
+      const placement = placementMap.get(team.team_id);
+      nextState[team.team_id] = {
+        placement: placement != null ? String(placement) : '',
+        benchedMemberId,
+        kills,
+      };
     }
 
     setMatchState(nextState);
@@ -148,6 +167,32 @@ export default function LiveScoreboard() {
       if (m.team_member_id === state.benchedMemberId) return sum;
       return sum + (state.kills[m.team_member_id] ?? 0);
     }, 0);
+  }
+
+  function updatePlacementLocal(teamId: string, value: string) {
+    setMatchState((prev) => ({
+      ...prev,
+      [teamId]: { ...prev[teamId], placement: value },
+    }));
+  }
+
+  // Persists on blur rather than per keystroke -- kills use tap-to-persist
+  // because each tap is already a discrete, meaningful event, but firing a
+  // write on every digit typed into a text field would just spam requests.
+  async function savePlacement(teamId: string) {
+    const team = roster.find((t) => t.team_id === teamId);
+    const raw = matchState[teamId]?.placement ?? '';
+    const parsed = parseInt(raw, 10);
+    if (!team || !raw.trim() || isNaN(parsed)) return;
+
+    const { error } = await supabase
+      .from('match_results')
+      .upsert(
+        { tournament_id: tournament_id, team_id: teamId, match_number: selectedMatch, placement: parsed, kills: teamTotalKills(team) },
+        { onConflict: 'tournament_id,team_id,match_number' }
+      );
+
+    if (error) Alert.alert('Error', error.message);
   }
 
   async function setBenched(teamId: string, memberId: string) {
@@ -262,7 +307,7 @@ export default function LiveScoreboard() {
       </View>
 
       <Text style={styles.heading}>{tournament?.title}</Text>
-      <Text style={styles.sub}>Tap +/- to update each player's kills in real time</Text>
+      <Text style={styles.sub}>Enter placement and tap +/- for kills — both save instantly</Text>
 
       {matchCount > 1 && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.matchRow} contentContainerStyle={{ paddingHorizontal: 24 }}>
@@ -303,6 +348,19 @@ export default function LiveScoreboard() {
                     <View style={styles.totalKillsBadge}>
                       <Text style={styles.totalKillsText}>{teamTotalKills(team)}</Text>
                     </View>
+                  </View>
+
+                  <View style={styles.placementGroup}>
+                    <Text style={styles.inputLabel}>Placement</Text>
+                    <TextInput
+                      style={styles.placementInput}
+                      placeholder="e.g. 1"
+                      placeholderTextColor={colors.textDisabled}
+                      keyboardType="number-pad"
+                      value={state.placement}
+                      onChangeText={(v) => updatePlacementLocal(team.team_id, v)}
+                      onEndEditing={() => savePlacement(team.team_id)}
+                    />
                   </View>
 
                   {hasSub && (
@@ -436,6 +494,13 @@ function getStyles(colors: ThemeColors) {
       paddingVertical: 4, borderRadius: 20, borderWidth: 1, borderColor: colors.accent,
     },
     totalKillsText: { color: colors.accent, fontSize: 13, fontWeight: '800' },
+    placementGroup: { marginBottom: 12 },
+    inputLabel: { color: colors.textSecondary, fontSize: 12, marginBottom: 6, fontWeight: '600' },
+    placementInput: {
+      backgroundColor: colors.background, color: colors.textPrimary, borderRadius: 8,
+      paddingHorizontal: 12, paddingVertical: 10, fontSize: 15,
+      borderWidth: 1, borderColor: colors.border, width: 100,
+    },
     benchRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
     benchChip: {
       paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16,
