@@ -26,7 +26,13 @@ export default function MoltenAvatarRing({ size, reduceMotion, lowPerformance, c
 
   const ringSize = size + 12;
   const orbitRadius = ringSize / 2 + 7;
-  const wrapSize = ringSize + 36;
+  // Visual diameter of the glow/burst -- unchanged from the original design.
+  const haloSize = ringSize + 36;
+  // The box reserved in the surrounding layout. Pinned to match Classic
+  // (size + 6) so banner cards -- which hug their content, no fixed height
+  // -- come out the same height across every theme. The glow still renders
+  // at its full visual size; it just overflows this smaller box.
+  const layoutSize = size + 6;
 
   const flow = useLoopValue(active, 0, () =>
     withRepeat(withTiming(360, { duration: 6200, easing: Easing.linear }), -1),
@@ -61,13 +67,13 @@ export default function MoltenAvatarRing({ size, reduceMotion, lowPerformance, c
   }));
 
   return (
-    <View style={{ width: wrapSize, height: wrapSize, justifyContent: 'center', alignItems: 'center' }}>
+    <View style={{ width: layoutSize, height: layoutSize, justifyContent: 'center', alignItems: 'center' }}>
       <Animated.View style={[glowStyle, { position: 'absolute' }]} pointerEvents="none">
-        <SoftOrb size={wrapSize} color={DRAGON.molten} opacity={0.62} core={0.42} />
+        <SoftOrb size={haloSize} color={DRAGON.molten} opacity={0.62} core={0.42} />
       </Animated.View>
 
       <Animated.View style={[burstStyle, { position: 'absolute' }]} pointerEvents="none">
-        <SoftOrb size={wrapSize + 10} color={DRAGON.gold} opacity={0.5} core={0.3} />
+        <SoftOrb size={haloSize + 10} color={DRAGON.gold} opacity={0.5} core={0.3} />
       </Animated.View>
 
       {/* Molten flow inside the ring -- a rotating gradient clipped to a

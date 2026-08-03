@@ -59,17 +59,25 @@ export default function AnimatedAvatarRing({ theme, size, children }: Props) {
   }
 
   const ringSize = size + 10;
-  const wrapSize = ringSize + 16;
+  // Visual diameter of the glow -- unchanged from the original design.
+  const glowSize = ringSize + 16;
+  // The box actually reserved in the surrounding layout. Pinned to match
+  // Classic (size + 6) so every theme's avatar occupies the same space and
+  // banner cards -- which have no fixed height, they hug their content --
+  // come out the same height regardless of theme. The glow above still
+  // renders at its full visual size; it just overflows this smaller box
+  // rather than growing it.
+  const layoutSize = size + 6;
   const gradientColors = RING_GRADIENTS[theme];
 
   return (
-    <View style={{ width: wrapSize, height: wrapSize, justifyContent: 'center', alignItems: 'center' }}>
+    <View style={{ width: layoutSize, height: layoutSize, justifyContent: 'center', alignItems: 'center' }}>
       <Animated.View
         pointerEvents="none"
         style={[
           glowAnimStyle,
           {
-            position: 'absolute', width: wrapSize, height: wrapSize, borderRadius: wrapSize / 2,
+            position: 'absolute', width: glowSize, height: glowSize, borderRadius: glowSize / 2,
             backgroundColor: gradientColors[0],
           },
         ]}

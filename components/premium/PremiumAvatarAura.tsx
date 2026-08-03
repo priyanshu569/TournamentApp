@@ -26,7 +26,13 @@ export default function PremiumAvatarAura({ size, reduceMotion, showParticles = 
 
   const ringSize = size + 10;
   const orbitRadius = ringSize / 2 + 6;
-  const wrapSize = ringSize + 34;
+  // Visual diameter of the halo -- unchanged from the original design.
+  const haloSize = ringSize + 34;
+  // The box reserved in the surrounding layout. Pinned to match Classic
+  // (size + 6) so banner cards -- which hug their content, no fixed height
+  // -- come out the same height across every theme. The halo still renders
+  // at its full visual size; it just overflows this smaller box.
+  const layoutSize = size + 6;
 
   const rotation = useLoopValue(active, 0, () =>
     withRepeat(withTiming(360, { duration: 5200, easing: Easing.linear }), -1),
@@ -47,9 +53,9 @@ export default function PremiumAvatarAura({ size, reduceMotion, showParticles = 
   }));
 
   return (
-    <View style={{ width: wrapSize, height: wrapSize, justifyContent: 'center', alignItems: 'center' }}>
+    <View style={{ width: layoutSize, height: layoutSize, justifyContent: 'center', alignItems: 'center' }}>
       <Animated.View style={[haloStyle, { position: 'absolute' }]} pointerEvents="none">
-        <SoftOrb size={wrapSize} color={NEBULA.purple} opacity={0.5} core={0.44} />
+        <SoftOrb size={haloSize} color={NEBULA.purple} opacity={0.5} core={0.44} />
       </Animated.View>
 
       <Animated.View
