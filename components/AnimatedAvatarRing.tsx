@@ -2,8 +2,9 @@ import { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withTiming, Easing } from 'react-native-reanimated';
-import { BannerTheme, RING_GRADIENTS, RING_ROTATE_MS } from './bannerThemes';
+import { BannerTheme, RING_GRADIENTS, RING_ROTATE_MS, PREMIUM_THEMES } from './bannerThemes';
 import PremiumAvatarAura from './premium/PremiumAvatarAura';
+import MoltenAvatarRing from './premium/MoltenAvatarRing';
 import { useAppTheme } from '@/lib/ThemeContext';
 
 type Props = {
@@ -22,10 +23,10 @@ export default function AnimatedAvatarRing({ theme, size, children }: Props) {
   const pulse = useSharedValue(0);
 
   useEffect(() => {
-    // 'nebula' renders PremiumAvatarAura instead, which drives its own
+    // Premium themes render their own avatar treatment, which drives its own
     // animations -- starting these too would burn UI-thread work on values
     // nothing reads.
-    if (!theme || theme === 'nebula') return;
+    if (!theme || PREMIUM_THEMES.includes(theme)) return;
     rotation.value = 0;
     rotation.value = withRepeat(withTiming(360, { duration: RING_ROTATE_MS[theme], easing: Easing.linear }), -1);
     pulse.value = withRepeat(withTiming(1, { duration: 1400, easing: Easing.inOut(Easing.sin) }), -1, true);
@@ -51,6 +52,10 @@ export default function AnimatedAvatarRing({ theme, size, children }: Props) {
   // Premium themes ship their own avatar treatment (halo + orbiting particles).
   if (theme === 'nebula') {
     return <PremiumAvatarAura size={size}>{children}</PremiumAvatarAura>;
+  }
+
+  if (theme === 'dragonwrath') {
+    return <MoltenAvatarRing size={size}>{children}</MoltenAvatarRing>;
   }
 
   const ringSize = size + 10;

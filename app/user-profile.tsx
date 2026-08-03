@@ -12,7 +12,7 @@ import VerifiedBadge from '@/components/VerifiedBadge';
 import AnimatedProfileBanner from '@/components/AnimatedProfileBanner';
 import AnimatedAvatarRing from '@/components/AnimatedAvatarRing';
 import PremiumShimmer from '@/components/premium/PremiumShimmer';
-import { BannerTheme } from '@/components/bannerThemes';
+import { BannerTheme, PREMIUM_THEMES } from '@/components/bannerThemes';
 import { useAvatarPreview } from '@/lib/AvatarPreviewContext';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
@@ -208,6 +208,9 @@ export default function UserProfileScreen() {
   const canSeeLists = !listsPrivate || isOwnProfile || isAdmin;
   const genderMeta = getGenderMeta(profile.gender, colors);
   const location = [profile.city, profile.state].filter(Boolean).join(', ');
+  const isPremiumBanner = PREMIUM_THEMES.includes(profile.banner_theme);
+  // Molten gold reads as heat on Dragon's Wrath; white would look like glare.
+  const shimmerColor = profile.banner_theme === 'dragonwrath' ? '#FFB43D' : '#FFFFFF';
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -234,11 +237,17 @@ export default function UserProfileScreen() {
             </TouchableOpacity>
           </AnimatedAvatarRing>
         </View>
-        <PremiumShimmer enabled={profile.banner_theme === 'nebula'} style={styles.nameRow} periodMs={7000}>
+        <PremiumShimmer
+          enabled={isPremiumBanner}
+          color={shimmerColor}
+          style={styles.nameRow}
+          periodMs={7000}
+        >
           <Text style={styles.username}>{profile.display_name ?? 'Unknown'}</Text>
           {profile.is_verified && (
             <PremiumShimmer
-              enabled={profile.banner_theme === 'nebula'}
+              enabled={isPremiumBanner}
+              color={shimmerColor}
               pulse
               periodMs={9400}
               travelMs={800}

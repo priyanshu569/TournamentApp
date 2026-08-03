@@ -173,6 +173,7 @@ function getStyles(colors: ThemeColors) {
     swatch_inferno: { backgroundColor: '#FF6B35' },
     swatch_turbo: { backgroundColor: '#2E9BFF' },
     swatch_nebula: { backgroundColor: '#6C3EFF' },
+    swatch_dragonwrath: { backgroundColor: '#FF7A18' },
     optionLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     premiumPill: {
       flexDirection: 'row', alignItems: 'center', gap: 3,

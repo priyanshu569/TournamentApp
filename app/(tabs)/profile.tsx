@@ -12,7 +12,7 @@ import Avatar from '@/components/Avatar';
 import AnimatedProfileBanner from '@/components/AnimatedProfileBanner';
 import AnimatedAvatarRing from '@/components/AnimatedAvatarRing';
 import PremiumShimmer from '@/components/premium/PremiumShimmer';
-import { BannerTheme } from '@/components/bannerThemes';
+import { BannerTheme, PREMIUM_THEMES } from '@/components/bannerThemes';
 import { useTabNavigation } from '@/lib/tabNavigation';
 import { isEffectivelyHost } from '@/lib/effectiveRole';
 import { useAppTheme } from '@/lib/ThemeContext';
@@ -211,7 +211,12 @@ export default function ProfileScreen() {
           <Avatar avatarId={profile?.avatar_id} avatarUrl={profile?.avatar_url} username={profile?.display_name} size={72} />
         </AnimatedAvatarRing>
         <View style={[styles.profileInfo, { marginLeft: 16 }]}>
-          <PremiumShimmer enabled={profile?.banner_theme === 'nebula'} style={styles.nameRow} periodMs={7000}>
+          <PremiumShimmer
+            enabled={PREMIUM_THEMES.includes(profile?.banner_theme)}
+            color={profile?.banner_theme === 'dragonwrath' ? '#FFB43D' : '#FFFFFF'}
+            style={styles.nameRow}
+            periodMs={7000}
+          >
             <Text style={styles.username}>{profile?.display_name ?? 'Unknown'}</Text>
           </PremiumShimmer>
           {profile?.username && <Text style={styles.handle}>@{profile.username}</Text>}

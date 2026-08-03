@@ -7,6 +7,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { BannerTheme, BASE_GRADIENTS } from './bannerThemes';
 import PremiumNebulaBanner from './premium/PremiumNebulaBanner';
+import DragonWrathBanner from './premium/DragonWrathBanner';
 
 type Props = {
   theme: BannerTheme | null;
@@ -28,6 +29,10 @@ export default function AnimatedProfileBanner({ theme, classicColors, style, chi
   // shared base gradient below.
   if (theme === 'nebula') {
     return <PremiumNebulaBanner style={style}>{children}</PremiumNebulaBanner>;
+  }
+
+  if (theme === 'dragonwrath') {
+    return <DragonWrathBanner style={style}>{children}</DragonWrathBanner>;
   }
 
   return (

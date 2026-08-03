@@ -15,6 +15,9 @@ type Props = {
   /** False renders children untouched, so non-premium themes can share the
    *  same call site without a second JSX branch. */
   enabled?: boolean;
+  /** Colour of the reflection. Defaults to white (Nebula); Dragon's Wrath
+   *  passes a molten orange/gold. */
+  color?: string;
   reduceMotion?: boolean;
   style?: StyleProp<ViewStyle>;
   children: React.ReactNode;
@@ -24,7 +27,8 @@ type Props = {
 // light reflection across it. The text itself is never animated -- only the
 // highlight moves, which is what keeps it feeling expensive rather than busy.
 export default function PremiumShimmer({
-  periodMs = 6000, travelMs = 1100, peakOpacity = 0.28, pulse, enabled = true, reduceMotion, style, children,
+  periodMs = 6000, travelMs = 1100, peakOpacity = 0.28, pulse, enabled = true,
+  color = '#FFFFFF', reduceMotion, style, children,
 }: Props) {
   const { active: gateActive } = useAnimationGate(reduceMotion);
   const active = gateActive && enabled;
@@ -71,7 +75,7 @@ export default function PremiumShimmer({
           pointerEvents="none"
         >
           <LinearGradient
-            colors={['transparent', '#FFFFFF', 'transparent']}
+            colors={['transparent', color, 'transparent']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={StyleSheet.absoluteFill}
