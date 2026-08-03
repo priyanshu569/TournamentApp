@@ -70,65 +70,6 @@ export function LavaFlow({ active, roar }: Base) {
 }
 
 // ============================================================
-// Layer 2 -- Fire. A continuous burn along the bottom edge rather than
-// separate flame silhouettes: several overlapping gradient sheets, each with
-// its own flicker rate, delay and horizontal drift, so the blend between
-// them reads as one living fire instead of individual outlines.
-// ============================================================
-
-const FIRE_BANDS = [
-  { colors: [DRAGON.emberCore, DRAGON.molten, DRAGON.deepRed, 'transparent'], heightFrac: 1,    dur: 850,  delay: 0,   drift: 10, alpha: 1 },
-  { colors: [DRAGON.lava, DRAGON.burnt, DRAGON.crimson, 'transparent'],       heightFrac: 0.78, dur: 1150, delay: 260, drift: -14, alpha: 0.7 },
-  { colors: [DRAGON.molten, DRAGON.deepRed, 'transparent'],                  heightFrac: 0.6,  dur: 640,  delay: 480, drift: 8,  alpha: 0.5 },
-] as const;
-
-export function FlameField({ active, roar, opacity, height }: Base & { opacity: number; height: number }) {
-  const bandHeight = Math.max(50, height * 0.5);
-
-  return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      {FIRE_BANDS.map((b, i) => (
-        <FireBand key={i} {...b} height={bandHeight * b.heightFrac} active={active} roar={roar} layerOpacity={opacity} />
-      ))}
-    </View>
-  );
-}
-
-function FireBand({
-  colors, height, dur, delay, drift, alpha, active, roar, layerOpacity,
-}: {
-  colors: readonly string[]; height: number; dur: number; delay: number; drift: number; alpha: number;
-  active: boolean; roar: SharedValue<number>; layerOpacity: number;
-}) {
-  const t = useLoopValue(active, 0, () =>
-    withDelay(delay, withRepeat(withTiming(1, { duration: dur, easing: Easing.inOut(Easing.sin) }), -1, true)),
-  );
-
-  const style = useAnimatedStyle(() => ({
-    opacity: layerOpacity * alpha * (0.6 + t.value * 0.4),
-    transform: [
-      { translateX: -drift / 2 + t.value * drift },
-      { scaleY: 0.85 + t.value * 0.25 + roar.value * 0.35 },
-    ],
-  }));
-
-  return (
-    <Animated.View
-      style={[style, { position: 'absolute', left: 0, right: 0, bottom: 0, height, transformOrigin: 'bottom' }]}
-      pointerEvents="none"
-    >
-      <LinearGradient
-        colors={colors as [string, string, ...string[]]}
-        locations={colors.length === 4 ? [0, 0.25, 0.6, 1] : [0, 0.5, 1]}
-        start={{ x: 0.5, y: 1 }}
-        end={{ x: 0.5, y: 0 }}
-        style={StyleSheet.absoluteFill}
-      />
-    </Animated.View>
-  );
-}
-
-// ============================================================
 // Layer 3 -- Heat haze.
 // HONEST LIMITATION: real heat distortion is a refraction shader (Skia).
 // Without it there is nothing to refract, so this approximates the read of

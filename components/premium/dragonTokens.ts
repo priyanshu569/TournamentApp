@@ -24,16 +24,15 @@ type DragonConfig = {
   emberCount: number;
   sparkCount: number;
   smokeCount: number;
-  flameOpacity: number;
   smokeOpacity: number;
   roarPeak: number;
   showHeatHaze: boolean;
 };
 
 export const DRAGON_INTENSITY: Record<DragonIntensity, DragonConfig> = {
-  subtle:   { emberCount: 10, sparkCount: 3, smokeCount: 2, flameOpacity: 0.65, smokeOpacity: 0.35, roarPeak: 0.5, showHeatHaze: true },
-  balanced: { emberCount: 16, sparkCount: 5, smokeCount: 3, flameOpacity: 0.85, smokeOpacity: 0.5,  roarPeak: 0.75, showHeatHaze: true },
-  vivid:    { emberCount: 24, sparkCount: 7, smokeCount: 4, flameOpacity: 1.0,  smokeOpacity: 0.65, roarPeak: 1.0, showHeatHaze: true },
+  subtle:   { emberCount: 10, sparkCount: 3, smokeCount: 2, smokeOpacity: 0.35, roarPeak: 0.5, showHeatHaze: true },
+  balanced: { emberCount: 16, sparkCount: 5, smokeCount: 3, smokeOpacity: 0.5,  roarPeak: 0.75, showHeatHaze: true },
+  vivid:    { emberCount: 24, sparkCount: 7, smokeCount: 4, smokeOpacity: 0.65, roarPeak: 1.0, showHeatHaze: true },
 };
 
 // Applied on top of the chosen intensity. Drops the two most expensive layers

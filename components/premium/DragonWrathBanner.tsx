@@ -5,7 +5,7 @@ import Animated, {
   useAnimatedStyle, withRepeat, withSequence, withDelay, withTiming, Easing, interpolateColor,
 } from 'react-native-reanimated';
 import {
-  LavaFlow, FlameField, HeatHaze, EmberField, SmokeVeil, SparkBursts,
+  LavaFlow, HeatHaze, EmberField, SmokeVeil, SparkBursts,
   RoarBloom, DragonBreath,
 } from './DragonLayers';
 import { useAnimationGate, useLoopValue } from './useAnimationGate';
@@ -28,8 +28,8 @@ export type DragonWrathBannerProps = {
 // and embers. The dragon is present only as its fire, never as a creature.
 //
 // Draw order (far -> near):
-//   base -> lava under obsidian -> dragon breath -> smoke -> continuous fire
-//   -> heat haze -> embers -> sparks -> roar bloom -> border
+//   base -> lava under obsidian -> dragon breath -> smoke -> heat haze
+//   -> embers -> sparks -> roar bloom -> border
 //
 // Two global beats are owned here rather than by the layers, so every layer
 // spikes on the same frame:
@@ -114,7 +114,6 @@ export default function DragonWrathBanner({
       <DragonBreath breath={breath} width={width} height={height} />
 
       <SmokeVeil active={active} count={cfg.smokeCount} opacity={cfg.smokeOpacity} />
-      <FlameField active={active} roar={roar} opacity={cfg.flameOpacity} height={height} />
       {cfg.showHeatHaze && !motionOff && <HeatHaze active={active} width={width} />}
       <EmberField active={active} count={cfg.emberCount} height={height} />
       <SparkBursts active={active} count={cfg.sparkCount} height={height} />
