@@ -1,34 +1,21 @@
-import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
+import { resizeAndCompress, RawImage } from './chatImage';
 import { supabase } from './supabase';
 
-// Returns the new public banner URL, or null if the user cancelled/denied permission.
-export async function pickAndUploadBanner(userId: string): Promise<string | null> {
-  const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!permission.granted) {
-    throw new Error('Photo library permission is required to set a banner image.');
-  }
-
-  const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ['images'],
-    allowsEditing: true,
-    // Matches how the banner actually gets displayed: an exact match for
-    // the home screen's compact card (220x90 = 22:9) and close to the
-    // events list card's typical width/130 ratio too. 16:9 was noticeably
-    // taller than either, so `contentFit: 'cover'` was silently cropping
-    // the top/bottom of whatever the user composed in this crop step.
-    aspect: [22, 9],
-    quality: 0.7,
-    base64: true,
-  });
-
-  if (result.canceled || !result.assets[0].base64) return null;
+// Takes an already-cropped image (from ImageCropPreview, locked to the 22:9
+// banner ratio -- see create-tournament.tsx/edit-tournament.tsx) rather than
+// driving the native picker itself. The native picker's own crop step was
+// dropped entirely: on iOS, expo-image-picker's `allowsEditing` crop is
+// always a square and ignores `aspect` (Android-only per Expo's docs), so
+// there was no way to get a real wide-banner crop out of it.
+export async function uploadBanner(userId: string, image: RawImage): Promise<string> {
+  const { base64 } = await resizeAndCompress(image.uri, image.width, image.height);
 
   const path = `${userId}/${Date.now()}.jpg`;
 
   const { error: uploadError } = await supabase.storage
     .from('tournament-banners')
-    .upload(path, decode(result.assets[0].base64), { contentType: 'image/jpeg' });
+    .upload(path, decode(base64), { contentType: 'image/jpeg' });
 
   if (uploadError) throw uploadError;
 

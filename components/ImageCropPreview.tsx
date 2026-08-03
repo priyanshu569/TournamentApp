@@ -37,6 +37,10 @@ type Props = {
   image: RawImage | null;
   onCancel: () => void;
   onConfirm: (image: RawImage) => void;
+  /** Locks the crop to a single ratio (width/height) and hides the ratio
+   *  chips -- for callers with one required output shape (e.g. a banner)
+   *  rather than the free choice chat images offer. */
+  fixedRatio?: number;
 };
 
 // Instagram-style crop: the image pans/zooms freely under a FIXED frame
@@ -48,7 +52,7 @@ type Props = {
 // raw on-screen pixel offsets, matching how the pan/crop math below is
 // derived -- reversing that order would mean translate gets scaled too,
 // throwing off both the clamp bounds and the final crop rect.
-export default function ImageCropPreview({ visible, image, onCancel, onConfirm }: Props) {
+export default function ImageCropPreview({ visible, image, onCancel, onConfirm, fixedRatio }: Props) {
   const { colors } = useAppTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
   const [activeRatioKey, setActiveRatioKey] = useState('original');
@@ -84,7 +88,7 @@ export default function ImageCropPreview({ visible, image, onCancel, onConfirm }
 
   if (!image) return null;
 
-  const ratio = ratioValue(activeRatioKey, image);
+  const ratio = fixedRatio ?? ratioValue(activeRatioKey, image);
   let frameWidth = FRAME_MAX_WIDTH;
   let frameHeight = frameWidth / ratio;
   if (frameHeight > FRAME_MAX_HEIGHT) {
@@ -170,22 +174,24 @@ export default function ImageCropPreview({ visible, image, onCancel, onConfirm }
             </View>
             <Text style={styles.dragHint}>Pinch to zoom, drag to reposition</Text>
 
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.ratioRow}
-              style={styles.ratioScroll}
-            >
-              {RATIOS.map((r) => (
-                <TouchableOpacity
-                  key={r.key}
-                  style={[styles.ratioChip, activeRatioKey === r.key && styles.ratioChipActive]}
-                  onPress={() => setActiveRatioKey(r.key)}
-                >
-                  <Text style={[styles.ratioChipText, activeRatioKey === r.key && styles.ratioChipTextActive]}>{r.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+            {fixedRatio === undefined && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.ratioRow}
+                style={styles.ratioScroll}
+              >
+                {RATIOS.map((r) => (
+                  <TouchableOpacity
+                    key={r.key}
+                    style={[styles.ratioChip, activeRatioKey === r.key && styles.ratioChipActive]}
+                    onPress={() => setActiveRatioKey(r.key)}
+                  >
+                    <Text style={[styles.ratioChipText, activeRatioKey === r.key && styles.ratioChipTextActive]}>{r.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
 
             <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirm} disabled={processing}>
               {processing

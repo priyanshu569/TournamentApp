@@ -7,8 +7,12 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
-import { pickAndUploadBanner } from '@/lib/bannerUpload';
+import { uploadBanner } from '@/lib/bannerUpload';
+import { pickRawChatImage, RawImage } from '@/lib/chatImage';
+import ImageCropPreview from '@/components/ImageCropPreview';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
+
+const BANNER_RATIO = 22 / 9;
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 
@@ -42,6 +46,7 @@ export default function CreateTournament() {
   const [killPoint, setKillPoint] = useState(String(DEFAULT_KILL_POINT));
   const [bannerUrl, setBannerUrl] = useState<string | null>(null);
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [rawBannerImage, setRawBannerImage] = useState<RawImage | null>(null);
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [showPicker, setShowPicker] = useState(false);
   const [form, setForm] = useState({
@@ -76,10 +81,19 @@ export default function CreateTournament() {
       return;
     }
 
+    const image = await pickRawChatImage('library');
+    if (image) setRawBannerImage(image);
+  };
+
+  const handleBannerCropConfirm = async (cropped: RawImage) => {
+    setRawBannerImage(null);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
     setUploadingBanner(true);
     try {
-      const url = await pickAndUploadBanner(user.id);
-      if (url) setBannerUrl(url);
+      const url = await uploadBanner(user.id, cropped);
+      setBannerUrl(url);
     } catch (err: any) {
       Alert.alert('Error', err.message ?? 'Failed to upload banner.');
     } finally {
@@ -412,6 +426,14 @@ export default function CreateTournament() {
           setShowPicker(false);
         }}
         onCancel={() => setShowPicker(false)}
+      />
+
+      <ImageCropPreview
+        visible={!!rawBannerImage}
+        image={rawBannerImage}
+        fixedRatio={BANNER_RATIO}
+        onCancel={() => setRawBannerImage(null)}
+        onConfirm={handleBannerCropConfirm}
       />
 
       {/* Status */}
