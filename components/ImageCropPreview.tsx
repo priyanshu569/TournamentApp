@@ -225,6 +225,17 @@ function getStyles(colors: ThemeColors) {
     frame: {
       borderRadius: 14, overflow: 'hidden', backgroundColor: colors.surfaceAlt,
       borderWidth: 1, borderColor: colors.border,
+      // Every crop calculation below (pan clamp, pinch clamp, and the final
+      // crop rect in handleConfirm) assumes the image sits centered in this
+      // frame at rest. Without this, RN's default flex layout anchors a
+      // fixed-size child top-left instead -- the live preview still panned
+      // correctly, but the saved crop was computed against the wrong
+      // reference point, so it grabbed a different region than what was
+      // actually framed on screen. Most visible on source images whose
+      // aspect ratio is far from the target frame (e.g. a tall portrait
+      // screenshot into a wide 22:9 banner), where the top-left/center gap
+      // is largest.
+      justifyContent: 'center', alignItems: 'center',
     },
     dragHint: { color: colors.textFaint, fontSize: 11, fontWeight: '600', marginTop: 8 },
     ratioScroll: { marginTop: 14, width: '100%' },
