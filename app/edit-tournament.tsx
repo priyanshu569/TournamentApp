@@ -172,7 +172,67 @@ export default function EditTournament() {
       kill_point: parseFloat(killPoint) || 0,
     };
 
+    // Reducing match_count below results that already exist for higher match
+    // numbers would strand that data: enter-results.tsx and live-scoreboard.tsx
+    // only ever render tabs 1..match_count, so those rows become permanently
+    // inaccessible through the app -- while still silently counting toward
+    // standings and the leaderboard forever, since neither aggregation query
+    // filters by the tournament's current match_count.
+    const { count: orphanedCount } = await supabase
+      .from('match_results')
+      .select('id', { count: 'exact', head: true })
+      .eq('tournament_id', id)
+      .gt('match_number', parsedMatchCount);
+
+    if ((orphanedCount ?? 0) > 0) {
+      Alert.alert(
+        'Results Exist for Removed Matches',
+        `Results were already entered for match ${parsedMatchCount + 1} and beyond. Reducing the match count to ${parsedMatchCount} would hide them from Enter Results and Live Scoreboard, but they'd still silently count in standings -- with no way left to view or fix them.\n\nRemove those results too, or keep the higher match count?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Remove Extra Results & Save', style: 'destructive', onPress: () => performSave(parsedMatchCount, pointRules, true) },
+        ]
+      );
+      return;
+    }
+
+    performSave(parsedMatchCount, pointRules, false);
+  }
+
+  async function performSave(parsedMatchCount: number, pointRules: { placement: number[]; kill_point: number }, cleanupOrphans: boolean) {
     setSaving(true);
+
+    if (cleanupOrphans) {
+      // Only the per-match result rows for the removed matches -- team_members
+      // (roster/squad data) is untouched.
+      const { error: cleanupError } = await supabase
+        .from('match_results')
+        .delete()
+        .eq('tournament_id', id)
+        .gt('match_number', parsedMatchCount);
+
+      if (cleanupError) {
+        setSaving(false);
+        Alert.alert('Error', cleanupError.message);
+        return;
+      }
+
+      const { error: playerCleanupError } = await supabase
+        .from('player_match_results')
+        .delete()
+        .eq('tournament_id', id)
+        .gt('match_number', parsedMatchCount);
+
+      // Not fatal to the save if this half fails: get_leaderboard() inner-joins
+      // match_results to player_match_results, so a leftover player_match_results
+      // row with no matching match_results row (already deleted above) is just
+      // silently excluded from scoring, not double-counted or miscounted --
+      // still worth surfacing so it doesn't linger as dead data indefinitely.
+      if (playerCleanupError) {
+        console.log('player_match_results cleanup failed:', playerCleanupError.message);
+      }
+    }
+
     const { error } = await supabase
       .from('tournaments')
       .update({
