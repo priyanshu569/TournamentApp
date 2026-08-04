@@ -21,6 +21,19 @@ async function hmacSha256Hex(secret: string, message: string): Promise<string> {
   return Array.from(new Uint8Array(signature)).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+// Plain `===` on a secret comparison leaks timing info (bails on the first
+// mismatched character) -- constant-time by always comparing every byte,
+// standard practice for verifying HMACs regardless of how practical the
+// attack is over a real network.
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -75,7 +88,7 @@ Deno.serve(async (req) => {
     const keySecret = Deno.env.get('RAZORPAY_KEY_SECRET')!;
     const expectedSignature = await hmacSha256Hex(keySecret, `${razorpay_order_id}|${razorpay_payment_id}`);
 
-    if (expectedSignature !== razorpay_signature) {
+    if (!timingSafeEqual(expectedSignature, razorpay_signature)) {
       console.error('Razorpay signature mismatch for registration', registration_id);
       return json({ error: 'Payment verification failed' }, 400);
     }

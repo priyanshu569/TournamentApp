@@ -26,6 +26,8 @@ export default function TournamentDetails() {
   const [isRegistered, setIsRegistered] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [registrationId, setRegistrationId] = useState<string | null>(null);
+  const [registrationTeamId, setRegistrationTeamId] = useState<string | null>(null);
+  const [resumingPayment, setResumingPayment] = useState(false);
   const [showRoomForm, setShowRoomForm] = useState(false);
   const [roomCode, setRoomCode] = useState('');
   const [roomPassword, setRoomPassword] = useState('');
@@ -103,7 +105,7 @@ export default function TournamentDetails() {
 
       const { data: reg } = await supabase
         .from('registrations')
-        .select('id, status')
+        .select('id, status, team_id')
         .eq('tournament_id', id)
         .eq('player_id', userData.user.id)
         .order('created_at', { ascending: false })
@@ -114,6 +116,7 @@ export default function TournamentDetails() {
         setIsRegistered(true);
         setIsConfirmed(reg.status === 'confirmed');
         setRegistrationId(reg.id);
+        setRegistrationTeamId(reg.team_id);
       }
     }
 
@@ -249,6 +252,37 @@ export default function TournamentDetails() {
     } else {
       Alert.alert('Error', error.message);
     }
+  }
+
+  // Pending registrations previously had no way back except Cancel + redo
+  // the whole team form -- and since registrations are now unique per
+  // player per tournament, someone who abandons Razorpay mid-checkout could
+  // no longer even create a fresh registration to try again. Covers both
+  // ways a registration gets stuck pending: payment never completed (paid
+  // tournaments), or confirm_free_registration failed at creation time
+  // (free tournaments, same root cause fixed with a retry in create-team.tsx).
+  async function handleResumeRegistration() {
+    if (!registrationId) return;
+
+    const fee = Number(tournament?.entry_fee) || 0;
+    if (fee > 0) {
+      router.push(`/payment?amount=${fee}&tournament_id=${tournament.id}&team_id=${registrationTeamId ?? ''}&registration_id=${registrationId}`);
+      return;
+    }
+
+    setResumingPayment(true);
+    const { error } = await supabase.rpc('confirm_free_registration', {
+      p_registration_id: registrationId,
+    });
+    setResumingPayment(false);
+
+    if (error) {
+      Alert.alert('Still Failing', `Confirmation failed again: ${error.message}\n\nTry cancelling and registering again, or contact support.`);
+      return;
+    }
+
+    setIsConfirmed(true);
+    Alert.alert('Confirmed! 🎉', "You're in — good luck!");
   }
 
   function confirmCancelRegistration() {
@@ -696,6 +730,23 @@ export default function TournamentDetails() {
               </View>
             );
           })()}
+
+          {!isConfirmed && (
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: gameColor, marginBottom: 10 }]}
+              onPress={handleResumeRegistration}
+              disabled={resumingPayment}
+            >
+              {resumingPayment
+                ? <ActivityIndicator color="#fff" />
+                : (
+                  <Text style={styles.actionButtonText}>
+                    {Number(tournament?.entry_fee) > 0 ? `Complete Payment ₹${tournament.entry_fee} →` : 'Retry Confirmation'}
+                  </Text>
+                )
+              }
+            </TouchableOpacity>
+          )}
 
           {!isConfirmed && (
             <TouchableOpacity
