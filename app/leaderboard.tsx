@@ -99,7 +99,7 @@ export default function Leaderboard() {
           ))}
         </ScrollView>
         <LinearGradient
-          colors={['#0a0a0a00', '#0a0a0a']}
+          colors={[colors.background + '00', colors.background]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.gameRowFade}
