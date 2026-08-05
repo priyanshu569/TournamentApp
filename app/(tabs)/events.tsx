@@ -367,16 +367,16 @@ export default function EventsScreen() {
 
                 <View style={styles.cardStats}>
                   <View style={[styles.statChip, { backgroundColor: '#FFB80014' }]}>
-                    <Ionicons name="cash" size={14} color={colors.warning} />
+                    <Ionicons name="logo-bitcoin" size={14} color={colors.warning} />
                     <View>
-                      <Text style={[styles.statChipValue, { color: colors.warning }]}>₹{item.prize_pool}</Text>
+                      <Text style={[styles.statChipValue, { color: colors.warning }]}>🪙{item.prize_pool}</Text>
                       <Text style={styles.statChipLabel}>PRIZE</Text>
                     </View>
                   </View>
                   <View style={[styles.statChip, { backgroundColor: '#00D4AA14' }]}>
                     <Ionicons name="ticket" size={14} color={colors.success} />
                     <View>
-                      <Text style={[styles.statChipValue, { color: colors.success }]}>₹{item.entry_fee}</Text>
+                      <Text style={[styles.statChipValue, { color: colors.success }]}>FREE</Text>
                       <Text style={styles.statChipLabel}>ENTRY</Text>
                     </View>
                   </View>

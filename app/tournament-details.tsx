@@ -249,6 +249,23 @@ export default function TournamentDetails() {
       if (statusMessages[s]) {
         notifyConfirmedPlayers('Tournament Update', statusMessages[s], s === 'completed' ? 'results' : 'tournament_updates');
       }
+
+      // Coins pay out automatically the moment a tournament goes completed --
+      // that's the checkpoint we already made sure has real results behind
+      // it (the incomplete-results warning above). The RPC itself guards
+      // against running twice and against tournaments with no coin_rules set.
+      if (s === 'completed') {
+        const { error: distributeError } = await supabase.rpc('distribute_tournament_prizes', {
+          p_tournament_id: tournament.id,
+        });
+
+        if (distributeError && !distributeError.message.includes('No prize coin rules set')) {
+          Alert.alert(
+            'Prizes Not Distributed',
+            `The tournament was marked complete, but FragCoins couldn't be paid out: ${distributeError.message}`
+          );
+        }
+      }
     } else {
       Alert.alert('Error', error.message);
     }
@@ -340,8 +357,8 @@ export default function TournamentDetails() {
       const message =
         `🏆 ${tournament.title}\n\n` +
         `🎮 ${tournament.game}\n` +
-        `💰 Prize Pool: ₹${tournament.prize_pool}\n` +
-        `🎯 Entry Fee: ₹${tournament.entry_fee}\n\n` +
+        `🪙 Prize Pool: ${tournament.prize_pool} FragCoins\n` +
+        `🎯 Entry Fee: FREE\n\n` +
         `Join on Fragify 👉 ${getDeepLink()}`;
 
       await Share.share({ message, title: tournament.title });
@@ -470,11 +487,11 @@ export default function TournamentDetails() {
       {/* Stats */}
       <View style={styles.statsRow}>
         <View style={[styles.statBox, { borderTopColor: gameColor }]}>
-          <Text style={styles.statValue}>₹{tournament.entry_fee}</Text>
+          <Text style={styles.statValue}>FREE</Text>
           <Text style={styles.statLabel}>Entry Fee</Text>
         </View>
         <View style={[styles.statBox, { borderTopColor: gameColor }]}>
-          <Text style={styles.statValue}>₹{tournament.prize_pool}</Text>
+          <Text style={styles.statValue}>🪙{tournament.prize_pool}</Text>
           <Text style={styles.statLabel}>Prize Pool</Text>
         </View>
         <View style={[styles.statBox, { borderTopColor: gameColor }]}>

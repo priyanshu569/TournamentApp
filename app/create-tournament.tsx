@@ -27,6 +27,11 @@ const LOBBY_TYPES: { value: 'mini' | 'mega'; label: string; defaultMatchCount: n
 ];
 const DEFAULT_PLACEMENT_POINTS = [12, 9, 8, 7, 6, 5, 4, 3, 2, 1];
 const DEFAULT_KILL_POINT = 1;
+// No sensible default the way points have one -- a prize amount should
+// always be a deliberate host decision, so this starts empty rather than
+// pre-filled with made-up numbers that could pass as "the standard". Top 5
+// placements; a blank/zero entry just means no coins for that rank.
+const EMPTY_PLACEMENT_COINS = ['', '', '', '', ''];
 
 export default function CreateTournament() {
   const router = useRouter();
@@ -43,6 +48,7 @@ export default function CreateTournament() {
     DEFAULT_PLACEMENT_POINTS.map(String)
   );
   const [killPoint, setKillPoint] = useState(String(DEFAULT_KILL_POINT));
+  const [placementCoins, setPlacementCoins] = useState<string[]>(EMPTY_PLACEMENT_COINS);
   const [bannerUrl, setBannerUrl] = useState<string | null>(null);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [rawBannerImage, setRawBannerImage] = useState<RawImage | null>(null);
@@ -50,7 +56,6 @@ export default function CreateTournament() {
   const [showPicker, setShowPicker] = useState(false);
   const [form, setForm] = useState({
     title: '',
-    entry_fee: '',
     prize_pool: '',
     max_teams: '12',
     description: '',
@@ -108,6 +113,14 @@ export default function CreateTournament() {
     });
   };
 
+  const updatePlacementCoin = (rankIndex: number, value: string) => {
+    setPlacementCoins((prev) => {
+      const next = [...prev];
+      next[rankIndex] = value;
+      return next;
+    });
+  };
+
   const handleSubmit = async () => {
     if (!form.title || !selectedGame || !form.max_teams) {
       Alert.alert('Missing Fields', 'Please fill in Title, Game, and Max Teams.');
@@ -130,6 +143,8 @@ export default function CreateTournament() {
       kill_point: parseFloat(killPoint) || 0,
     };
 
+    const coinRules = { placement: placementCoins.map((c) => parseInt(c, 10) || 0) };
+
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -142,7 +157,10 @@ export default function CreateTournament() {
     const { error } = await supabase.from('tournaments').insert({
       title: form.title,
       game: selectedGame,
-      entry_fee: parseFloat(form.entry_fee) || 0,
+      // Entry fees are off for now -- kept as a real 0 rather than removing
+      // the column, since the whole payment path underneath is still intact
+      // and just needs entry_fee > 0 to re-activate later.
+      entry_fee: 0,
       prize_pool: parseFloat(form.prize_pool) || 0,
       max_teams: parseInt(form.max_teams),
       status: selectedStatus,
@@ -154,6 +172,7 @@ export default function CreateTournament() {
       lobby_type: category === 'scrim' ? lobbyType : null,
       match_count: parsedMatchCount,
       point_rules: pointRules,
+      coin_rules: coinRules,
       banner_url: bannerUrl,
     });
 
@@ -334,22 +353,17 @@ export default function CreateTournament() {
         />
       </View>
 
-      {/* Entry Fee */}
+      {/* Entry Fee -- off for now, no input, just a plain notice */}
       <View style={styles.fieldGroup}>
-        <Text style={styles.label}>Entry Fee (₹)</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="0"
-          placeholderTextColor={colors.textDisabled}
-          keyboardType="numeric"
-          value={form.entry_fee}
-          onChangeText={(val) => setForm(prev => ({ ...prev, entry_fee: val }))}
-        />
+        <Text style={styles.label}>Entry Fee</Text>
+        <View style={styles.freeNotice}>
+          <Text style={styles.freeNoticeText}>🎟 FREE — entry fees aren't enabled yet</Text>
+        </View>
       </View>
 
       {/* Prize Pool */}
       <View style={styles.fieldGroup}>
-        <Text style={styles.label}>Prize Pool (₹)</Text>
+        <Text style={styles.label}>Prize Pool (🪙 FragCoins)</Text>
         <TextInput
           style={styles.input}
           placeholder="0"
@@ -358,6 +372,29 @@ export default function CreateTournament() {
           value={form.prize_pool}
           onChangeText={(val) => setForm(prev => ({ ...prev, prize_pool: val }))}
         />
+      </View>
+
+      {/* Prize Coins per Placement */}
+      <View style={styles.fieldGroup}>
+        <Text style={styles.label}>Prize Coins per Placement</Text>
+        <Text style={styles.scoringDefaultText}>
+          How the prize pool actually pays out — leave a placement blank for no prize at that rank. Should roughly add up to the Prize Pool above.
+        </Text>
+        <View style={styles.pointsGrid}>
+          {placementCoins.map((value, i) => (
+            <View key={i} style={styles.pointBox}>
+              <Text style={styles.pointBoxLabel}>#{i + 1}</Text>
+              <TextInput
+                style={styles.pointBoxInput}
+                keyboardType="numeric"
+                placeholder="0"
+                placeholderTextColor={colors.textDisabled}
+                value={value}
+                onChangeText={(v) => updatePlacementCoin(i, v)}
+              />
+            </View>
+          ))}
+        </View>
       </View>
 
       {/* Max Teams */}
@@ -489,6 +526,11 @@ function getStyles(colors: ThemeColors) {
       alignItems: 'center', marginBottom: 8,
     },
     customizeLink: { color: colors.accent, fontSize: 12, fontWeight: '700' },
+    freeNotice: {
+      backgroundColor: colors.success + '22', borderRadius: 10, padding: 14,
+      borderWidth: 1, borderColor: colors.success + '55',
+    },
+    freeNoticeText: { color: colors.success, fontSize: 13, fontWeight: '600' },
     scoringDefaultText: {
       color: colors.textMuted, fontSize: 12, lineHeight: 18,
       backgroundColor: colors.surfaceAlt, borderRadius: 10, padding: 12,

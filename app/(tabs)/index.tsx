@@ -165,7 +165,7 @@ export default function HomeScreen() {
             <Text style={styles.compactMeta}>🗓 {formatDate(item.start_time)}</Text>
           )}
           {variant === 'prize' && (
-            <Text style={styles.compactPrize}>₹{item.prize_pool} PRIZE</Text>
+            <Text style={styles.compactPrize}>🪙{item.prize_pool} PRIZE</Text>
           )}
           {variant === 'live' && (
             <View style={styles.liveBadge}>

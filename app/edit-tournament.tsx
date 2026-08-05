@@ -26,6 +26,7 @@ const LOBBY_TYPES: { value: 'mini' | 'mega'; label: string; defaultMatchCount: n
 ];
 const DEFAULT_PLACEMENT_POINTS = [12, 9, 8, 7, 6, 5, 4, 3, 2, 1];
 const DEFAULT_KILL_POINT = 1;
+const EMPTY_PLACEMENT_COINS = ['', '', '', '', ''];
 
 export default function EditTournament() {
   const { id } = useLocalSearchParams();
@@ -43,6 +44,7 @@ export default function EditTournament() {
     DEFAULT_PLACEMENT_POINTS.map(String)
   );
   const [killPoint, setKillPoint] = useState(String(DEFAULT_KILL_POINT));
+  const [placementCoins, setPlacementCoins] = useState<string[]>(EMPTY_PLACEMENT_COINS);
   const [bannerUrl, setBannerUrl] = useState<string | null>(null);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [rawBannerImage, setRawBannerImage] = useState<RawImage | null>(null);
@@ -50,7 +52,6 @@ export default function EditTournament() {
     title: '',
     description: '',
     rules: '',
-    entry_fee: '',
     prize_pool: '',
     max_teams: '',
   });
@@ -109,6 +110,14 @@ export default function EditTournament() {
     });
   };
 
+  const updatePlacementCoin = (rankIndex: number, value: string) => {
+    setPlacementCoins((prev) => {
+      const next = [...prev];
+      next[rankIndex] = value;
+      return next;
+    });
+  };
+
   async function fetchTournament() {
     const { data, error } = await supabase
       .from('tournaments')
@@ -126,7 +135,6 @@ export default function EditTournament() {
       title: data.title ?? '',
       description: data.description ?? '',
       rules: data.rules ?? '',
-      entry_fee: String(data.entry_fee ?? 0),
       prize_pool: String(data.prize_pool ?? 0),
       max_teams: String(data.max_teams ?? 12),
     });
@@ -143,6 +151,12 @@ export default function EditTournament() {
       JSON.stringify(placement) !== JSON.stringify(DEFAULT_PLACEMENT_POINTS) ||
       (rules.kill_point ?? DEFAULT_KILL_POINT) !== DEFAULT_KILL_POINT;
     setCustomizePoints(isCustom);
+
+    const coinRules = data.coin_rules ?? {};
+    const coinPlacement = Array.isArray(coinRules.placement) ? coinRules.placement : [];
+    setPlacementCoins(
+      EMPTY_PLACEMENT_COINS.map((_, i) => (coinPlacement[i] != null ? String(coinPlacement[i]) : ''))
+    );
 
     setBannerUrl(data.banner_url ?? null);
 
@@ -172,6 +186,8 @@ export default function EditTournament() {
       kill_point: parseFloat(killPoint) || 0,
     };
 
+    const coinRules = { placement: placementCoins.map((c) => parseInt(c, 10) || 0) };
+
     // Reducing match_count below results that already exist for higher match
     // numbers would strand that data: enter-results.tsx and live-scoreboard.tsx
     // only ever render tabs 1..match_count, so those rows become permanently
@@ -190,16 +206,21 @@ export default function EditTournament() {
         `Results were already entered for match ${parsedMatchCount + 1} and beyond. Reducing the match count to ${parsedMatchCount} would hide them from Enter Results and Live Scoreboard, but they'd still silently count in standings -- with no way left to view or fix them.\n\nRemove those results too, or keep the higher match count?`,
         [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Remove Extra Results & Save', style: 'destructive', onPress: () => performSave(parsedMatchCount, pointRules, true) },
+          { text: 'Remove Extra Results & Save', style: 'destructive', onPress: () => performSave(parsedMatchCount, pointRules, coinRules, true) },
         ]
       );
       return;
     }
 
-    performSave(parsedMatchCount, pointRules, false);
+    performSave(parsedMatchCount, pointRules, coinRules, false);
   }
 
-  async function performSave(parsedMatchCount: number, pointRules: { placement: number[]; kill_point: number }, cleanupOrphans: boolean) {
+  async function performSave(
+    parsedMatchCount: number,
+    pointRules: { placement: number[]; kill_point: number },
+    coinRules: { placement: number[] },
+    cleanupOrphans: boolean
+  ) {
     setSaving(true);
 
     if (cleanupOrphans) {
@@ -239,7 +260,6 @@ export default function EditTournament() {
         title: form.title.trim(),
         description: form.description.trim() || null,
         rules: form.rules.trim() || null,
-        entry_fee: parseFloat(form.entry_fee) || 0,
         prize_pool: parseFloat(form.prize_pool) || 0,
         max_teams: parseInt(form.max_teams) || 12,
         start_time: startTime ? startTime.toISOString() : null,
@@ -247,6 +267,7 @@ export default function EditTournament() {
         lobby_type: category === 'scrim' ? lobbyType : null,
         match_count: parsedMatchCount,
         point_rules: pointRules,
+        coin_rules: coinRules,
         banner_url: bannerUrl,
       })
       .eq('id', id);
@@ -425,19 +446,14 @@ export default function EditTournament() {
         </View>
 
         <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Entry Fee (₹)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="0"
-            placeholderTextColor={colors.textDisabled}
-            keyboardType="numeric"
-            value={form.entry_fee}
-            onChangeText={(val) => setForm(prev => ({ ...prev, entry_fee: val }))}
-          />
+          <Text style={styles.label}>Entry Fee</Text>
+          <View style={styles.freeNotice}>
+            <Text style={styles.freeNoticeText}>🎟 FREE — entry fees aren't enabled yet</Text>
+          </View>
         </View>
 
         <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Prize Pool (₹)</Text>
+          <Text style={styles.label}>Prize Pool (🪙 FragCoins)</Text>
           <TextInput
             style={styles.input}
             placeholder="0"
@@ -446,6 +462,28 @@ export default function EditTournament() {
             value={form.prize_pool}
             onChangeText={(val) => setForm(prev => ({ ...prev, prize_pool: val }))}
           />
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Prize Coins per Placement</Text>
+          <Text style={styles.scoringDefaultText}>
+            How the prize pool actually pays out — leave a placement blank for no prize at that rank. Should roughly add up to the Prize Pool above.
+          </Text>
+          <View style={styles.pointsGrid}>
+            {placementCoins.map((value, i) => (
+              <View key={i} style={styles.pointBox}>
+                <Text style={styles.pointBoxLabel}>#{i + 1}</Text>
+                <TextInput
+                  style={styles.pointBoxInput}
+                  keyboardType="numeric"
+                  placeholder="0"
+                  placeholderTextColor={colors.textDisabled}
+                  value={value}
+                  onChangeText={(v) => updatePlacementCoin(i, v)}
+                />
+              </View>
+            ))}
+          </View>
         </View>
 
         <View style={styles.fieldGroup}>
@@ -551,6 +589,11 @@ function getStyles(colors: ThemeColors) {
       alignItems: 'center', marginBottom: 8,
     },
     customizeLink: { color: colors.accent, fontSize: 12, fontWeight: '700' },
+    freeNotice: {
+      backgroundColor: colors.success + '22', borderRadius: 10, padding: 14,
+      borderWidth: 1, borderColor: colors.success + '55',
+    },
+    freeNoticeText: { color: colors.success, fontSize: 13, fontWeight: '600' },
     scoringDefaultText: {
       color: colors.textMuted, fontSize: 12, lineHeight: 18,
       backgroundColor: colors.surfaceAlt, borderRadius: 10, padding: 12,

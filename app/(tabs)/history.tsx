@@ -183,7 +183,7 @@ export default function HistoryScreen() {
               </View>
               <View style={styles.cardMetaRow}>
                 <Ionicons name="cash-outline" size={13} color={colors.textTertiary} />
-                <Text style={styles.cardSub}>Entry Fee: ₹{item.tournaments?.entry_fee ?? 0}</Text>
+                <Text style={styles.cardSub}>Entry Fee: FREE</Text>
               </View>
 
               {item.status === 'pending' && (
@@ -242,8 +242,8 @@ export default function HistoryScreen() {
                 <Text style={styles.cardSub}>{item.game}</Text>
               </View>
               <View style={styles.cardMetaRow}>
-                <Ionicons name="cash-outline" size={13} color={colors.textTertiary} />
-                <Text style={styles.cardSub}>Prize Pool: ₹{item.prize_pool}</Text>
+                <Ionicons name="logo-bitcoin" size={13} color={colors.textTertiary} />
+                <Text style={styles.cardSub}>Prize Pool: 🪙{item.prize_pool}</Text>
               </View>
               <View style={styles.cardMetaRow}>
                 <Ionicons name="people-outline" size={13} color={colors.textTertiary} />
