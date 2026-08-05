@@ -6,6 +6,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
+import { pickAndUploadRewardImage } from '@/lib/rewardImageUpload';
 import FragCoin from '@/components/FragCoin';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
@@ -31,6 +32,7 @@ export default function AdminRewardsScreen() {
 
   const [draft, setDraft] = useState<typeof EMPTY_DRAFT | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => { load(); }, []);
 
@@ -56,6 +58,21 @@ export default function AdminRewardsScreen() {
 
   function openCreate() {
     setDraft({ ...EMPTY_DRAFT });
+  }
+
+  async function handlePickImage() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    setUploadingImage(true);
+    try {
+      const url = await pickAndUploadRewardImage(user.id);
+      if (url) setDraft((prev) => prev && { ...prev, image_url: url });
+    } catch (err: any) {
+      Alert.alert('Error', err.message ?? 'Failed to upload image.');
+    } finally {
+      setUploadingImage(false);
+    }
   }
 
   function openEdit(reward: any) {
@@ -219,15 +236,24 @@ export default function AdminRewardsScreen() {
               onChangeText={(v) => setDraft((prev) => prev && { ...prev, description: v })}
               multiline
             />
-            <Text style={styles.inputLabel}>Image URL</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="https://..."
-              placeholderTextColor={colors.textDisabled}
-              value={draft?.image_url}
-              onChangeText={(v) => setDraft((prev) => prev && { ...prev, image_url: v })}
-              autoCapitalize="none"
-            />
+            <Text style={styles.inputLabel}>Image</Text>
+            <TouchableOpacity style={styles.imageBox} onPress={handlePickImage} disabled={uploadingImage}>
+              {uploadingImage ? (
+                <ActivityIndicator color={colors.accent} />
+              ) : draft?.image_url ? (
+                <Image source={{ uri: draft.image_url }} style={styles.imageBoxPhoto} resizeMode="cover" />
+              ) : (
+                <View style={styles.imageBoxEmpty}>
+                  <Ionicons name="image-outline" size={24} color={colors.textFaint} />
+                  <Text style={styles.imageBoxText}>Tap to add a photo</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            {draft?.image_url && !uploadingImage && (
+              <TouchableOpacity onPress={handlePickImage}>
+                <Text style={styles.changeImageLink}>Change Photo</Text>
+              </TouchableOpacity>
+            )}
             <View style={styles.row2}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.inputLabel}>Coin Cost</Text>
@@ -329,6 +355,15 @@ function getStyles(colors: ThemeColors) {
       paddingHorizontal: 14, paddingVertical: 12, fontSize: 14,
       borderWidth: 1, borderColor: colors.border, marginBottom: 14,
     },
+    imageBox: {
+      width: 96, height: 96, borderRadius: 12, backgroundColor: colors.surfaceAlt,
+      borderWidth: 1, borderColor: colors.border, overflow: 'hidden',
+      justifyContent: 'center', alignItems: 'center', marginBottom: 6,
+    },
+    imageBoxPhoto: { width: '100%', height: '100%' },
+    imageBoxEmpty: { justifyContent: 'center', alignItems: 'center', gap: 4, padding: 8 },
+    imageBoxText: { color: colors.textFaint, fontSize: 10, textAlign: 'center' },
+    changeImageLink: { color: colors.accent, fontSize: 12, fontWeight: '700', marginBottom: 14 },
     row2: { flexDirection: 'row', gap: 12 },
     switchRow: {
       flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
