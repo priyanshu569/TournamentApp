@@ -6,6 +6,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
+import FragCoin from '@/components/FragCoin';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 
@@ -168,9 +169,12 @@ export default function AdminRewardsScreen() {
               )}
               <View style={styles.cardInfo}>
                 <Text style={styles.cardName} numberOfLines={1}>{item.name}</Text>
-                <Text style={styles.cardMeta}>
-                  🪙 {item.coin_cost.toLocaleString('en-IN')} · {item.stock_quantity != null ? `${item.stock_quantity} left` : 'Unlimited'}
-                </Text>
+                <View style={styles.cardMetaRow}>
+                  <FragCoin size={12} />
+                  <Text style={styles.cardMeta}>
+                    {item.coin_cost.toLocaleString('en-IN')} · {item.stock_quantity != null ? `${item.stock_quantity} left` : 'Unlimited'}
+                  </Text>
+                </View>
                 {!item.is_active && <Text style={styles.inactiveTag}>Inactive</Text>}
               </View>
               <TouchableOpacity
@@ -305,7 +309,8 @@ function getStyles(colors: ThemeColors) {
     },
     cardInfo: { flex: 1 },
     cardName: { color: colors.textPrimary, fontSize: 14, fontWeight: '700' },
-    cardMeta: { color: colors.textTertiary, fontSize: 12, marginTop: 2 },
+    cardMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+    cardMeta: { color: colors.textTertiary, fontSize: 12 },
     inactiveTag: { color: colors.error, fontSize: 11, fontWeight: '700', marginTop: 2 },
     toggleBtn: {
       width: 34, height: 34, borderRadius: 17, backgroundColor: colors.surfaceAlt,

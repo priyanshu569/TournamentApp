@@ -363,7 +363,7 @@ export default function CreateTournament() {
 
       {/* Prize Pool */}
       <View style={styles.fieldGroup}>
-        <Text style={styles.label}>Prize Pool (🪙 FragCoins)</Text>
+        <Text style={styles.label}>Prize Pool (FragCoins)</Text>
         <TextInput
           style={styles.input}
           placeholder="0"

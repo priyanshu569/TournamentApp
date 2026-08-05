@@ -10,6 +10,7 @@ import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 import { useTabNavigation } from '@/lib/tabNavigation';
 import { isEffectivelyHost } from '@/lib/effectiveRole';
+import FragCoin from '@/components/FragCoin';
 
 export default function HistoryScreen() {
   const router = useRouter();
@@ -242,8 +243,8 @@ export default function HistoryScreen() {
                 <Text style={styles.cardSub}>{item.game}</Text>
               </View>
               <View style={styles.cardMetaRow}>
-                <Ionicons name="logo-bitcoin" size={13} color={colors.textTertiary} />
-                <Text style={styles.cardSub}>Prize Pool: 🪙{item.prize_pool}</Text>
+                <FragCoin size={13} />
+                <Text style={styles.cardSub}>Prize Pool: {item.prize_pool}</Text>
               </View>
               <View style={styles.cardMetaRow}>
                 <Ionicons name="people-outline" size={13} color={colors.textTertiary} />

@@ -6,6 +6,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
+import { CoinAmount } from '@/components/FragCoin';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 
@@ -108,7 +109,7 @@ export default function RewardsScreen() {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Redeem Rewards</Text>
         <View style={styles.balancePill}>
-          <Text style={styles.balancePillText}>🪙 {balance.toLocaleString('en-IN')}</Text>
+          <CoinAmount amount={balance} size={14} textStyle={styles.balancePillText} />
         </View>
       </View>
 
@@ -145,7 +146,7 @@ export default function RewardsScreen() {
                 </View>
               )}
               <Text style={styles.cardName} numberOfLines={2}>{item.name}</Text>
-              <Text style={styles.cardCost}>🪙 {item.coin_cost.toLocaleString('en-IN')}</Text>
+              <CoinAmount amount={item.coin_cost} size={15} textStyle={styles.cardCost} />
               {outOfStock && <Text style={styles.cardStockOut}>Out of stock</Text>}
               {!outOfStock && !affordable && <Text style={styles.cardNeedMore}>Need {(item.coin_cost - balance).toLocaleString('en-IN')} more</Text>}
             </TouchableOpacity>
@@ -162,7 +163,10 @@ export default function RewardsScreen() {
                 <Ionicons name="close" size={22} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
-            <Text style={styles.modalCost}>This will cost 🪙 {selectedReward?.coin_cost?.toLocaleString('en-IN')}</Text>
+            <View style={styles.modalCostRow}>
+              <Text style={styles.modalCost}>This will cost</Text>
+              <CoinAmount amount={selectedReward?.coin_cost ?? 0} size={15} textStyle={styles.modalCost} />
+            </View>
 
             <Text style={styles.inputLabel}>Full Name</Text>
             <TextInput
@@ -249,7 +253,8 @@ function getStyles(colors: ThemeColors) {
     },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
     modalTitle: { color: colors.textPrimary, fontSize: 17, fontWeight: '800', flex: 1, marginRight: 12 },
-    modalCost: { color: colors.accent, fontSize: 14, fontWeight: '700', marginBottom: 18 },
+    modalCostRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 18 },
+    modalCost: { color: colors.accent, fontSize: 14, fontWeight: '700' },
     inputLabel: { color: colors.textSecondary, fontSize: 12, marginBottom: 6, fontWeight: '600' },
     input: {
       backgroundColor: colors.surfaceAlt, color: colors.textPrimary, borderRadius: 10,

@@ -13,6 +13,7 @@ import NotificationBell from '@/components/NotificationBell';
 import FragifyLogo from '@/components/FragifyLogo';
 import LeaderboardIcon from '@/components/LeaderboardIcon';
 import GradientIconBadge from '@/components/GradientIconBadge';
+import FragCoin from '@/components/FragCoin';
 import { useTabNavigation } from '@/lib/tabNavigation';
 import { isEffectivelyHost } from '@/lib/effectiveRole';
 import { useAppTheme } from '@/lib/ThemeContext';
@@ -165,7 +166,10 @@ export default function HomeScreen() {
             <Text style={styles.compactMeta}>🗓 {formatDate(item.start_time)}</Text>
           )}
           {variant === 'prize' && (
-            <Text style={styles.compactPrize}>🪙{item.prize_pool} PRIZE</Text>
+            <View style={styles.compactPrizeRow}>
+              <FragCoin size={13} />
+              <Text style={styles.compactPrize}>{item.prize_pool} PRIZE</Text>
+            </View>
           )}
           {variant === 'live' && (
             <View style={styles.liveBadge}>
@@ -379,6 +383,7 @@ function getStyles(colors: ThemeColors) {
     hostRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 },
     hostName: { fontSize: 11, color: colors.textTertiary, fontWeight: '600' },
     compactMeta: { color: colors.textMuted, fontSize: 11, fontWeight: '600' },
+    compactPrizeRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     compactPrize: { color: colors.warning, fontSize: 12, fontWeight: '800' },
     liveBadge: { flexDirection: 'row', alignItems: 'center', gap: 5 },
     liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.success },

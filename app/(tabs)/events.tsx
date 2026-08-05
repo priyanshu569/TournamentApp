@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import NotificationBell from '@/components/NotificationBell';
 import LeaderboardIcon from '@/components/LeaderboardIcon';
+import FragCoin from '@/components/FragCoin';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 import { TOURNAMENT_BANNER_RATIO } from '@/constants/banner';
@@ -367,9 +368,9 @@ export default function EventsScreen() {
 
                 <View style={styles.cardStats}>
                   <View style={[styles.statChip, { backgroundColor: '#FFB80014' }]}>
-                    <Ionicons name="logo-bitcoin" size={14} color={colors.warning} />
+                    <FragCoin size={15} />
                     <View>
-                      <Text style={[styles.statChipValue, { color: colors.warning }]}>🪙{item.prize_pool}</Text>
+                      <Text style={[styles.statChipValue, { color: colors.warning }]}>{item.prize_pool}</Text>
                       <Text style={styles.statChipLabel}>PRIZE</Text>
                     </View>
                   </View>

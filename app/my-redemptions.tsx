@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { formatRelativeTime } from '@/lib/time';
+import { CoinAmount } from '@/components/FragCoin';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 
@@ -83,7 +84,7 @@ export default function MyRedemptionsScreen() {
             <View style={styles.card}>
               <View style={styles.cardTop}>
                 <Text style={styles.rewardName} numberOfLines={1}>{item.reward_name}</Text>
-                <Text style={styles.rewardCost}>🪙 {item.coin_cost.toLocaleString('en-IN')}</Text>
+                <CoinAmount amount={item.coin_cost} size={14} textStyle={styles.rewardCost} />
               </View>
               <View style={styles.cardBottom}>
                 <View style={[styles.statusBadge, { backgroundColor: meta.color + '1c', borderColor: meta.color + '44' }]}>

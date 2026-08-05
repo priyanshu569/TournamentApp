@@ -14,6 +14,7 @@ import * as Clipboard from 'expo-clipboard';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 import { TOURNAMENT_BANNER_RATIO } from '@/constants/banner';
+import { CoinAmount } from '@/components/FragCoin';
 
 export default function TournamentDetails() {
   const { id } = useLocalSearchParams();
@@ -357,7 +358,7 @@ export default function TournamentDetails() {
       const message =
         `🏆 ${tournament.title}\n\n` +
         `🎮 ${tournament.game}\n` +
-        `🪙 Prize Pool: ${tournament.prize_pool} FragCoins\n` +
+        `🏅 Prize Pool: ${tournament.prize_pool} FragCoins\n` +
         `🎯 Entry Fee: FREE\n\n` +
         `Join on Fragify 👉 ${getDeepLink()}`;
 
@@ -491,7 +492,7 @@ export default function TournamentDetails() {
           <Text style={styles.statLabel}>Entry Fee</Text>
         </View>
         <View style={[styles.statBox, { borderTopColor: gameColor }]}>
-          <Text style={styles.statValue}>🪙{tournament.prize_pool}</Text>
+          <CoinAmount amount={tournament.prize_pool} size={17} textStyle={styles.statValue} />
           <Text style={styles.statLabel}>Prize Pool</Text>
         </View>
         <View style={[styles.statBox, { borderTopColor: gameColor }]}>

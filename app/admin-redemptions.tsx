@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { formatRelativeTime } from '@/lib/time';
+import { CoinAmount } from '@/components/FragCoin';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 
@@ -66,7 +67,7 @@ export default function AdminRedemptionsScreen() {
   function confirmCancel(item: any) {
     Alert.alert(
       'Cancel & Refund?',
-      `🪙 ${item.coin_cost.toLocaleString('en-IN')} will be credited back to ${item.requester?.display_name ?? 'this player'}'s wallet.`,
+      `${item.coin_cost.toLocaleString('en-IN')} FragCoins will be credited back to ${item.requester?.display_name ?? 'this player'}'s wallet.`,
       [
         { text: 'Keep It', style: 'cancel' },
         { text: 'Cancel & Refund', style: 'destructive', onPress: () => handleCancel(item) },
@@ -127,7 +128,7 @@ export default function AdminRedemptionsScreen() {
             <View style={styles.card}>
               <View style={styles.cardTop}>
                 <Text style={styles.rewardName} numberOfLines={1}>{item.reward_name}</Text>
-                <Text style={styles.rewardCost}>🪙 {item.coin_cost.toLocaleString('en-IN')}</Text>
+                <CoinAmount amount={item.coin_cost} size={14} textStyle={styles.rewardCost} />
               </View>
               <Text style={styles.requesterText}>
                 For {item.requester?.display_name ?? 'Unknown'}{item.requester?.username ? ` (@${item.requester.username})` : ''}

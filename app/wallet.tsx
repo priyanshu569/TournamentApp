@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '@/lib/supabase';
 import { formatRelativeTime } from '@/lib/time';
+import { CoinAmount } from '@/components/FragCoin';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 
@@ -91,7 +92,7 @@ export default function WalletScreen() {
             style={styles.balanceCard}
           >
             <Text style={styles.balanceLabel}>FRAGCOINS BALANCE</Text>
-            <Text style={styles.balanceValue}>🪙 {balance.toLocaleString('en-IN')}</Text>
+            <CoinAmount amount={balance} size={34} textStyle={styles.balanceValue} style={styles.balanceRow} />
             <TouchableOpacity style={styles.redeemBtn} onPress={() => router.push('/rewards')}>
               <Ionicons name="gift" size={16} color="#fff" />
               <Text style={styles.redeemBtnText}>Redeem for Rewards</Text>
@@ -154,7 +155,8 @@ function getStyles(colors: ThemeColors) {
       borderWidth: 1, borderColor: '#2f2447',
     },
     balanceLabel: { color: '#c9b8ea', fontSize: 11, fontWeight: '800', letterSpacing: 2, marginBottom: 8 },
-    balanceValue: { color: '#fff', fontSize: 38, fontWeight: '900', marginBottom: 18 },
+    balanceRow: { marginBottom: 18 },
+    balanceValue: { color: '#fff', fontSize: 38, fontWeight: '900' },
     redeemBtn: {
       flexDirection: 'row', alignItems: 'center', gap: 8,
       backgroundColor: colors.accent, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12,
