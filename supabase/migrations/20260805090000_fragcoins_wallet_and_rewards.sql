@@ -289,3 +289,62 @@ $$;
 
 revoke all on function public.redeem_reward(uuid, text, text, text) from public;
 grant execute on function public.redeem_reward(uuid, text, text, text) to authenticated;
+
+-- ---- admin_cancel_redemption: admin-only, refunds coins + restocks ----
+--
+-- Marking shipped/fulfilled has no coin implications, so those transitions
+-- go through the plain "Admins can view and manage all redemptions" UPDATE
+-- policy above -- no RPC needed. Cancelling is different: the user already
+-- paid coins for something they won't receive, so this specifically exists
+-- to make sure that reversal actually happens rather than relying on an
+-- admin to remember to credit it back separately.
+
+create function public.admin_cancel_redemption(p_redemption_id uuid, p_notes text default null) returns void
+    language plpgsql security definer
+    set search_path = public
+    as $$
+declare
+  v_is_admin boolean;
+  v_redemption record;
+begin
+  select exists (select 1 from "Profiles" p where p.id = auth.uid() and p.is_admin = true) into v_is_admin;
+  if not v_is_admin then
+    raise exception 'Not authorized';
+  end if;
+
+  select id, user_id, reward_id, coin_cost, status into v_redemption
+  from coin_redemptions where id = p_redemption_id
+  for update;
+
+  if v_redemption.id is null then
+    raise exception 'Redemption not found';
+  end if;
+
+  if v_redemption.status = 'cancelled' then
+    raise exception 'Already cancelled';
+  end if;
+
+  if v_redemption.status = 'fulfilled' then
+    raise exception 'Already delivered -- cannot cancel a fulfilled redemption';
+  end if;
+
+  update coin_redemptions
+    set status = 'cancelled', admin_notes = coalesce(p_notes, admin_notes)
+  where id = p_redemption_id;
+
+  update wallets set coins_balance = coins_balance + v_redemption.coin_cost, updated_at = now()
+  where user_id = v_redemption.user_id;
+
+  insert into coin_transactions (user_id, amount, type, redemption_id, description)
+  values (
+    v_redemption.user_id, v_redemption.coin_cost, 'admin_adjustment', p_redemption_id,
+    'Refund: redemption cancelled' || coalesce(' — ' || p_notes, '')
+  );
+
+  update reward_catalog set stock_quantity = stock_quantity + 1
+  where id = v_redemption.reward_id and stock_quantity is not null;
+end;
+$$;
+
+revoke all on function public.admin_cancel_redemption(uuid, text) from public;
+grant execute on function public.admin_cancel_redemption(uuid, text) to authenticated;

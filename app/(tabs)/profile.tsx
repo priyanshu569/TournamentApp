@@ -209,6 +209,7 @@ export default function ProfileScreen() {
         { key: 'edit-profile', icon: 'create' as const, color: colors.success, label: 'Edit Profile', onPress: () => router.push('/edit-profile') },
         { key: 'profile-banner', icon: 'sparkles' as const, color: colors.accent, label: 'Profile Banner', onPress: () => router.push('/profile-banner') },
         { key: 'game-details', icon: 'game-controller' as const, color: colors.warning, label: 'My Games', onPress: () => router.push('/game-details') },
+        { key: 'wallet', icon: 'wallet' as const, color: '#FFB800', label: 'Wallet', onPress: () => router.push('/wallet') },
       ],
     },
     ...(isAdmin ? [{
@@ -218,6 +219,8 @@ export default function ProfileScreen() {
         { key: 'admin-host-requests', icon: 'trophy' as const, color: colors.accent, label: 'Host Requests', onPress: () => router.push('/admin-host-requests') },
         { key: 'switch-role', icon: 'sync' as const, color: colors.accent, label: 'Switch Role', onPress: handlePreviewRole },
         { key: 'admin-reports', icon: 'warning' as const, color: colors.accent, label: 'Reports', onPress: () => router.push('/admin-reports') },
+        { key: 'admin-rewards', icon: 'gift' as const, color: colors.accent, label: 'Manage Rewards', onPress: () => router.push('/admin-rewards') },
+        { key: 'admin-redemptions', icon: 'cube' as const, color: colors.accent, label: 'Redemptions', onPress: () => router.push('/admin-redemptions') },
       ],
     }] : []),
     {
