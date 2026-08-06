@@ -355,6 +355,14 @@ export default function SettingsScreen() {
       <View style={styles.card}>
         <TouchableOpacity
           style={styles.row}
+          onPress={() => router.push('/terms-of-service')}
+        >
+          <Text style={styles.rowLabel}>Terms of Service</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
+        </TouchableOpacity>
+        <View style={styles.divider} />
+        <TouchableOpacity
+          style={styles.row}
           onPress={() => router.push('/privacy-policy')}
         >
           <Text style={styles.rowLabel}>Privacy Policy</Text>

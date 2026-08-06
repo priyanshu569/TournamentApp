@@ -129,6 +129,7 @@ function RootLayoutInner() {
           <Stack.Screen name="profile-banner" options={{ headerShown: false }} />
           <Stack.Screen name="support" options={{ headerShown: false }} />
           <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
+          <Stack.Screen name="terms-of-service" options={{ headerShown: false }} />
           <Stack.Screen name="user-profile" options={{ headerShown: false }} />
           <Stack.Screen name="follow-list" options={{ headerShown: false }} />
           <Stack.Screen name="search-users" options={{ headerShown: false }} />

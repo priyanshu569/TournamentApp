@@ -99,6 +99,8 @@ export default function LoginScreen() {
 
       <Text style={styles.footerText}>
         By continuing, you agree to our{' '}
+        <Text style={styles.footerLink} onPress={() => router.push('/terms-of-service')}>Terms of Service</Text>
+        {' '}and{' '}
         <Text style={styles.footerLink} onPress={() => router.push('/privacy-policy')}>Privacy Policy</Text>
       </Text>
     </View>

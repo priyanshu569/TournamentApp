@@ -12,28 +12,30 @@ const SECTIONS = [
       'Account info: your username and either a phone number or Google account email, depending on how you sign in.\n\n' +
       'Game IDs: your Free Fire and/or BGMI UID, which you provide voluntarily so hosts can verify your in-game identity.\n\n' +
       'Tournament activity: teams you create or join, registrations, match results, placements, and kills.\n\n' +
-      'Payment info: entry fees are processed directly by Razorpay. Fragify does not receive or store your card, UPI, or bank details.\n\n' +
-      'Device info: a push notification token, used to send you tournament updates.',
+      'Chat content: messages, photos, and voice messages you send in direct messages, group chats, and world chat. View-once photos are deleted from our storage as soon as the recipient opens them.\n\n' +
+      'Reward redemption info: when you redeem FragCoins for a reward, we collect the shipping name, address, and phone number you provide so the item can be delivered to you.\n\n' +
+      'Device info: a push notification token, used to send you tournament and wallet updates.',
   },
   {
     title: 'How We Use Your Information',
     body:
-      'To run tournaments and scrims, verify game identities, process entry fee payments, show leaderboards and standings, send you notifications about registrations, room codes, and results, and review host access requests.',
+      'To run tournaments and scrims, verify game identities, show leaderboards and standings, distribute FragCoin prizes, fulfill and ship reward redemptions, send you notifications about registrations, room codes, results, and wallet activity, and review host access requests.\n\n' +
+      'FragCoins are earned only by placing in tournaments — they cannot be purchased, and have no cash value. They can be redeemed for physical rewards listed in the app.',
   },
   {
     title: 'Third-Party Services',
     body:
-      'Fragify relies on: Supabase (database, authentication, and file storage), Google (Sign in with Google), Razorpay (payment processing), and Expo\'s push notification service (delivering notifications to your device). Each of these providers processes data under their own privacy policies.',
+      'Fragify relies on: Supabase (database, authentication, and file storage), Google (Sign in with Google), and Expo\'s push notification service (delivering notifications to your device). Each of these providers processes data under their own privacy policies.',
   },
   {
     title: 'Data Sharing',
     body:
-      'When you register for a tournament, the host can see your username, game UID, and registration status. We do not sell your personal data to third parties.',
+      'When you register for a tournament, the host can see your username, game UID, and registration status. When you redeem a reward, your shipping details are visible only to Fragify admins fulfilling that order. We do not sell your personal data to third parties.',
   },
   {
     title: 'Data Retention & Account Deletion',
     body:
-      'You can delete your account anytime from Settings → Delete Account. This removes your username, game UIDs, phone number, and login credentials. Some tournament history (for example, that a team placed 2nd in a match) stays on record in anonymized form, so it doesn\'t affect other players\' or hosts\' results.',
+      'You can delete your account anytime from Settings → Delete Account. This removes your username, game UIDs, phone number, and login credentials. Some records stay on file after deletion: tournament history (for example, that a team placed 2nd in a match) stays in anonymized form so it doesn\'t affect other players\' or hosts\' results, and past reward redemptions keep their shipping details on file for order and delivery support.',
   },
   {
     title: 'Children\'s Privacy',
@@ -72,7 +74,7 @@ export default function PrivacyPolicyScreen() {
         <View style={{ width: 36 }} />
       </View>
 
-      <Text style={styles.lastUpdated}>Last updated: July 2026</Text>
+      <Text style={styles.lastUpdated}>Last updated: August 2026</Text>
 
       <Text style={styles.intro}>
         This policy explains what information Fragify collects, how it's used, and your choices —
