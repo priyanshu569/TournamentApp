@@ -56,6 +56,7 @@ export default function EditTournament() {
     max_teams: '',
   });
   const [startTime, setStartTime] = useState<Date | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => { fetchTournament(); }, []);
 
@@ -119,6 +120,16 @@ export default function EditTournament() {
   };
 
   async function fetchTournament() {
+    const { data: userData } = await supabase.auth.getUser();
+    if (userData.user) {
+      const { data: profile } = await supabase
+        .from('Profiles')
+        .select('is_admin')
+        .eq('id', userData.user.id)
+        .single();
+      setIsAdmin(!!profile?.is_admin);
+    }
+
     const { data, error } = await supabase
       .from('tournaments')
       .select('*')
@@ -526,21 +537,32 @@ export default function EditTournament() {
 
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Date & Time</Text>
-          <TouchableOpacity style={styles.dateBtn} onPress={() => setShowPicker(true)}>
-            <Text style={styles.dateBtnIcon}>🗓</Text>
+          <TouchableOpacity
+            style={[styles.dateBtn, !isAdmin && styles.dateBtnLocked]}
+            onPress={() => isAdmin && setShowPicker(true)}
+            disabled={!isAdmin}
+          >
+            <Text style={styles.dateBtnIcon}>{isAdmin ? '🗓' : '🔒'}</Text>
             <Text style={styles.dateBtnText}>
               {startTime ? formatDateTime(startTime) : 'Select Date & Time'}
             </Text>
           </TouchableOpacity>
+          {!isAdmin && (
+            <Text style={styles.dateLockedHint}>
+              Date & time can't be changed once a tournament is created. Contact an admin if this needs fixing.
+            </Text>
+          )}
         </View>
 
-        <DateTimePickerModal
-          isVisible={showPicker}
-          mode="datetime"
-          isDarkModeEnabled={false}
-          onConfirm={(date) => { setStartTime(date); setShowPicker(false); }}
-          onCancel={() => setShowPicker(false)}
-        />
+        {isAdmin && (
+          <DateTimePickerModal
+            isVisible={showPicker}
+            mode="datetime"
+            isDarkModeEnabled={false}
+            onConfirm={(date) => { setStartTime(date); setShowPicker(false); }}
+            onCancel={() => setShowPicker(false)}
+          />
+        )}
 
         <ImageCropPreview
           visible={!!rawBannerImage}
@@ -632,6 +654,8 @@ function getStyles(colors: ThemeColors) {
     },
     dateBtnIcon: { fontSize: 18 },
     dateBtnText: { color: colors.textPrimary, fontSize: 15, fontWeight: '600' },
+    dateBtnLocked: { borderColor: colors.border, opacity: 0.7 },
+    dateLockedHint: { color: colors.textFaint, fontSize: 11, marginTop: 6, lineHeight: 15 },
     button: {
       backgroundColor: colors.accent, paddingVertical: 16,
       borderRadius: 12, alignItems: 'center', marginTop: 8,

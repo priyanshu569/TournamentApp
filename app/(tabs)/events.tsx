@@ -16,6 +16,7 @@ import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 import { TOURNAMENT_BANNER_RATIO } from '@/constants/banner';
 import { useTabNavigation } from '@/lib/tabNavigation';
+import { getStartingSoonLabel, useNow } from '@/lib/tournamentTiming';
 
 const GAMES: { label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { label: 'All', icon: 'apps' },
@@ -62,6 +63,7 @@ export default function EventsScreen() {
   const [sortOption, setSortOption] = useState<SortOption>('newest');
   const [sortModalVisible, setSortModalVisible] = useState(false);
   const [eventTab, setEventTab] = useState<'tournament' | 'scrim'>('tournament');
+  const now = useNow();
   const [lobbyFilter, setLobbyFilter] = useState<'all' | 'mini' | 'mega'>('all');
 
   useFocusEffect(
@@ -343,17 +345,22 @@ export default function EventsScreen() {
               <View style={styles.cardBody}>
                 <View style={styles.cardTitleRow}>
                   <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
-                  <View style={[
-                    styles.statusBadge,
-                    item.status === 'ongoing' ? styles.statusLive :
-                      item.status === 'completed' ? styles.statusCompleted :
-                        styles.statusUpcoming
-                  ]}>
-                    {(item.status === 'ongoing' || item.status === 'upcoming') && <View style={[styles.liveDot, {
-                      backgroundColor: item.status === 'upcoming' ? colors.success : colors.warning
-                    }]} />}
-                    <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
-                  </View>
+                  {(() => {
+                    const soonLabel = getStartingSoonLabel(item.start_time, item.status, now);
+                    return (
+                      <View style={[
+                        styles.statusBadge,
+                        item.status === 'ongoing' ? styles.statusLive :
+                          item.status === 'completed' ? styles.statusCompleted :
+                            styles.statusUpcoming
+                      ]}>
+                        {(item.status === 'ongoing' || item.status === 'upcoming') && <View style={[styles.liveDot, {
+                          backgroundColor: item.status === 'upcoming' ? (soonLabel ? colors.warning : colors.success) : colors.warning
+                        }]} />}
+                        <Text style={styles.statusText}>{soonLabel ? soonLabel.toUpperCase() : item.status.toUpperCase()}</Text>
+                      </View>
+                    );
+                  })()}
                 </View>
 
                 <View style={styles.hostRow}>

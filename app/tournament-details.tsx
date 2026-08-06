@@ -15,6 +15,9 @@ import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 import { TOURNAMENT_BANNER_RATIO } from '@/constants/banner';
 import { CoinAmount } from '@/components/FragCoin';
+import { getStartingSoonLabel, useNow } from '@/lib/tournamentTiming';
+
+const STATUS_ORDER: Record<string, number> = { upcoming: 0, ongoing: 1, completed: 2 };
 
 export default function TournamentDetails() {
   const { id } = useLocalSearchParams();
@@ -24,6 +27,10 @@ export default function TournamentDetails() {
   const [tournament, setTournament] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [myId, setMyId] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState(false);
+  const now = useNow();
   const [isRegistered, setIsRegistered] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [registrationId, setRegistrationId] = useState<string | null>(null);
@@ -92,6 +99,8 @@ export default function TournamentDetails() {
     const { data: userData } = await supabase.auth.getUser();
 
     if (userData.user) {
+      setMyId(userData.user.id);
+
       const { data: profile } = await supabase
         .from('Profiles')
         .select('role, browsing_mode, is_admin')
@@ -103,6 +112,11 @@ export default function TournamentDetails() {
       // gating on this screen, never shown to other users, so this
       // doesn't affect how anyone else sees them.
       if (profile) setRole(isEffectivelyHost(profile) ? 'host' : 'player');
+      // isAdmin is the REAL flag, independent of browsing_mode -- needed
+      // separately from `role` because the lock/override rules below
+      // depend on whether someone actually IS an admin, not on which
+      // dashboard they're currently previewing.
+      setIsAdmin(!!profile?.is_admin);
 
       const { data: reg } = await supabase
         .from('registrations')
@@ -272,6 +286,22 @@ export default function TournamentDetails() {
     }
   }
 
+  async function handleVerifyResults() {
+    if (!myId) return;
+    setVerifying(true);
+    const { error } = await supabase
+      .from('tournaments')
+      .update({ results_verified_at: new Date().toISOString(), results_verified_by: myId })
+      .eq('id', id);
+    setVerifying(false);
+
+    if (error) {
+      Alert.alert('Error', error.message);
+      return;
+    }
+    setTournament((prev: any) => ({ ...prev, results_verified_at: new Date().toISOString(), results_verified_by: myId }));
+  }
+
   // Pending registrations previously had no way back except Cancel + redo
   // the whole team form -- and since registrations are now unique per
   // player per tournament, someone who abandons Razorpay mid-checkout could
@@ -382,7 +412,9 @@ export default function TournamentDetails() {
       return { icon: '⏳', text: 'Registration pending payment confirmation.', color: colors.warning };
     }
     if (tournament.status === 'completed') {
-      return { icon: '🏁', text: 'Tournament has ended — check the final standings above!', color: colors.textSecondary };
+      return tournament.results_verified_at
+        ? { icon: '🏁', text: 'Tournament has ended — check the final standings above!', color: colors.textSecondary }
+        : { icon: '⏳', text: 'Results are being verified — final standings coming soon!', color: colors.textSecondary };
     }
     if (tournament.status === 'ongoing') {
       return { icon: '🔴', text: 'Tournament is live right now — good luck out there!', color: colors.warning };
@@ -426,6 +458,9 @@ export default function TournamentDetails() {
 
   const gameColor = getGameColor(tournament.game);
   const hasLiveResults = matchResults.some((r) => !r.placement);
+  const isRealHost = tournament.host_id === myId;
+  const canManage = isRealHost || isAdmin;
+  const startingSoonLabel = getStartingSoonLabel(tournament.start_time, tournament.status, now);
 
   return (
     <ScrollView
@@ -501,7 +536,13 @@ export default function TournamentDetails() {
         </View>
       </View>
 
-      {/* Live / Completed banner — visible to host and player alike */}
+      {/* Live / Starting Soon / Completed banner — visible to host and player alike */}
+      {tournament.status === 'upcoming' && startingSoonLabel && (
+        <View style={styles.startingSoonBanner}>
+          <View style={styles.startingSoonPulseDot} />
+          <Text style={styles.startingSoonBannerText}>{startingSoonLabel}</Text>
+        </View>
+      )}
       {tournament.status === 'ongoing' && (
         <View style={styles.liveBanner}>
           <View style={styles.livePulseDot} />
@@ -510,8 +551,14 @@ export default function TournamentDetails() {
       )}
       {tournament.status === 'completed' && (
         <View style={styles.completedBanner}>
-          <Ionicons name="checkmark-done-circle" size={18} color={colors.textTertiary} />
-          <Text style={styles.completedBannerText}>This tournament has ended</Text>
+          <Ionicons
+            name={tournament.results_verified_at ? 'checkmark-done-circle' : 'time-outline'}
+            size={18}
+            color={colors.textTertiary}
+          />
+          <Text style={styles.completedBannerText}>
+            {tournament.results_verified_at ? 'This tournament has ended' : 'Results are being verified by an admin'}
+          </Text>
         </View>
       )}
 
@@ -605,8 +652,8 @@ export default function TournamentDetails() {
         </View>
       )}
 
-      {/* Room Code Section — Host */}
-      {role === 'host' && (
+      {/* Room Code Section — Host or Admin */}
+      {canManage && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>ROOM CODE</Text>
 
@@ -676,27 +723,56 @@ export default function TournamentDetails() {
         </View>
       )}
 
-      {/* Status Update — Host */}
-      {role === 'host' && (
+      {/* Status Update — Host or Admin. A real host can only move status
+          forward (ratchet enforced server-side too, by
+          enforce_tournament_lock_rules -- this filter is just so a host
+          never sees a chip that would fail); an admin sees and can pick
+          any of the three, as the override path for host mistakes. */}
+      {canManage && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>UPDATE STATUS</Text>
           <View style={styles.statusChipRow}>
-            {['upcoming', 'ongoing', 'completed'].map((s) => (
-              <TouchableOpacity
-                key={s}
-                style={[
-                  styles.statusChip,
-                  tournament.status === s && { backgroundColor: gameColor, borderColor: gameColor }
-                ]}
-                onPress={() => handleStatusUpdate(s)}
-              >
-                <Text style={[
-                  styles.statusChipText,
-                  tournament.status === s && { color: '#fff' }
-                ]}>{s}</Text>
-              </TouchableOpacity>
-            ))}
+            {['upcoming', 'ongoing', 'completed']
+              .filter((s) => isAdmin || STATUS_ORDER[s] >= STATUS_ORDER[tournament.status])
+              .map((s) => (
+                <TouchableOpacity
+                  key={s}
+                  style={[
+                    styles.statusChip,
+                    tournament.status === s && { backgroundColor: gameColor, borderColor: gameColor }
+                  ]}
+                  onPress={() => handleStatusUpdate(s)}
+                >
+                  <Text style={[
+                    styles.statusChipText,
+                    tournament.status === s && { color: '#fff' }
+                  ]}>{s}</Text>
+                </TouchableOpacity>
+              ))}
           </View>
+          {!isAdmin && (
+            <Text style={styles.statusHint}>
+              Status can only move forward. Ask an admin if this needs to be reverted.
+            </Text>
+          )}
+
+          {isAdmin && tournament.status === 'completed' && !tournament.results_verified_at && (
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: gameColor, marginTop: 12 }]}
+              onPress={handleVerifyResults}
+              disabled={verifying}
+            >
+              {verifying
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={styles.actionButtonText}>✅ Verify Results</Text>
+              }
+            </TouchableOpacity>
+          )}
+          {tournament.status === 'completed' && tournament.results_verified_at && (
+            <Text style={styles.statusHint}>
+              Results verified {isAdmin ? '' : 'by an admin '}— players now see this tournament as ended.
+            </Text>
+          )}
         </View>
       )}
 
@@ -789,7 +865,9 @@ export default function TournamentDetails() {
       ) : (
         <View style={[styles.actionButton, { backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border }]}>
           <Text style={{ color: colors.textFaint, fontSize: 15, fontWeight: '700' }}>
-            {tournament.status === 'ongoing' ? '🔒 Tournament In Progress' : '🏁 Tournament Ended'}
+            {tournament.status === 'ongoing'
+              ? '🔒 Tournament In Progress'
+              : tournament.results_verified_at ? '🏁 Tournament Ended' : '⏳ Results Being Verified'}
           </Text>
         </View>
       )}
@@ -908,6 +986,13 @@ function getStyles(colors: ThemeColors) {
     },
     livePulseDot: { width: 9, height: 9, borderRadius: 4.5, backgroundColor: colors.warning },
     liveBannerText: { color: colors.warning, fontSize: 14, fontWeight: '700' },
+    startingSoonBanner: {
+      flexDirection: 'row', alignItems: 'center', gap: 10,
+      backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.success,
+      borderRadius: 14, padding: 16, marginBottom: 24,
+    },
+    startingSoonPulseDot: { width: 9, height: 9, borderRadius: 4.5, backgroundColor: colors.success },
+    startingSoonBannerText: { color: colors.success, fontSize: 14, fontWeight: '700' },
     completedBanner: {
       flexDirection: 'row', alignItems: 'center', gap: 10,
       backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
