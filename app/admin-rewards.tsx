@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, RefreshControl, Image,
+  View, Text, StyleSheet, FlatList, RefreshControl, Image, ScrollView,
   TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput, Switch, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
-import { pickAndUploadRewardImage } from '@/lib/rewardImageUpload';
+import { pickRewardImages, uploadRewardImage } from '@/lib/rewardImageUpload';
+import { RawImage } from '@/lib/chatImage';
+import ImageCropPreview from '@/components/ImageCropPreview';
+import { MAX_REWARD_IMAGES } from '@/constants/reward';
 import FragCoin from '@/components/FragCoin';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
@@ -15,7 +18,7 @@ const EMPTY_DRAFT = {
   id: null as string | null,
   name: '',
   description: '',
-  image_url: '',
+  image_urls: [] as string[],
   coin_cost: '',
   stock_quantity: '',
   is_active: true,
@@ -33,6 +36,7 @@ export default function AdminRewardsScreen() {
   const [draft, setDraft] = useState<typeof EMPTY_DRAFT | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [cropQueue, setCropQueue] = useState<RawImage[]>([]);
 
   useEffect(() => { load(); }, []);
 
@@ -57,22 +61,59 @@ export default function AdminRewardsScreen() {
   }
 
   function openCreate() {
-    setDraft({ ...EMPTY_DRAFT });
+    // Fresh array, not the shallow-copied reference to EMPTY_DRAFT's --
+    // every gallery edit below is immutable today, but sharing the
+    // template's array across drafts is a trap waiting for the first
+    // in-place push.
+    setDraft({ ...EMPTY_DRAFT, image_urls: [] });
   }
 
-  async function handlePickImage() {
+  async function handleAddPhotos() {
+    const remaining = MAX_REWARD_IMAGES - (draft?.image_urls.length ?? 0);
+    if (remaining <= 0) {
+      Alert.alert('Gallery Full', `A reward can have up to ${MAX_REWARD_IMAGES} photos. Remove one to add another.`);
+      return;
+    }
+
+    try {
+      const picked = await pickRewardImages(remaining);
+      if (picked.length) setCropQueue(picked);
+    } catch (err: any) {
+      Alert.alert('Error', err.message ?? 'Could not open your photo library.');
+    }
+  }
+
+  // Uploads the just-cropped photo BEFORE advancing the queue, so the
+  // gallery ends up in the order the admin picked them -- the first
+  // element is the cover, so completion-order appends (which a slow
+  // upload could reorder) would quietly change which shot leads.
+  async function handleCropConfirm(cropped: RawImage) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
     setUploadingImage(true);
     try {
-      const url = await pickAndUploadRewardImage(user.id);
-      if (url) setDraft((prev) => prev && { ...prev, image_url: url });
+      const url = await uploadRewardImage(user.id, cropped);
+      setDraft((prev) => prev && { ...prev, image_urls: [...prev.image_urls, url] });
     } catch (err: any) {
-      Alert.alert('Error', err.message ?? 'Failed to upload image.');
+      Alert.alert('Upload Failed', err.message ?? 'Could not upload that photo.');
     } finally {
       setUploadingImage(false);
+      setCropQueue((prev) => prev.slice(1));
     }
+  }
+
+  function removePhoto(index: number) {
+    setDraft((prev) => prev && { ...prev, image_urls: prev.image_urls.filter((_, i) => i !== index) });
+  }
+
+  function makeCover(index: number) {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const next = [...prev.image_urls];
+      const [picked] = next.splice(index, 1);
+      return { ...prev, image_urls: [picked, ...next] };
+    });
   }
 
   function openEdit(reward: any) {
@@ -80,7 +121,7 @@ export default function AdminRewardsScreen() {
       id: reward.id,
       name: reward.name,
       description: reward.description ?? '',
-      image_url: reward.image_url ?? '',
+      image_urls: reward.image_urls ?? [],
       coin_cost: String(reward.coin_cost),
       stock_quantity: reward.stock_quantity != null ? String(reward.stock_quantity) : '',
       is_active: reward.is_active,
@@ -100,7 +141,7 @@ export default function AdminRewardsScreen() {
     const payload = {
       name: draft.name.trim(),
       description: draft.description.trim() || null,
-      image_url: draft.image_url.trim() || null,
+      image_urls: draft.image_urls,
       coin_cost: coinCost,
       stock_quantity: draft.stock_quantity.trim() ? parseInt(draft.stock_quantity, 10) : null,
       is_active: draft.is_active,
@@ -177,8 +218,16 @@ export default function AdminRewardsScreen() {
           }
           renderItem={({ item }) => (
             <TouchableOpacity style={[styles.card, !item.is_active && styles.cardInactive]} onPress={() => openEdit(item)} activeOpacity={0.8}>
-              {item.image_url ? (
-                <Image source={{ uri: item.image_url }} style={styles.cardImage} resizeMode="cover" />
+              {item.image_urls?.length ? (
+                <View>
+                  <Image source={{ uri: item.image_urls[0] }} style={styles.cardImage} resizeMode="cover" />
+                  {item.image_urls.length > 1 && (
+                    <View style={styles.photoCountBadge}>
+                      <Ionicons name="images" size={9} color="#fff" />
+                      <Text style={styles.photoCountText}>{item.image_urls.length}</Text>
+                    </View>
+                  )}
+                </View>
               ) : (
                 <View style={styles.cardImageFallback}>
                   <Ionicons name="gift" size={22} color={colors.textDisabled} />
@@ -236,24 +285,44 @@ export default function AdminRewardsScreen() {
               onChangeText={(v) => setDraft((prev) => prev && { ...prev, description: v })}
               multiline
             />
-            <Text style={styles.inputLabel}>Image</Text>
-            <TouchableOpacity style={styles.imageBox} onPress={handlePickImage} disabled={uploadingImage}>
-              {uploadingImage ? (
-                <ActivityIndicator color={colors.accent} />
-              ) : draft?.image_url ? (
-                <Image source={{ uri: draft.image_url }} style={styles.imageBoxPhoto} resizeMode="cover" />
-              ) : (
-                <View style={styles.imageBoxEmpty}>
-                  <Ionicons name="image-outline" size={24} color={colors.textFaint} />
-                  <Text style={styles.imageBoxText}>Tap to add a photo</Text>
+            <Text style={styles.inputLabel}>
+              Photos {draft?.image_urls.length ? `(${draft.image_urls.length}/${MAX_REWARD_IMAGES})` : ''}
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.galleryRow}>
+              {draft?.image_urls.map((url, i) => (
+                <View key={url} style={styles.thumbWrap}>
+                  <Image source={{ uri: url }} style={styles.thumb} resizeMode="cover" />
+                  {i === 0 ? (
+                    <View style={styles.coverBadge}>
+                      <Text style={styles.coverBadgeText}>Cover</Text>
+                    </View>
+                  ) : (
+                    <TouchableOpacity style={styles.makeCoverBtn} onPress={() => makeCover(i)}>
+                      <Ionicons name="star-outline" size={12} color="#fff" />
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity style={styles.removeThumbBtn} onPress={() => removePhoto(i)}>
+                    <Ionicons name="close" size={12} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+
+              {uploadingImage && (
+                <View style={[styles.thumbWrap, styles.thumbUploading]}>
+                  <ActivityIndicator color={colors.accent} />
                 </View>
               )}
-            </TouchableOpacity>
-            {draft?.image_url && !uploadingImage && (
-              <TouchableOpacity onPress={handlePickImage}>
-                <Text style={styles.changeImageLink}>Change Photo</Text>
-              </TouchableOpacity>
-            )}
+
+              {(draft?.image_urls.length ?? 0) < MAX_REWARD_IMAGES && !uploadingImage && (
+                <TouchableOpacity style={[styles.thumbWrap, styles.addThumb]} onPress={handleAddPhotos}>
+                  <Ionicons name="add" size={22} color={colors.textFaint} />
+                  <Text style={styles.addThumbText}>Add</Text>
+                </TouchableOpacity>
+              )}
+            </ScrollView>
+            <Text style={styles.galleryHint}>
+              Show every angle — front, back, and detail shots. Tap ☆ to make a photo the cover.
+            </Text>
             <View style={styles.row2}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.inputLabel}>Coin Cost</Text>
@@ -295,6 +364,18 @@ export default function AdminRewardsScreen() {
               }
             </TouchableOpacity>
           </View>
+
+          {/* Nested inside the draft modal on purpose -- a sibling Modal
+              would render behind this one on iOS. Hidden while an upload
+              is in flight so the queue advances only once the photo has
+              actually landed. */}
+          <ImageCropPreview
+            visible={cropQueue.length > 0 && !uploadingImage}
+            image={cropQueue[0] ?? null}
+            title={cropQueue.length > 1 ? `Photo 1 of ${cropQueue.length}` : 'Edit Photo'}
+            onCancel={() => setCropQueue((prev) => prev.slice(1))}
+            onConfirm={handleCropConfirm}
+          />
         </KeyboardAvoidingView>
       </Modal>
     </View>
@@ -355,15 +436,41 @@ function getStyles(colors: ThemeColors) {
       paddingHorizontal: 14, paddingVertical: 12, fontSize: 14,
       borderWidth: 1, borderColor: colors.border, marginBottom: 14,
     },
-    imageBox: {
-      width: 96, height: 96, borderRadius: 12, backgroundColor: colors.surfaceAlt,
-      borderWidth: 1, borderColor: colors.border, overflow: 'hidden',
-      justifyContent: 'center', alignItems: 'center', marginBottom: 6,
+    galleryRow: { flexDirection: 'row', gap: 10, paddingVertical: 2, paddingRight: 2 },
+    thumbWrap: {
+      width: 84, height: 84, borderRadius: 12, backgroundColor: colors.surfaceAlt,
+      borderWidth: 1, borderColor: colors.border,
     },
-    imageBoxPhoto: { width: '100%', height: '100%' },
-    imageBoxEmpty: { justifyContent: 'center', alignItems: 'center', gap: 4, padding: 8 },
-    imageBoxText: { color: colors.textFaint, fontSize: 10, textAlign: 'center' },
-    changeImageLink: { color: colors.accent, fontSize: 12, fontWeight: '700', marginBottom: 14 },
+    thumb: { width: '100%', height: '100%', borderRadius: 11 },
+    thumbUploading: { justifyContent: 'center', alignItems: 'center' },
+    addThumb: {
+      justifyContent: 'center', alignItems: 'center', gap: 2,
+      borderStyle: 'dashed', borderColor: colors.textDisabled,
+    },
+    addThumbText: { color: colors.textFaint, fontSize: 11, fontWeight: '700' },
+    removeThumbBtn: {
+      position: 'absolute', top: -6, right: -6,
+      width: 22, height: 22, borderRadius: 11, backgroundColor: colors.error,
+      justifyContent: 'center', alignItems: 'center',
+      borderWidth: 2, borderColor: colors.surface,
+    },
+    makeCoverBtn: {
+      position: 'absolute', bottom: 4, left: 4,
+      width: 22, height: 22, borderRadius: 11, backgroundColor: '#000000aa',
+      justifyContent: 'center', alignItems: 'center',
+    },
+    coverBadge: {
+      position: 'absolute', bottom: 4, left: 4,
+      paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8,
+      backgroundColor: colors.accent,
+    },
+    coverBadgeText: { color: '#fff', fontSize: 9, fontWeight: '800' },
+    galleryHint: { color: colors.textFaint, fontSize: 11, marginTop: 8, marginBottom: 14, lineHeight: 15 },
+    photoCountBadge: {
+      position: 'absolute', bottom: 3, right: 3, flexDirection: 'row', alignItems: 'center', gap: 2,
+      paddingHorizontal: 5, paddingVertical: 2, borderRadius: 7, backgroundColor: '#000000bb',
+    },
+    photoCountText: { color: '#fff', fontSize: 9, fontWeight: '800' },
     row2: { flexDirection: 'row', gap: 12 },
     switchRow: {
       flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',

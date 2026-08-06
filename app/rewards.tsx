@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, RefreshControl, Image,
+  View, Text, StyleSheet, FlatList, RefreshControl, Image, ScrollView, Dimensions,
   TouchableOpacity, ActivityIndicator, Alert, Modal, TextInput, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -9,6 +9,11 @@ import { supabase } from '@/lib/supabase';
 import { CoinAmount } from '@/components/FragCoin';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
+
+// The gallery pages edge-to-edge inside the sheet, so its page width has
+// to match the sheet's inner width exactly (overlay is flush, modalCard
+// pads 24 a side) or paging drifts out of sync with the dots.
+const GALLERY_WIDTH = Dimensions.get('window').width - 48;
 
 export default function RewardsScreen() {
   const router = useRouter();
@@ -24,6 +29,7 @@ export default function RewardsScreen() {
   const [shippingAddress, setShippingAddress] = useState('');
   const [shippingPhone, setShippingPhone] = useState('');
   const [redeeming, setRedeeming] = useState(false);
+  const [galleryIndex, setGalleryIndex] = useState(0);
 
   useEffect(() => { load(); }, []);
 
@@ -48,7 +54,7 @@ export default function RewardsScreen() {
 
     const { data } = await supabase
       .from('reward_catalog')
-      .select('id, name, description, image_url, coin_cost, stock_quantity')
+      .select('id, name, description, image_urls, coin_cost, stock_quantity')
       .eq('is_active', true)
       .order('coin_cost', { ascending: true });
     setRewards(data ?? []);
@@ -58,6 +64,7 @@ export default function RewardsScreen() {
 
   function openRedeemModal(reward: any) {
     setSelectedReward(reward);
+    setGalleryIndex(0);
     setShippingName('');
     setShippingAddress('');
     setShippingPhone('');
@@ -138,8 +145,16 @@ export default function RewardsScreen() {
               disabled={disabled}
               activeOpacity={0.85}
             >
-              {item.image_url ? (
-                <Image source={{ uri: item.image_url }} style={styles.cardImage} resizeMode="cover" />
+              {item.image_urls?.length ? (
+                <View>
+                  <Image source={{ uri: item.image_urls[0] }} style={styles.cardImage} resizeMode="cover" />
+                  {item.image_urls.length > 1 && (
+                    <View style={styles.photoCountBadge}>
+                      <Ionicons name="images" size={10} color="#fff" />
+                      <Text style={styles.photoCountText}>{item.image_urls.length}</Text>
+                    </View>
+                  )}
+                </View>
               ) : (
                 <View style={styles.cardImageFallback}>
                   <Ionicons name="gift" size={28} color={colors.textDisabled} />
@@ -163,44 +178,79 @@ export default function RewardsScreen() {
                 <Ionicons name="close" size={22} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
-            <View style={styles.modalCostRow}>
-              <Text style={styles.modalCost}>This will cost</Text>
-              <CoinAmount amount={selectedReward?.coin_cost ?? 0} size={15} textStyle={styles.modalCost} />
-            </View>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.modalScrollContent}
+            >
+              {!!selectedReward?.image_urls?.length && (
+                <>
+                  <ScrollView
+                    horizontal
+                    pagingEnabled
+                    showsHorizontalScrollIndicator={false}
+                    onMomentumScrollEnd={(e) =>
+                      setGalleryIndex(Math.round(e.nativeEvent.contentOffset.x / GALLERY_WIDTH))
+                    }
+                    style={styles.gallery}
+                  >
+                    {selectedReward.image_urls.map((url: string) => (
+                      <Image key={url} source={{ uri: url }} style={styles.galleryImage} resizeMode="cover" />
+                    ))}
+                  </ScrollView>
+                  {selectedReward.image_urls.length > 1 && (
+                    <View style={styles.dotsRow}>
+                      {selectedReward.image_urls.map((url: string, i: number) => (
+                        <View key={url} style={[styles.dot, i === galleryIndex && styles.dotActive]} />
+                      ))}
+                    </View>
+                  )}
+                </>
+              )}
 
-            <Text style={styles.inputLabel}>Full Name</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Who should we address this to?"
-              placeholderTextColor={colors.textDisabled}
-              value={shippingName}
-              onChangeText={setShippingName}
-            />
-            <Text style={styles.inputLabel}>Shipping Address</Text>
-            <TextInput
-              style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
-              placeholder="Full address, including pincode"
-              placeholderTextColor={colors.textDisabled}
-              value={shippingAddress}
-              onChangeText={setShippingAddress}
-              multiline
-            />
-            <Text style={styles.inputLabel}>Phone Number</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="For delivery updates"
-              placeholderTextColor={colors.textDisabled}
-              keyboardType="phone-pad"
-              value={shippingPhone}
-              onChangeText={setShippingPhone}
-            />
+              {!!selectedReward?.description && (
+                <Text style={styles.modalDescription}>{selectedReward.description}</Text>
+              )}
 
-            <TouchableOpacity style={styles.confirmBtn} onPress={handleRedeem} disabled={redeeming}>
-              {redeeming
-                ? <ActivityIndicator color="#fff" />
-                : <Text style={styles.confirmBtnText}>Confirm Redemption</Text>
-              }
-            </TouchableOpacity>
+              <View style={styles.modalCostRow}>
+                <Text style={styles.modalCost}>This will cost</Text>
+                <CoinAmount amount={selectedReward?.coin_cost ?? 0} size={15} textStyle={styles.modalCost} />
+              </View>
+
+              <Text style={styles.inputLabel}>Full Name</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Who should we address this to?"
+                placeholderTextColor={colors.textDisabled}
+                value={shippingName}
+                onChangeText={setShippingName}
+              />
+              <Text style={styles.inputLabel}>Shipping Address</Text>
+              <TextInput
+                style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+                placeholder="Full address, including pincode"
+                placeholderTextColor={colors.textDisabled}
+                value={shippingAddress}
+                onChangeText={setShippingAddress}
+                multiline
+              />
+              <Text style={styles.inputLabel}>Phone Number</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="For delivery updates"
+                placeholderTextColor={colors.textDisabled}
+                keyboardType="phone-pad"
+                value={shippingPhone}
+                onChangeText={setShippingPhone}
+              />
+
+              <TouchableOpacity style={styles.confirmBtn} onPress={handleRedeem} disabled={redeeming}>
+                {redeeming
+                  ? <ActivityIndicator color="#fff" />
+                  : <Text style={styles.confirmBtnText}>Confirm Redemption</Text>
+                }
+              </TouchableOpacity>
+            </ScrollView>
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -244,13 +294,28 @@ function getStyles(colors: ThemeColors) {
     },
     cardName: { color: colors.textPrimary, fontSize: 13, fontWeight: '700', marginBottom: 6, minHeight: 34 },
     cardCost: { color: colors.accent, fontSize: 14, fontWeight: '800' },
+    photoCountBadge: {
+      position: 'absolute', bottom: 14, right: 4, flexDirection: 'row', alignItems: 'center', gap: 3,
+      paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, backgroundColor: '#000000bb',
+    },
+    photoCountText: { color: '#fff', fontSize: 10, fontWeight: '800' },
     cardStockOut: { color: colors.error, fontSize: 11, fontWeight: '700', marginTop: 4 },
     cardNeedMore: { color: colors.textFaint, fontSize: 11, fontWeight: '600', marginTop: 4 },
     modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: colors.overlay },
     modalCard: {
       backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24,
       padding: 24, paddingBottom: 36, borderWidth: 1, borderColor: colors.border,
+      // Capped so a tall gallery + description can't push the confirm
+      // button off-screen; the inner ScrollView takes over past this.
+      maxHeight: '88%',
     },
+    modalScrollContent: { paddingBottom: 4 },
+    gallery: { width: GALLERY_WIDTH, aspectRatio: 1, borderRadius: 12, overflow: 'hidden', marginBottom: 10 },
+    galleryImage: { width: GALLERY_WIDTH, aspectRatio: 1, backgroundColor: colors.surfaceAlt },
+    dotsRow: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginBottom: 12 },
+    dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.border },
+    dotActive: { backgroundColor: colors.accent, width: 18 },
+    modalDescription: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, marginBottom: 14 },
     modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
     modalTitle: { color: colors.textPrimary, fontSize: 17, fontWeight: '800', flex: 1, marginRight: 12 },
     modalCostRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 18 },

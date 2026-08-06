@@ -1,32 +1,42 @@
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
+import { resizeAndCompress, RawImage } from './chatImage';
 import { supabase } from './supabase';
 
-// Mirrors avatarUpload.ts's pattern (native allowsEditing crop, not the
-// ImageCropPreview flow) -- reward cards are square everywhere they're
-// shown (rewards.tsx, admin-rewards.tsx), and unlike the banner's wide
-// ratio, iOS's native crop step handles a 1:1 aspect correctly.
-export async function pickAndUploadRewardImage(adminId: string): Promise<string | null> {
+// Picks one or more product photos WITHOUT cropping -- each is then run
+// through ImageCropPreview by the caller (admin-rewards.tsx) one at a
+// time. The native picker's own crop can't be used here at all: it's
+// mutually exclusive with allowsMultipleSelection, and it can't hold a
+// consistent square across a batch, which is the whole point of a
+// catalog gallery.
+export async function pickRewardImages(limit: number): Promise<RawImage[]> {
   const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!permission.granted) {
-    throw new Error('Photo library permission is required to set a reward image.');
+    throw new Error('Photo library permission is required to add reward photos.');
   }
 
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ['images'],
-    allowsEditing: true,
-    aspect: [1, 1],
-    quality: 0.7,
-    base64: true,
+    allowsMultipleSelection: true,
+    selectionLimit: limit,
+    quality: 1,
   });
 
-  if (result.canceled || !result.assets[0].base64) return null;
+  if (result.canceled) return [];
 
-  const path = `${adminId}/${Date.now()}.jpg`;
+  return result.assets.map((a) => ({ uri: a.uri, width: a.width, height: a.height }));
+}
+
+// Takes an already-cropped square (from ImageCropPreview, locked to
+// REWARD_IMAGE_RATIO) and returns its public URL.
+export async function uploadRewardImage(adminId: string, image: RawImage): Promise<string> {
+  const { base64 } = await resizeAndCompress(image.uri, image.width, image.height);
+
+  const path = `${adminId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
 
   const { error: uploadError } = await supabase.storage
     .from('reward-images')
-    .upload(path, decode(result.assets[0].base64), { contentType: 'image/jpeg' });
+    .upload(path, decode(base64), { contentType: 'image/jpeg' });
 
   if (uploadError) throw uploadError;
 

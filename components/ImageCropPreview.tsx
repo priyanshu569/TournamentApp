@@ -41,6 +41,10 @@ type Props = {
    *  chips -- for callers with one required output shape (e.g. a banner)
    *  rather than the free choice chat images offer. */
   fixedRatio?: number;
+  /** Overrides the modal heading -- lets callers cropping a batch show
+   *  progress ("Photo 2 of 5") so the modal reappearing after each
+   *  confirm reads as a queue rather than a stuck dialog. */
+  title?: string;
 };
 
 // Instagram-style crop: the image pans/zooms freely under a FIXED frame
@@ -52,7 +56,7 @@ type Props = {
 // raw on-screen pixel offsets, matching how the pan/crop math below is
 // derived -- reversing that order would mean translate gets scaled too,
 // throwing off both the clamp bounds and the final crop rect.
-export default function ImageCropPreview({ visible, image, onCancel, onConfirm, fixedRatio }: Props) {
+export default function ImageCropPreview({ visible, image, onCancel, onConfirm, fixedRatio, title }: Props) {
   const { colors } = useAppTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
   const [activeRatioKey, setActiveRatioKey] = useState('original');
@@ -161,7 +165,7 @@ export default function ImageCropPreview({ visible, image, onCancel, onConfirm, 
               <TouchableOpacity onPress={onCancel} style={styles.headerBtn}>
                 <Text style={styles.cancelText}>Cancel</Text>
               </TouchableOpacity>
-              <Text style={styles.title}>Edit Photo</Text>
+              <Text style={styles.title}>{title ?? 'Edit Photo'}</Text>
               <View style={styles.headerBtn} />
             </View>
 
