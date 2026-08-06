@@ -95,14 +95,16 @@ export async function cropImageToRect(
   return { uri: result.uri, width: result.width, height: result.height };
 }
 
-export async function resizeAndCompress(uri: string, width: number, height: number): Promise<PickedChatImage> {
+export async function resizeAndCompress(
+  uri: string, width: number, height: number, maxDimension: number = MAX_DIMENSION
+): Promise<PickedChatImage> {
   const context = ImageManipulator.manipulate(uri);
 
-  if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+  if (width > maxDimension || height > maxDimension) {
     context.resize(
       width >= height
-        ? { width: MAX_DIMENSION, height: null }
-        : { width: null, height: MAX_DIMENSION }
+        ? { width: maxDimension, height: null }
+        : { width: null, height: maxDimension }
     );
   }
 
