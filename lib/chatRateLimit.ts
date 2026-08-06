@@ -20,11 +20,14 @@ export async function getChatSendRetryMessage(userId: string, hadImage: boolean,
   if (isBlocked) return "You can't send messages in this conversation.";
 
   if (hadImage) {
+    // Matches the RLS predicate exactly: view-once sends leave image_url
+    // null (the path lives in view_once_photos instead), so they'd be
+    // invisible to a plain "image_url is not null" count.
     const { data } = await supabase
       .from('messages')
       .select('created_at')
       .eq('sender_id', userId)
-      .not('image_url', 'is', null)
+      .or('image_url.not.is.null,view_once.eq.true')
       .gt('created_at', new Date(Date.now() - DAY_MS).toISOString())
       .order('created_at', { ascending: true })
       .limit(1);

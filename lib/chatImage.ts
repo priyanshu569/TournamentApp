@@ -141,16 +141,34 @@ export async function getSignedChatImageUrl(path: string): Promise<string> {
   return data.signedUrl;
 }
 
-// Atomically consumes a view-once photo server-side (marks it viewed +
-// clears messages.image_url so it can never be fetched through the app
-// again) and returns the storage path it had, which is still resolved
-// into a signed URL here since the RPC only clears the DB reference --
-// the object itself is untouched, and this signed URL is the one and
-// only chance to see it.
+// Atomically consumes a view-once photo server-side (runs the "not your
+// own", "not already viewed" checks and marks it viewed) and returns the
+// one and only signed download it will ever get. The photo is fetched to
+// a local file BEFORE the storage object is deleted -- deleting first
+// (or concurrently) would race whatever's rendering the remote signed
+// URL, since a signed URL stops resolving the instant its object is
+// gone. The delete itself is best-effort: the RPC has already recorded
+// this as viewed and the caller already has its own local copy either
+// way, so a delete failure here just means this one object outlives its
+// intended one-time lifetime in storage rather than blocking the view.
 export async function revealViewOnceImage(messageId: string): Promise<string> {
   const { data: path, error } = await supabase.rpc('reveal_view_once_message', { p_message_id: messageId });
   if (error) throw error;
-  return getSignedChatImageUrl(path as string);
+
+  const signedUrl = await getSignedChatImageUrl(path as string);
+
+  const cacheDir = new Directory(Paths.cache, 'fragify-view-once');
+  try {
+    cacheDir.create({ intermediates: true });
+  } catch {
+    // Already exists -- fine.
+  }
+  const destination = new File(cacheDir, `${Date.now()}.jpg`);
+  const downloaded = await File.downloadFileAsync(signedUrl, destination);
+
+  supabase.storage.from('chat-images').remove([path as string]).catch(() => {});
+
+  return downloaded.uri;
 }
 
 // MediaLibrary needs a local file, not a remote URL -- download the

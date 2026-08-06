@@ -892,17 +892,36 @@ export default function ChatThreadScreen() {
     try {
       const path = await uploadChatImage(id, myId, picked.base64);
       const previewContent = caption || (viewOnce ? '📷 View once photo' : '📷 Photo');
-      const { error } = await supabase.from('messages').insert({
+      // view_once messages leave image_url null -- the path is registered
+      // in view_once_photos instead, which no client can select, so the
+      // only way to ever learn it is the reveal_view_once_message RPC.
+      const { data: inserted, error } = await supabase.from('messages').insert({
         conversation_id: id,
         sender_id: myId,
         content: previewContent,
-        image_url: path,
+        image_url: viewOnce ? null : path,
         image_width: picked.width,
         image_height: picked.height,
         reply_to_id: replyingTo?.id ?? null,
         view_once: viewOnce,
-      });
+      }).select('id').single();
       if (error) throw error;
+
+      if (viewOnce) {
+        const { error: vopError } = await supabase
+          .from('view_once_photos')
+          .insert({ message_id: inserted.id, storage_path: path });
+        if (vopError) {
+          // Message row would otherwise sit there as a view-once bubble
+          // nobody can ever open. There's no raw delete policy on
+          // messages by design (unsend is the only sanctioned path,
+          // see unsend_message) -- reuse it here to surface a real send
+          // failure instead of a silently broken message.
+          await supabase.rpc('unsend_message', { p_message_id: inserted.id });
+          throw vopError;
+        }
+      }
+
       setReplyingTo(null);
       notifyOthers(previewContent);
     } catch (err: any) {
