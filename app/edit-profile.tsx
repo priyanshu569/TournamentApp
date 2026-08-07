@@ -24,6 +24,7 @@ const GENDERS = [
 ];
 
 const USERNAME_REGEX = /^[a-z0-9_.]{3,20}$/;
+const BIO_MAX_LENGTH = 160;
 
 export default function EditProfileScreen() {
   const { colors } = useAppTheme();
@@ -31,6 +32,7 @@ export default function EditProfileScreen() {
   const [userId, setUserId] = useState<string | null>(null);
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [bio, setBio] = useState('');
   const [gender, setGender] = useState<string | null>(null);
   const [state, setState] = useState<string | null>(null);
   const [city, setCity] = useState('');
@@ -95,13 +97,14 @@ export default function EditProfileScreen() {
 
     const { data } = await supabase
       .from('Profiles')
-      .select('username, display_name, gender, state, city, city_public, date_of_birth, age_public, avatar_id, avatar_url, games_onboarded')
+      .select('username, display_name, bio, gender, state, city, city_public, date_of_birth, age_public, avatar_id, avatar_url, games_onboarded')
       .eq('id', userData.user.id)
       .single();
 
     if (data) {
       setUsername(data.username || '');
       setDisplayName(data.display_name || '');
+      setBio(data.bio || '');
       setGender(data.gender || null);
       setState(data.state || null);
       setCity(data.city || '');
@@ -171,6 +174,7 @@ export default function EditProfileScreen() {
         phone: userData.user.phone,
         username,
         display_name: displayName.trim(),
+        bio: bio.trim() || null,
         gender,
         state,
         city: city.trim() || null,
@@ -331,6 +335,26 @@ export default function EditProfileScreen() {
           />
         </View>
 
+        {/* Bio */}
+        <View style={styles.fieldGroup}>
+          <View style={styles.bioLabelRow}>
+            <Text style={styles.label}>Bio</Text>
+            <Text style={[styles.bioCounter, bio.length >= BIO_MAX_LENGTH && styles.bioCounterMax]}>
+              {bio.length}/{BIO_MAX_LENGTH}
+            </Text>
+          </View>
+          <TextInput
+            style={[styles.input, styles.bioInput]}
+            placeholder="Tell other players a bit about yourself..."
+            placeholderTextColor={colors.textDisabled}
+            value={bio}
+            onChangeText={setBio}
+            multiline
+            maxLength={BIO_MAX_LENGTH}
+            textAlignVertical="top"
+          />
+        </View>
+
         {/* Gender */}
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Gender</Text>
@@ -473,6 +497,10 @@ function getStyles(colors: ThemeColors) {
     subtitle: { fontSize: 13, color: colors.textSecondary, marginBottom: 32, textAlign: 'center', lineHeight: 20 },
     fieldGroup: { marginBottom: 20 },
     label: { color: colors.textSecondary, fontSize: 13, marginBottom: 8, fontWeight: '600' },
+    bioLabelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+    bioCounter: { color: colors.textFaint, fontSize: 12, fontWeight: '600' },
+    bioCounterMax: { color: colors.warning },
+    bioInput: { height: 90, paddingTop: 14 },
     hint: { color: colors.textFaint, fontSize: 12, marginTop: 6 },
     visibilityRow: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

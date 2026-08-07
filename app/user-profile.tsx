@@ -253,6 +253,23 @@ export default function UserProfileScreen() {
           <Text style={styles.handle}>@{profile.username}</Text>
         )}
 
+        {profile.bio ? (
+          <View style={styles.bioBlock}>
+            <Text style={styles.bioText}>{profile.bio}</Text>
+            <LinearGradient
+              colors={['#ffffff00', colors.accent, '#ffffff00']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.bioUnderline}
+            />
+          </View>
+        ) : isOwnProfile ? (
+          <TouchableOpacity style={styles.addBioBtn} onPress={() => router.push('/edit-profile')}>
+            <Ionicons name="add-circle-outline" size={14} color="#c9b8ea" />
+            <Text style={styles.addBioBtnText}>Add a bio</Text>
+          </TouchableOpacity>
+        ) : null}
+
         {(genderMeta || location || profile.age) && (
           <View style={styles.infoRow}>
             {genderMeta && (
@@ -405,6 +422,18 @@ function getStyles(colors: ThemeColors) {
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     username: { fontSize: 22, fontWeight: '900', color: '#fff' },
     handle: { fontSize: 13, color: '#c9b8ea', marginTop: 2, fontWeight: '600' },
+    bioBlock: { alignItems: 'center', marginTop: 12, paddingHorizontal: 8 },
+    bioText: {
+      color: '#e5d9fbe6', fontSize: 13.5, lineHeight: 20,
+      textAlign: 'center', fontStyle: 'italic', maxWidth: 280,
+    },
+    bioUnderline: { width: 40, height: 2, borderRadius: 1, marginTop: 10 },
+    addBioBtn: {
+      flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 12,
+      paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
+      backgroundColor: '#ffffff14', borderWidth: 1, borderColor: '#ffffff1f', borderStyle: 'dashed',
+    },
+    addBioBtnText: { color: '#c9b8ea', fontSize: 12, fontWeight: '600' },
     infoRow: { flexDirection: 'row', gap: 8, marginTop: 12, flexWrap: 'wrap', justifyContent: 'center' },
     infoChip: {
       flexDirection: 'row', alignItems: 'center', gap: 5,
