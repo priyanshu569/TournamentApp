@@ -394,12 +394,13 @@ export default function UserProfileScreen() {
               const logo = getGameLogo(g.game);
               return (
                 <View key={g.game} style={styles.gameCard}>
-                  <View style={[styles.gameIconCircle, { backgroundColor: color + '1c', borderColor: color + '55' }]}>
-                    {logo
-                      ? <GameLogo game={g.game} size={20} />
-                      : <Ionicons name="game-controller" size={18} color={color} />
-                    }
-                  </View>
+                  {logo ? (
+                    <GameLogo game={g.game} size={40} />
+                  ) : (
+                    <View style={[styles.gameIconCircle, { backgroundColor: color + '1c', borderColor: color + '55' }]}>
+                      <Ionicons name="game-controller" size={18} color={color} />
+                    </View>
+                  )}
                   <View style={{ flex: 1 }}>
                     <Text style={styles.gameName}>{g.game}</Text>
                     <Text style={styles.gameDetail}>{g.in_game_name} · UID: {g.game_uid}</Text>

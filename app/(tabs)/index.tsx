@@ -137,7 +137,7 @@ export default function HomeScreen() {
         ) : (
           <View style={[styles.compactBannerFallback, { backgroundColor: getGameColor(item.game) + '22' }]}>
             {getGameLogo(item.game)
-              ? <GameLogo game={item.game} size={32} />
+              ? <GameLogo game={item.game} size={40} style={{ opacity: 0.4 }} />
               : <Ionicons name="game-controller" size={32} color={getGameColor(item.game)} />
             }
           </View>

@@ -145,9 +145,7 @@ export default function GameDetailsScreen() {
         return (
           <View key={game.name} style={styles.gameCard}>
             <TouchableOpacity style={styles.gameHeader} onPress={() => toggleGame(game.name)}>
-              <View style={[styles.gameLogo, { backgroundColor: game.color + '22' }]}>
-                <GameLogo game={game.name} size={24} />
-              </View>
+              <GameLogo game={game.name} size={40} style={styles.gameLogo} />
               <Text style={styles.gameName}>{game.name}</Text>
               <Ionicons
                 name={isExpanded ? 'checkmark-circle' : 'add-circle-outline'}
