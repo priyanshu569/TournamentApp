@@ -268,23 +268,6 @@ export default function ProfileScreen() {
         </View>
         {profile?.username && <Text style={styles.handle}>@{profile.username}</Text>}
 
-        {profile?.bio ? (
-          <View style={styles.bioBlock}>
-            <Text style={styles.bioText}>{profile.bio}</Text>
-            <LinearGradient
-              colors={['#ffffff00', colors.accent, '#ffffff00']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.bioUnderline}
-            />
-          </View>
-        ) : (
-          <TouchableOpacity style={styles.addBioBtn} onPress={() => router.push('/edit-profile')}>
-            <Ionicons name="add-circle-outline" size={14} color="#c9b8ea" />
-            <Text style={styles.addBioBtnText}>Add a bio</Text>
-          </TouchableOpacity>
-        )}
-
         {(genderMeta || location || age !== null) && (
           <View style={styles.infoRow}>
             {genderMeta && (
@@ -353,6 +336,23 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       </View>
 
+      {profile?.bio ? (
+        <View style={styles.bioCard}>
+          <Text style={styles.bioCardText}>{profile.bio}</Text>
+          <LinearGradient
+            colors={['transparent', colors.accent, 'transparent']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.bioUnderline}
+          />
+        </View>
+      ) : (
+        <TouchableOpacity style={styles.addBioCard} onPress={() => router.push('/edit-profile')}>
+          <Ionicons name="add-circle-outline" size={16} color={colors.accent} />
+          <Text style={styles.addBioCardText}>Add a bio</Text>
+        </TouchableOpacity>
+      )}
+
       {profile?.host_status === 'pending' && (
         <View style={styles.menuWrap}>
           <View style={[styles.menuItem, styles.pendingItem]}>
@@ -412,18 +412,23 @@ function getStyles(colors: ThemeColors) {
     headerTitle: { fontSize: 26, fontWeight: '800', color: colors.textPrimary },
 
     handle: { fontSize: 13, color: '#c9b8ea', marginTop: 2, fontWeight: '600' },
-    bioBlock: { alignItems: 'center', marginTop: 12, paddingHorizontal: 8 },
-    bioText: {
-      color: '#e5d9fbe6', fontSize: 13.5, lineHeight: 20,
-      textAlign: 'center', fontStyle: 'italic', maxWidth: 280,
+    bioCard: {
+      backgroundColor: colors.surface, borderRadius: 18,
+      borderWidth: 1, borderColor: colors.borderMuted,
+      paddingVertical: 18, paddingHorizontal: 20, alignItems: 'center',
+      marginTop: 14, marginBottom: 6,
+      shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.25, shadowRadius: 8, elevation: 3,
     },
-    bioUnderline: { width: 40, height: 2, borderRadius: 1, marginTop: 10 },
-    addBioBtn: {
-      flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 12,
-      paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
-      backgroundColor: '#ffffff14', borderWidth: 1, borderColor: '#ffffff1f', borderStyle: 'dashed',
+    bioCardText: { color: colors.textSecondary, fontSize: 14, lineHeight: 21, textAlign: 'center', fontStyle: 'italic' },
+    bioUnderline: { width: 40, height: 2, borderRadius: 1, marginTop: 12 },
+    addBioCard: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+      backgroundColor: colors.surface, borderRadius: 18,
+      borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed',
+      paddingVertical: 14, marginTop: 14, marginBottom: 6,
     },
-    addBioBtnText: { color: '#c9b8ea', fontSize: 12, fontWeight: '600' },
+    addBioCardText: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
 
     profileCard: {
       alignItems: 'center',
