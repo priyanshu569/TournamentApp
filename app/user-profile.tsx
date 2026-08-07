@@ -45,6 +45,7 @@ export default function UserProfileScreen() {
   const [isBlocked, setIsBlocked] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
+  const [tournamentCount, setTournamentCount] = useState(0);
   const [listsPrivate, setListsPrivate] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -123,6 +124,24 @@ export default function UserProfileScreen() {
       .select('*', { count: 'exact', head: true })
       .eq('follower_id', id);
     setFollowingCount(following ?? 0);
+
+    // Hosts are measured by what they've run, players by what they've
+    // entered. Keyed off their real `role` only -- browsing_mode is a
+    // personal view preference and isn't exposed on public_profiles, so
+    // it can't (and shouldn't) change how anyone else sees them.
+    if (p?.role === 'host') {
+      const { count: hosted } = await supabase
+        .from('tournaments')
+        .select('*', { count: 'exact', head: true })
+        .eq('host_id', id);
+      setTournamentCount(hosted ?? 0);
+    } else {
+      const { count: joined } = await supabase
+        .from('registrations')
+        .select('id', { count: 'exact', head: true })
+        .eq('player_id', id);
+      setTournamentCount(joined ?? 0);
+    }
 
     setLoading(false);
   }
@@ -288,46 +307,59 @@ export default function UserProfileScreen() {
         )}
       </AnimatedProfileBanner>
 
-      {/* Stats */}
+      {/* Stats — mirrors the card on (tabs)/profile.tsx so your own
+          profile and how others see you look the same. */}
       <View style={styles.statsCard}>
-        <TouchableOpacity
-          style={styles.statItem}
-          disabled={!canSeeLists}
-          onPress={() => router.push(`/follow-list?id=${id}&type=followers`)}
-        >
-          <Text style={styles.statValue}>{canSeeLists ? followersCount : '—'}</Text>
-          <Text style={styles.statLabel}>Followers</Text>
-        </TouchableOpacity>
-        <View style={styles.statDivider} />
-        <TouchableOpacity
-          style={styles.statItem}
-          disabled={!canSeeLists}
-          onPress={() => router.push(`/follow-list?id=${id}&type=following`)}
-        >
-          <Text style={styles.statValue}>{canSeeLists ? followingCount : '—'}</Text>
-          <Text style={styles.statLabel}>Following</Text>
-        </TouchableOpacity>
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Ionicons name="trophy" size={16} color={colors.accent} style={styles.statIcon} />
+            <Text style={styles.statValue}>{tournamentCount}</Text>
+            <Text style={styles.statLabel}>{profile.role === 'host' ? 'Created' : 'Joined'}</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <TouchableOpacity
+            style={styles.statItem}
+            activeOpacity={0.75}
+            disabled={!canSeeLists}
+            onPress={() => router.push(`/follow-list?id=${id}&type=followers`)}
+          >
+            <Ionicons name="people" size={16} color={colors.accent} style={styles.statIcon} />
+            <Text style={styles.statValue}>{canSeeLists ? followersCount : '—'}</Text>
+            <Text style={styles.statLabel}>Followers</Text>
+          </TouchableOpacity>
+          <View style={styles.statDivider} />
+          <TouchableOpacity
+            style={styles.statItem}
+            activeOpacity={0.75}
+            disabled={!canSeeLists}
+            onPress={() => router.push(`/follow-list?id=${id}&type=following`)}
+          >
+            <Ionicons name="person-add" size={16} color={colors.accent} style={styles.statIcon} />
+            <Text style={styles.statValue}>{canSeeLists ? followingCount : '—'}</Text>
+            <Text style={styles.statLabel}>Following</Text>
+          </TouchableOpacity>
+        </View>
+
+        {profile.bio ? (
+          <View style={styles.bioBlock}>
+            <Text style={styles.bioCardText}>{profile.bio}</Text>
+            <LinearGradient
+              colors={['transparent', colors.accent, 'transparent']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.bioUnderline}
+            />
+          </View>
+        ) : isOwnProfile ? (
+          <TouchableOpacity style={styles.addBioBlock} onPress={() => router.push('/edit-profile')}>
+            <Ionicons name="add-circle-outline" size={15} color={colors.accent} />
+            <Text style={styles.addBioCardText}>Add a bio</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
       {!canSeeLists && (
         <Text style={styles.privateHint}>🔒 This user's follower/following lists are private.</Text>
       )}
-
-      {profile.bio ? (
-        <View style={styles.bioCard}>
-          <Text style={styles.bioCardText}>{profile.bio}</Text>
-          <LinearGradient
-            colors={['transparent', colors.accent, 'transparent']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.bioUnderline}
-          />
-        </View>
-      ) : isOwnProfile ? (
-        <TouchableOpacity style={styles.addBioCard} onPress={() => router.push('/edit-profile')}>
-          <Ionicons name="add-circle-outline" size={16} color={colors.accent} />
-          <Text style={styles.addBioCardText}>Add a bio</Text>
-        </TouchableOpacity>
-      ) : null}
 
       {!isOwnProfile && (
         <View style={styles.actionsRow}>
@@ -422,21 +454,16 @@ function getStyles(colors: ThemeColors) {
     nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     username: { fontSize: 22, fontWeight: '900', color: '#fff' },
     handle: { fontSize: 13, color: '#c9b8ea', marginTop: 2, fontWeight: '600' },
-    bioCard: {
-      backgroundColor: colors.surface, borderRadius: 18,
-      borderWidth: 1, borderColor: colors.borderMuted,
-      paddingVertical: 18, paddingHorizontal: 20, alignItems: 'center',
-      marginTop: 14, marginBottom: 6,
-      shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.25, shadowRadius: 8, elevation: 3,
+    bioBlock: {
+      alignItems: 'center', paddingHorizontal: 20, paddingTop: 16, marginTop: 16,
+      borderTopWidth: 1, borderTopColor: colors.border,
     },
     bioCardText: { color: colors.textSecondary, fontSize: 14, lineHeight: 21, textAlign: 'center', fontStyle: 'italic' },
     bioUnderline: { width: 40, height: 2, borderRadius: 1, marginTop: 12 },
-    addBioCard: {
+    addBioBlock: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-      backgroundColor: colors.surface, borderRadius: 18,
-      borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed',
-      paddingVertical: 14, marginTop: 14, marginBottom: 6,
+      paddingHorizontal: 20, paddingTop: 14, marginTop: 16,
+      borderTopWidth: 1, borderTopColor: colors.border,
     },
     addBioCardText: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
     infoRow: { flexDirection: 'row', gap: 8, marginTop: 12, flexWrap: 'wrap', justifyContent: 'center' },
@@ -454,15 +481,17 @@ function getStyles(colors: ThemeColors) {
     roleTextAdmin: { color: '#4a2f00' },
 
     statsCard: {
-      flexDirection: 'row', backgroundColor: colors.surface, borderRadius: 18,
-      borderWidth: 1, borderColor: colors.borderMuted, paddingVertical: 16, marginBottom: 6,
+      backgroundColor: colors.surface, borderRadius: 20,
+      borderWidth: 1, borderColor: colors.borderMuted, paddingVertical: 18, marginBottom: 6,
       shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.25, shadowRadius: 8, elevation: 3,
     },
+    statsRow: { flexDirection: 'row' },
     statItem: { flex: 1, alignItems: 'center' },
-    statDivider: { width: 1, backgroundColor: colors.border },
-    statValue: { color: colors.textPrimary, fontSize: 20, fontWeight: '800' },
-    statLabel: { color: colors.textSecondary, fontSize: 12, marginTop: 2 },
+    statIcon: { marginBottom: 6 },
+    statDivider: { width: 1, backgroundColor: colors.border, marginVertical: 2 },
+    statValue: { color: colors.textPrimary, fontSize: 20, fontWeight: '800', marginBottom: 3 },
+    statLabel: { color: colors.textSecondary, fontSize: 11, textAlign: 'center' },
     privateHint: { color: colors.textFaint, fontSize: 12, textAlign: 'center', marginTop: 10 },
     actionsRow: { flexDirection: 'row', gap: 12, marginTop: 20 },
     actionBtn: {

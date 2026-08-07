@@ -307,51 +307,53 @@ export default function ProfileScreen() {
 
       {/* Stats */}
       <View style={styles.statsCard}>
-        <TouchableOpacity style={styles.statItem} onPress={() => tabNav?.goToTab('history')} activeOpacity={0.75}>
-          <Ionicons name="trophy" size={16} color={colors.accent} style={styles.statIcon} />
-          <Text style={styles.statValue}>{stats.tournaments}</Text>
-          <Text style={styles.statLabel}>
-            {(isHost && !browsingAsPlayer) || browsingAsHost ? 'Created' : 'Joined'}
-          </Text>
-        </TouchableOpacity>
-        <View style={styles.statDivider} />
-        <TouchableOpacity
-          style={styles.statItem}
-          activeOpacity={0.75}
-          onPress={() => profile?.id && router.push(`/follow-list?id=${profile.id}&type=followers`)}
-        >
-          <Ionicons name="people" size={16} color={colors.accent} style={styles.statIcon} />
-          <Text style={styles.statValue}>{followCounts.followers}</Text>
-          <Text style={styles.statLabel}>Followers</Text>
-        </TouchableOpacity>
-        <View style={styles.statDivider} />
-        <TouchableOpacity
-          style={styles.statItem}
-          activeOpacity={0.75}
-          onPress={() => profile?.id && router.push(`/follow-list?id=${profile.id}&type=following`)}
-        >
-          <Ionicons name="person-add" size={16} color={colors.accent} style={styles.statIcon} />
-          <Text style={styles.statValue}>{followCounts.following}</Text>
-          <Text style={styles.statLabel}>Following</Text>
-        </TouchableOpacity>
-      </View>
-
-      {profile?.bio ? (
-        <View style={styles.bioCard}>
-          <Text style={styles.bioCardText}>{profile.bio}</Text>
-          <LinearGradient
-            colors={['transparent', colors.accent, 'transparent']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.bioUnderline}
-          />
+        <View style={styles.statsRow}>
+          <TouchableOpacity style={styles.statItem} onPress={() => tabNav?.goToTab('history')} activeOpacity={0.75}>
+            <Ionicons name="trophy" size={16} color={colors.accent} style={styles.statIcon} />
+            <Text style={styles.statValue}>{stats.tournaments}</Text>
+            <Text style={styles.statLabel}>
+              {(isHost && !browsingAsPlayer) || browsingAsHost ? 'Created' : 'Joined'}
+            </Text>
+          </TouchableOpacity>
+          <View style={styles.statDivider} />
+          <TouchableOpacity
+            style={styles.statItem}
+            activeOpacity={0.75}
+            onPress={() => profile?.id && router.push(`/follow-list?id=${profile.id}&type=followers`)}
+          >
+            <Ionicons name="people" size={16} color={colors.accent} style={styles.statIcon} />
+            <Text style={styles.statValue}>{followCounts.followers}</Text>
+            <Text style={styles.statLabel}>Followers</Text>
+          </TouchableOpacity>
+          <View style={styles.statDivider} />
+          <TouchableOpacity
+            style={styles.statItem}
+            activeOpacity={0.75}
+            onPress={() => profile?.id && router.push(`/follow-list?id=${profile.id}&type=following`)}
+          >
+            <Ionicons name="person-add" size={16} color={colors.accent} style={styles.statIcon} />
+            <Text style={styles.statValue}>{followCounts.following}</Text>
+            <Text style={styles.statLabel}>Following</Text>
+          </TouchableOpacity>
         </View>
-      ) : (
-        <TouchableOpacity style={styles.addBioCard} onPress={() => router.push('/edit-profile')}>
-          <Ionicons name="add-circle-outline" size={16} color={colors.accent} />
-          <Text style={styles.addBioCardText}>Add a bio</Text>
-        </TouchableOpacity>
-      )}
+
+        {profile?.bio ? (
+          <View style={styles.bioBlock}>
+            <Text style={styles.bioCardText}>{profile.bio}</Text>
+            <LinearGradient
+              colors={['transparent', colors.accent, 'transparent']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.bioUnderline}
+            />
+          </View>
+        ) : (
+          <TouchableOpacity style={styles.addBioBlock} onPress={() => router.push('/edit-profile')}>
+            <Ionicons name="add-circle-outline" size={15} color={colors.accent} />
+            <Text style={styles.addBioCardText}>Add a bio</Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
       {profile?.host_status === 'pending' && (
         <View style={styles.menuWrap}>
@@ -412,21 +414,16 @@ function getStyles(colors: ThemeColors) {
     headerTitle: { fontSize: 26, fontWeight: '800', color: colors.textPrimary },
 
     handle: { fontSize: 13, color: '#c9b8ea', marginTop: 2, fontWeight: '600' },
-    bioCard: {
-      backgroundColor: colors.surface, borderRadius: 18,
-      borderWidth: 1, borderColor: colors.borderMuted,
-      paddingVertical: 18, paddingHorizontal: 20, alignItems: 'center',
-      marginTop: 14, marginBottom: 6,
-      shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.25, shadowRadius: 8, elevation: 3,
+    bioBlock: {
+      alignItems: 'center', paddingHorizontal: 20, paddingTop: 16, marginTop: 16,
+      borderTopWidth: 1, borderTopColor: colors.border,
     },
     bioCardText: { color: colors.textSecondary, fontSize: 14, lineHeight: 21, textAlign: 'center', fontStyle: 'italic' },
     bioUnderline: { width: 40, height: 2, borderRadius: 1, marginTop: 12 },
-    addBioCard: {
+    addBioBlock: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-      backgroundColor: colors.surface, borderRadius: 18,
-      borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed',
-      paddingVertical: 14, marginTop: 14, marginBottom: 6,
+      paddingHorizontal: 20, paddingTop: 14, marginTop: 16,
+      borderTopWidth: 1, borderTopColor: colors.border,
     },
     addBioCardText: { color: colors.textSecondary, fontSize: 13, fontWeight: '600' },
 
@@ -459,12 +456,13 @@ function getStyles(colors: ThemeColors) {
     browsingModeHint: { color: '#c9b8ea', fontSize: 11, fontWeight: '600', marginTop: 6 },
 
     statsCard: {
-      flexDirection: 'row', marginHorizontal: 24, marginBottom: 24,
+      marginHorizontal: 24, marginBottom: 24,
       backgroundColor: colors.surface, borderRadius: 20,
       borderWidth: 1, borderColor: colors.borderMuted, paddingVertical: 18,
       shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.25, shadowRadius: 8, elevation: 3,
     },
+    statsRow: { flexDirection: 'row' },
     statItem: { flex: 1, alignItems: 'center' },
     statIcon: { marginBottom: 6 },
     statDivider: { width: 1, backgroundColor: colors.border, marginVertical: 2 },
