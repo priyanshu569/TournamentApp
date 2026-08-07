@@ -10,6 +10,7 @@ import { supabase } from '../lib/supabase';
 import { uploadBanner } from '@/lib/bannerUpload';
 import { pickRawChatImage, RawImage } from '@/lib/chatImage';
 import ImageCropPreview from '@/components/ImageCropPreview';
+import GameLogo from '@/components/GameLogo';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { TOURNAMENT_BANNER_RATIO } from '@/constants/banner';
 import { useAppTheme } from '@/lib/ThemeContext';
@@ -241,6 +242,7 @@ export default function CreateTournament() {
             style={[styles.gameChip, selectedGame === game && styles.gameChipActive]}
             onPress={() => setSelectedGame(game)}
           >
+            <GameLogo game={game} size={16} />
             <Text style={[styles.gameChipText, selectedGame === game && styles.gameChipTextActive]}>
               {game}
             </Text>
@@ -513,6 +515,7 @@ function getStyles(colors: ThemeColors) {
     label: { color: colors.textSecondary, fontSize: 13, marginBottom: 8, fontWeight: '600', letterSpacing: 0.5 },
     gameGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
     gameChip: {
+      flexDirection: 'row', alignItems: 'center', gap: 7,
       paddingHorizontal: 16, paddingVertical: 10,
       borderRadius: 10, backgroundColor: colors.surfaceAlt,
       borderWidth: 1, borderColor: colors.border,
