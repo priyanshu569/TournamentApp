@@ -19,13 +19,7 @@ import { isEffectivelyHost } from '@/lib/effectiveRole';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 import { TOURNAMENT_BANNER_RATIO } from '@/constants/banner';
-
-const GAME_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  'free fire': 'flame',
-  'bgmi': 'skull',
-  'cod': 'skull',
-  'valorant': 'flash',
-};
+import GameLogo, { getGameLogo } from '@/components/GameLogo';
 
 export default function HomeScreen() {
   const { colors } = useAppTheme();
@@ -105,14 +99,6 @@ export default function HomeScreen() {
     return '#7C3AED';
   };
 
-  const getGameIcon = (game: string): keyof typeof Ionicons.glyphMap => {
-    const g = game.toLowerCase();
-    for (const key in GAME_ICONS) {
-      if (g.includes(key)) return GAME_ICONS[key];
-    }
-    return 'game-controller';
-  };
-
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return 'TBA';
     const date = new Date(dateStr);
@@ -150,7 +136,10 @@ export default function HomeScreen() {
           <Image source={{ uri: item.banner_url }} style={styles.compactBanner} contentFit="cover" />
         ) : (
           <View style={[styles.compactBannerFallback, { backgroundColor: getGameColor(item.game) + '22' }]}>
-            <Ionicons name={getGameIcon(item.game)} size={32} color={getGameColor(item.game)} />
+            {getGameLogo(item.game)
+              ? <GameLogo game={item.game} size={32} />
+              : <Ionicons name="game-controller" size={32} color={getGameColor(item.game)} />
+            }
           </View>
         )}
         <View style={styles.compactBody}>

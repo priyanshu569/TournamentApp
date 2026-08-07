@@ -12,19 +12,14 @@ import VerifiedBadge from '@/components/VerifiedBadge';
 import NotificationBell from '@/components/NotificationBell';
 import LeaderboardIcon from '@/components/LeaderboardIcon';
 import FragCoin from '@/components/FragCoin';
+import GameLogo, { getGameLogo } from '@/components/GameLogo';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 import { TOURNAMENT_BANNER_RATIO } from '@/constants/banner';
 import { useTabNavigation } from '@/lib/tabNavigation';
 import { getStartingSoonLabel, useNow } from '@/lib/tournamentTiming';
 
-const GAMES: { label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { label: 'All', icon: 'apps' },
-  { label: 'Free Fire', icon: 'flame' },
-  { label: 'BGMI', icon: 'skull' },
-  { label: 'COD Mobile', icon: 'skull' },
-  { label: 'Valorant', icon: 'flash' },
-];
+const GAMES = ['All', 'Free Fire', 'BGMI', 'COD Mobile', 'Valorant'];
 
 type SortOption =
   | 'newest'
@@ -153,14 +148,6 @@ export default function EventsScreen() {
     return '#7C3AED';
   };
 
-  const getGameIcon = (game: string): keyof typeof Ionicons.glyphMap => {
-    const g = game.toLowerCase();
-    if (g.includes('free fire') || g.includes('freefire')) return 'flame';
-    if (g.includes('bgmi') || g.includes('cod')) return 'skull';
-    if (g.includes('valorant')) return 'flash';
-    return 'game-controller';
-  };
-
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return 'TBA';
     const date = new Date(dateStr);
@@ -281,17 +268,16 @@ export default function EventsScreen() {
         >
           {GAMES.map((game) => (
             <TouchableOpacity
-              key={game.label}
-              style={[styles.filterChip, selectedGame === game.label && styles.filterChipActive]}
-              onPress={() => setSelectedGame(game.label)}
+              key={game}
+              style={[styles.filterChip, selectedGame === game && styles.filterChipActive]}
+              onPress={() => setSelectedGame(game)}
             >
-              <Ionicons
-                name={game.icon}
-                size={13}
-                color={selectedGame === game.label ? '#fff' : colors.textTertiary}
-              />
-              <Text style={[styles.filterChipText, selectedGame === game.label && styles.filterChipTextActive]}>
-                {game.label}
+              {getGameLogo(game)
+                ? <GameLogo game={game} size={14} />
+                : <Ionicons name="apps" size={13} color={selectedGame === game ? '#fff' : colors.textTertiary} />
+              }
+              <Text style={[styles.filterChipText, selectedGame === game && styles.filterChipTextActive]}>
+                {game}
               </Text>
             </TouchableOpacity>
           ))}
@@ -332,7 +318,10 @@ export default function EventsScreen() {
                     end={{ x: 1, y: 1 }}
                     style={styles.cardBannerFallback}
                   >
-                    <Ionicons name={getGameIcon(item.game)} size={72} color={gameColor + '40'} />
+                    {getGameLogo(item.game)
+                      ? <GameLogo game={item.game} size={72} style={{ opacity: 0.35 }} />
+                      : <Ionicons name="game-controller" size={72} color={gameColor + '40'} />
+                    }
                   </LinearGradient>
                 )}
                 <View style={styles.cardHeroOverlay}>

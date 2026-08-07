@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import Avatar from '@/components/Avatar';
 import LeaderboardIcon from '@/components/LeaderboardIcon';
+import GameLogo from '@/components/GameLogo';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 
@@ -19,12 +20,12 @@ const RANK_STYLES: { colors: [string, string]; icon: string; textColor: string }
   { colors: ['#E8A56C', '#9a5a2a'], icon: '🥉', textColor: '#2a1a0a' },
 ];
 
-const GAMES: { label: string; value: string | null; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { label: 'All', value: null, icon: 'apps' },
-  { label: 'Free Fire', value: 'Free Fire', icon: 'flame' },
-  { label: 'BGMI', value: 'BGMI', icon: 'skull' },
-  { label: 'COD Mobile', value: 'COD Mobile', icon: 'skull' },
-  { label: 'Valorant', value: 'Valorant', icon: 'flash' },
+const GAMES: { label: string; value: string | null }[] = [
+  { label: 'All', value: null },
+  { label: 'Free Fire', value: 'Free Fire' },
+  { label: 'BGMI', value: 'BGMI' },
+  { label: 'COD Mobile', value: 'COD Mobile' },
+  { label: 'Valorant', value: 'Valorant' },
 ];
 
 export default function Leaderboard() {
@@ -93,7 +94,10 @@ export default function Leaderboard() {
               style={[styles.gameChip, game === g.value && styles.gameChipActive]}
               onPress={() => setGame(g.value)}
             >
-              <Ionicons name={g.icon} size={13} color={game === g.value ? '#fff' : colors.textTertiary} />
+              {g.value
+                ? <GameLogo game={g.value} size={14} />
+                : <Ionicons name="apps" size={13} color={game === g.value ? '#fff' : colors.textTertiary} />
+              }
               <Text style={[styles.gameChipText, game === g.value && styles.gameChipTextActive]}>{g.label}</Text>
             </TouchableOpacity>
           ))}

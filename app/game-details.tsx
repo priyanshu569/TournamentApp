@@ -6,14 +6,15 @@ import {
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
+import GameLogo from '@/components/GameLogo';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 
-const GAMES: { name: string; icon: keyof typeof Ionicons.glyphMap; color: string }[] = [
-  { name: 'Free Fire', icon: 'flame', color: '#FF6B35' },
-  { name: 'BGMI', icon: 'skull', color: '#FFB800' },
-  { name: 'COD Mobile', icon: 'skull', color: '#00D4AA' },
-  { name: 'Valorant', icon: 'flash', color: '#FF4655' },
+const GAMES: { name: string; color: string }[] = [
+  { name: 'Free Fire', color: '#FF6B35' },
+  { name: 'BGMI', color: '#FFB800' },
+  { name: 'COD Mobile', color: '#00D4AA' },
+  { name: 'Valorant', color: '#FF4655' },
 ];
 
 type GameEntry = { in_game_name: string; game_uid: string };
@@ -145,7 +146,7 @@ export default function GameDetailsScreen() {
           <View key={game.name} style={styles.gameCard}>
             <TouchableOpacity style={styles.gameHeader} onPress={() => toggleGame(game.name)}>
               <View style={[styles.gameLogo, { backgroundColor: game.color + '22' }]}>
-                <Ionicons name={game.icon} size={22} color={game.color} />
+                <GameLogo game={game.name} size={24} />
               </View>
               <Text style={styles.gameName}>{game.name}</Text>
               <Ionicons

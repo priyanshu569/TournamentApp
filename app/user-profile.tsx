@@ -13,14 +13,15 @@ import AnimatedProfileBanner from '@/components/AnimatedProfileBanner';
 import AnimatedAvatarRing from '@/components/AnimatedAvatarRing';
 import { BannerTheme } from '@/components/bannerThemes';
 import { useAvatarPreview } from '@/lib/AvatarPreviewContext';
+import GameLogo, { getGameLogo } from '@/components/GameLogo';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
 
-const GAME_META: Record<string, { icon: keyof typeof Ionicons.glyphMap; color: string }> = {
-  'Free Fire': { icon: 'flame', color: '#FF6B35' },
-  'BGMI': { icon: 'skull', color: '#FFB800' },
-  'COD Mobile': { icon: 'skull', color: '#00D4AA' },
-  'Valorant': { icon: 'flash', color: '#FF4655' },
+const GAME_COLORS: Record<string, string> = {
+  'Free Fire': '#FF6B35',
+  'BGMI': '#FFB800',
+  'COD Mobile': '#00D4AA',
+  'Valorant': '#FF4655',
 };
 
 function getGenderMeta(gender: string | null, colors: ThemeColors) {
@@ -389,11 +390,15 @@ export default function UserProfileScreen() {
           <Text style={styles.sectionLabel}>GAMES</Text>
           <View style={{ gap: 10 }}>
             {games.map((g) => {
-              const meta = GAME_META[g.game] ?? { icon: 'game-controller' as const, color: colors.accent };
+              const color = GAME_COLORS[g.game] ?? colors.accent;
+              const logo = getGameLogo(g.game);
               return (
                 <View key={g.game} style={styles.gameCard}>
-                  <View style={[styles.gameIconCircle, { backgroundColor: meta.color + '1c', borderColor: meta.color + '55' }]}>
-                    <Ionicons name={meta.icon} size={18} color={meta.color} />
+                  <View style={[styles.gameIconCircle, { backgroundColor: color + '1c', borderColor: color + '55' }]}>
+                    {logo
+                      ? <GameLogo game={g.game} size={20} />
+                      : <Ionicons name="game-controller" size={18} color={color} />
+                    }
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.gameName}>{g.game}</Text>
