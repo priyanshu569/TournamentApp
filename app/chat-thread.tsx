@@ -23,6 +23,8 @@ import {
   pickRawChatImage, resizeAndCompress, uploadChatImage, getSignedChatImageUrl, saveChatImageToGallery, revealViewOnceImage,
   PickedChatImage, RawImage,
 } from '@/lib/chatImage';
+import { pickChatGalleryMedia, compressChatVideo, uploadChatVideo, CompressedVideo } from '@/lib/chatVideo';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import ImageCropPreview from '@/components/ImageCropPreview';
 import { acceptMessageRequest, declineMessageRequest, notifyConversationParticipants } from '@/lib/messageRequests';
 import { getChatSendRetryMessage } from '@/lib/chatRateLimit';
@@ -97,11 +99,12 @@ function computeImageBoxSize(width?: number | null, height?: number | null) {
 function replyPreviewSnippet(message: any): string {
   if (message.deleted_at) return 'This message was deleted';
   if (message.image_url) return '📷 Photo';
+  if (message.video_url) return '🎥 Video';
   if (message.audio_url) return '🎤 Voice message';
   return message.content;
 }
 
-const IMAGE_PLACEHOLDER_CONTENT = ['📷 Photo', '📷 View once photo'];
+const IMAGE_PLACEHOLDER_CONTENT = ['📷 Photo', '📷 View once photo', '🎥 Video'];
 
 function imageCaption(message: any): string | null {
   if (!message.content || IMAGE_PLACEHOLDER_CONTENT.includes(message.content)) return null;
@@ -265,6 +268,18 @@ function VoiceMessagePlayerReady({ url, durationLabel, isMine, styles, colors }:
   );
 }
 
+// Shared by the pending-video send preview and the full-screen viewer for
+// an already-sent video -- both just need a playing, controllable player,
+// they differ only in the chrome (caption/send row vs a save button)
+// composed around this at each call site.
+function ChatVideoPlayer({ uri, style }: { uri: string; style?: any }) {
+  const player = useVideoPlayer(uri, (p) => {
+    p.loop = true;
+    p.play();
+  });
+  return <VideoView player={player} style={style} nativeControls contentFit="contain" />;
+}
+
 function ImageMessage({ message, isMine, styles, colors, onPress }: {
   message: any;
   isMine: boolean;
@@ -313,6 +328,78 @@ function ImageMessage({ message, isMine, styles, colors, onPress }: {
   return (
     <TouchableOpacity activeOpacity={0.9} onPress={() => onPress(signedUrl)}>
       <Image source={{ uri: signedUrl }} style={[styles.imageBubble, box]} resizeMode="cover" />
+    </TouchableOpacity>
+  );
+}
+
+function VideoMessage({ message, isMine, styles, colors, onPress }: {
+  message: any;
+  isMine: boolean;
+  styles: ReturnType<typeof getStyles>;
+  colors: ThemeColors;
+  onPress: (url: string) => void;
+}) {
+  const [signedThumbUrl, setSignedThumbUrl] = useState<string | null>(null);
+  const [signedVideoUrl, setSignedVideoUrl] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const box = computeImageBoxSize(message.video_width, message.video_height);
+
+  // Both signed up front, same as ImageMessage -- signing is just a
+  // cheap API call for a URL string, not a data transfer, so there's no
+  // real cost to resolving the video's URL before it's actually opened,
+  // and it keeps this component's contract identical to ImageMessage's.
+  useEffect(() => {
+    let cancelled = false;
+    setSignedThumbUrl(null);
+    setSignedVideoUrl(null);
+    setLoadError(false);
+    async function load() {
+      if (!message.video_thumbnail_url || !message.video_url) return;
+      try {
+        const [thumbUrl, videoUrl] = await Promise.all([
+          getSignedChatImageUrl(message.video_thumbnail_url),
+          getSignedChatImageUrl(message.video_url),
+        ]);
+        if (!cancelled) {
+          setSignedThumbUrl(thumbUrl);
+          setSignedVideoUrl(videoUrl);
+        }
+      } catch {
+        if (!cancelled) setLoadError(true);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [message.video_thumbnail_url, message.video_url]);
+
+  if (loadError) {
+    return (
+      <View style={[styles.imageBubble, styles.imageBubbleCenter, box]}>
+        <Ionicons name="alert-circle" size={20} color={colors.error} />
+        <Text style={styles.imageErrorText}>Couldn't load video</Text>
+      </View>
+    );
+  }
+
+  if (!signedThumbUrl || !signedVideoUrl) {
+    return (
+      <View style={[styles.imageBubble, styles.imageBubbleCenter, box]}>
+        <ActivityIndicator size="small" color={isMine ? '#fff' : colors.textPrimary} />
+      </View>
+    );
+  }
+
+  return (
+    <TouchableOpacity activeOpacity={0.9} onPress={() => onPress(signedVideoUrl)} style={[styles.imageBubble, styles.videoBubbleWrap, box]}>
+      <Image source={{ uri: signedThumbUrl }} style={[styles.imageBubble, box]} resizeMode="cover" />
+      <View style={styles.videoPlayOverlay}>
+        <Ionicons name="play" size={20} color="#fff" />
+      </View>
+      {message.video_duration_seconds != null && (
+        <View style={styles.videoDurationBadge}>
+          <Text style={styles.videoDurationBadgeText}>{formatAudioDuration(message.video_duration_seconds)}</Text>
+        </View>
+      )}
     </TouchableOpacity>
   );
 }
@@ -371,7 +458,7 @@ function ViewOnceImageMessage({ message, isMine, styles, onReveal, revealing }: 
 
 function MessageBubble({
   message, isMine, showAvatar, showSenderName, senderName, senderAvatarId, senderAvatarUrl,
-  swipeX, seenLabel, styles, colors, onImagePress, replyToMessage, replyToSenderName,
+  swipeX, seenLabel, styles, colors, onImagePress, onVideoPress, replyToMessage, replyToSenderName,
   reactions, onSwipeReply, onLongPressMessage, onReplyPreviewPress, onRevealViewOnce, revealingViewOnce,
 }: {
   message: any;
@@ -386,6 +473,7 @@ function MessageBubble({
   styles: ReturnType<typeof getStyles>;
   colors: ThemeColors;
   onImagePress: (url: string) => void;
+  onVideoPress: (url: string) => void;
   replyToMessage: any | null;
   replyToSenderName: string;
   reactions: { user_id: string; emoji: string }[];
@@ -502,6 +590,15 @@ function MessageBubble({
                       </Text>
                     )}
                   </>
+                ) : message.video_url ? (
+                  <>
+                    <VideoMessage message={message} isMine={isMine} styles={styles} colors={colors} onPress={onVideoPress} />
+                    {caption && (
+                      <Text style={[styles.messageText, styles.imageCaption, isMine ? styles.messageTextMine : styles.messageTextTheirs]}>
+                        {caption}
+                      </Text>
+                    )}
+                  </>
                 ) : message.audio_url ? (
                   <VoiceMessagePlayer message={message} isMine={isMine} styles={styles} colors={colors} />
                 ) : (
@@ -558,6 +655,7 @@ export default function ChatThreadScreen() {
   const [uploadingAudio, setUploadingAudio] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null);
   const [isBlocked, setIsBlocked] = useState(false);
   const [myStatus, setMyStatus] = useState<'accepted' | 'pending'>('accepted');
   const [respondingRequest, setRespondingRequest] = useState(false);
@@ -580,6 +678,11 @@ export default function ChatThreadScreen() {
   const [rawPickedImage, setRawPickedImage] = useState<RawImage | null>(null);
   const [pendingViewOnce, setPendingViewOnce] = useState(false);
   const [pendingCaption, setPendingCaption] = useState('');
+  const [compressingVideo, setCompressingVideo] = useState(false);
+  const [compressionProgress, setCompressionProgress] = useState(0);
+  const [pendingVideo, setPendingVideo] = useState<(CompressedVideo & { width: number; height: number; durationMs: number }) | null>(null);
+  const [pendingVideoCaption, setPendingVideoCaption] = useState('');
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const [viewOnceImageUrl, setViewOnceImageUrl] = useState<string | null>(null);
   const [revealingViewOnce, setRevealingViewOnce] = useState(false);
   const listRef = useRef<FlatList>(null);
@@ -848,9 +951,9 @@ export default function ChatThreadScreen() {
   }
 
   function showImageSourcePicker() {
-    Alert.alert('Send a Photo', undefined, [
+    Alert.alert('Send a Photo or Video', undefined, [
       { text: 'Take Photo', onPress: () => handlePickImage('camera') },
-      { text: 'Choose from Gallery', onPress: () => handlePickImage('library') },
+      { text: 'Choose from Gallery', onPress: handlePickGalleryMedia },
       { text: 'Cancel', style: 'cancel' },
     ]);
   }
@@ -863,6 +966,78 @@ export default function ChatThreadScreen() {
     } catch (err: any) {
       Alert.alert('Could not open image', err?.message ?? 'Please try again.');
     }
+  }
+
+  // "Choose from Gallery" can return either an image or a video -- the
+  // native picker itself offers both in one view (mediaTypes:
+  // ['images','videos']), so this is the one branch point between the
+  // existing crop-then-send image flow and the new compress-then-send
+  // video flow.
+  async function handlePickGalleryMedia() {
+    try {
+      const picked = await pickChatGalleryMedia();
+      if (!picked) return;
+
+      if (picked.type === 'image') {
+        setRawPickedImage(picked.image);
+        return;
+      }
+
+      setCompressionProgress(0);
+      setCompressingVideo(true);
+      try {
+        const compressed = await compressChatVideo(picked.video.uri, setCompressionProgress);
+        setPendingVideo({
+          ...compressed,
+          width: picked.video.width,
+          height: picked.video.height,
+          durationMs: picked.video.durationMs,
+        });
+      } finally {
+        setCompressingVideo(false);
+      }
+    } catch (err: any) {
+      Alert.alert('Could not open media', err?.message ?? 'Please try again.');
+    }
+  }
+
+  function handleCancelPendingVideo() {
+    setPendingVideo(null);
+    setPendingVideoCaption('');
+  }
+
+  async function handleSendPendingVideo() {
+    if (!myId || !pendingVideo) return;
+    const video = pendingVideo;
+    const caption = pendingVideoCaption.trim();
+    setPendingVideo(null);
+    setPendingVideoCaption('');
+    setUploadingVideo(true);
+
+    try {
+      const { videoPath, thumbnailPath } = await uploadChatVideo(id, myId, video);
+      const previewContent = caption || '🎥 Video';
+      const { error } = await supabase.from('messages').insert({
+        conversation_id: id,
+        sender_id: myId,
+        content: previewContent,
+        video_url: videoPath,
+        video_thumbnail_url: thumbnailPath,
+        video_width: video.width,
+        video_height: video.height,
+        video_duration_seconds: Math.round(video.durationMs / 1000),
+        reply_to_id: replyingTo?.id ?? null,
+      });
+      if (error) throw error;
+      setReplyingTo(null);
+      notifyOthers(previewContent);
+    } catch (err: any) {
+      const friendly = err?.message?.includes('row-level security')
+        ? await getChatSendRetryMessage(myId, true, isBlocked)
+        : friendlySendError(err?.message ?? 'Please try again.');
+      Alert.alert('Video not sent', friendly);
+    }
+    setUploadingVideo(false);
   }
 
   async function handleCropConfirm(cropped: RawImage) {
@@ -1312,6 +1487,8 @@ export default function ChatThreadScreen() {
       const message = forwardMessage;
       let imageUrl: string | null = null;
       let audioUrl: string | null = null;
+      let videoUrl: string | null = null;
+      let videoThumbnailUrl: string | null = null;
 
       if (message.image_url) {
         imageUrl = `${targetConversationId}/${myId}/${Date.now()}.jpg`;
@@ -1323,6 +1500,17 @@ export default function ChatThreadScreen() {
         const { error } = await supabase.storage.from('chat-audio').copy(message.audio_url, audioUrl);
         if (error) throw error;
       }
+      if (message.video_url) {
+        const timestamp = Date.now();
+        videoUrl = `${targetConversationId}/${myId}/${timestamp}.mp4`;
+        videoThumbnailUrl = `${targetConversationId}/${myId}/${timestamp}_thumb.jpg`;
+        const { error: vErr } = await supabase.storage.from('chat-images').copy(message.video_url, videoUrl);
+        if (vErr) throw vErr;
+        if (message.video_thumbnail_url) {
+          const { error: tErr } = await supabase.storage.from('chat-images').copy(message.video_thumbnail_url, videoThumbnailUrl);
+          if (tErr) throw tErr;
+        }
+      }
 
       const { error } = await supabase.from('messages').insert({
         conversation_id: targetConversationId,
@@ -1333,6 +1521,11 @@ export default function ChatThreadScreen() {
         image_height: message.image_height ?? null,
         audio_url: audioUrl,
         audio_duration_seconds: message.audio_duration_seconds ?? null,
+        video_url: videoUrl,
+        video_thumbnail_url: videoThumbnailUrl,
+        video_width: message.video_width ?? null,
+        video_height: message.video_height ?? null,
+        video_duration_seconds: message.video_duration_seconds ?? null,
         is_forwarded: true,
       });
       if (error) throw error;
@@ -1512,6 +1705,7 @@ export default function ChatThreadScreen() {
                   styles={styles}
                   colors={colors}
                   onImagePress={setPreviewImageUrl}
+                  onVideoPress={setPreviewVideoUrl}
                   replyToMessage={replyToMessage}
                   replyToSenderName={
                     replyToMessage?.sender_id === myId ? 'You' : replyToSender?.display_name ?? 'Unknown'
@@ -1595,7 +1789,7 @@ export default function ChatThreadScreen() {
             >
               <Ionicons name={emojiPickerOpen ? 'close' : 'happy-outline'} size={22} color={colors.accent} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.cameraBtn} onPress={showImageSourcePicker} disabled={uploadingImage}>
+            <TouchableOpacity style={styles.cameraBtn} onPress={showImageSourcePicker} disabled={uploadingImage || compressingVideo || uploadingVideo}>
               {uploadingImage
                 ? <ActivityIndicator size="small" color={colors.accent} />
                 : <Ionicons name="camera" size={20} color={colors.accent} />
@@ -1672,6 +1866,75 @@ export default function ChatThreadScreen() {
             <Image source={{ uri: previewImageUrl }} style={styles.imagePreviewFull} resizeMode="contain" />
           )}
         </TouchableOpacity>
+      </Modal>
+
+      <Modal
+        visible={!!previewVideoUrl}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPreviewVideoUrl(null)}
+      >
+        <View style={[styles.imagePreviewOverlay, { backgroundColor: '#000' }]}>
+          <View style={styles.imagePreviewTopBar}>
+            <TouchableOpacity
+              style={[styles.imagePreviewIconBtn, { backgroundColor: '#ffffff22' }]}
+              onPress={() => setPreviewVideoUrl(null)}
+            >
+              <Ionicons name="close" size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
+          {/* Own native controls handle play/pause/seek -- the overlay
+              itself isn't tap-to-close here, unlike the image preview,
+              since that would fight with tapping the video to control it. */}
+          {previewVideoUrl && (
+            <ChatVideoPlayer uri={previewVideoUrl} style={styles.imagePreviewFull} />
+          )}
+        </View>
+      </Modal>
+
+      <Modal visible={compressingVideo} transparent animationType="fade">
+        <View style={styles.compressOverlay}>
+          <ActivityIndicator size="large" color="#fff" />
+          <Text style={styles.compressOverlayText}>Compressing video... {compressionProgress}%</Text>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={!!pendingVideo}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCancelPendingVideo}
+      >
+        <View style={[styles.imagePreviewOverlay, { backgroundColor: '#000' }]}>
+          <View style={styles.imagePreviewTopBar}>
+            <TouchableOpacity
+              style={[styles.imagePreviewIconBtn, { backgroundColor: '#ffffff22' }]}
+              onPress={handleCancelPendingVideo}
+            >
+              <Ionicons name="close" size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
+
+          {pendingVideo && (
+            <ChatVideoPlayer uri={pendingVideo.uri} style={styles.imagePreviewFull} />
+          )}
+
+          <View style={styles.pendingBottomRow}>
+            <TextInput
+              style={[styles.pendingCaptionInput, { backgroundColor: '#ffffff22', color: '#fff' }]}
+              placeholder="Add a message..."
+              placeholderTextColor="#ffffff88"
+              value={pendingVideoCaption}
+              onChangeText={setPendingVideoCaption}
+            />
+            <TouchableOpacity style={styles.pendingSendBtn} onPress={handleSendPendingVideo} disabled={uploadingVideo}>
+              {uploadingVideo
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Ionicons name="send" size={18} color="#fff" />
+              }
+            </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
 
       <ImageCropPreview
@@ -2049,6 +2312,23 @@ function getStyles(colors: ThemeColors) {
     imageBubble: { borderRadius: 14 },
     imageBubbleCenter: { justifyContent: 'center', alignItems: 'center', gap: 6 },
     imageErrorText: { color: colors.textFaint, fontSize: 12, fontWeight: '600' },
+    videoBubbleWrap: { position: 'relative', overflow: 'hidden' },
+    videoPlayOverlay: {
+      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+      justifyContent: 'center', alignItems: 'center',
+      backgroundColor: '#00000033',
+    },
+    videoDurationBadge: {
+      position: 'absolute', bottom: 6, right: 6,
+      backgroundColor: '#000000aa', borderRadius: 6,
+      paddingHorizontal: 6, paddingVertical: 2,
+    },
+    videoDurationBadgeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+    compressOverlay: {
+      flex: 1, justifyContent: 'center', alignItems: 'center', gap: 14,
+      backgroundColor: '#000000cc',
+    },
+    compressOverlayText: { color: '#fff', fontSize: 14, fontWeight: '600' },
     messageText: { fontSize: 14, lineHeight: 20 },
     messageTextMine: { color: '#fff' },
     messageTextTheirs: { color: colors.textPrimary },

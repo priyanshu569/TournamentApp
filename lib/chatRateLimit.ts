@@ -11,15 +11,17 @@ function formatWait(remainingMs: number): string {
   return `${minutes}m`;
 }
 
-// Mirrors the RLS checks in 20260731190000_add_chat_rate_limits_and_admin_exemptions.sql:
-// 60 messages/minute, plus 4 image messages/day counted separately.
-// isBlocked is passed in rather than re-derived here since chat-thread
-// already tracks it client-side and it's the far more common rejection
-// reason -- no point re-deriving something already known.
-export async function getChatSendRetryMessage(userId: string, hadImage: boolean, isBlocked: boolean): Promise<string> {
+// Mirrors the RLS checks in 20260731190000_add_chat_rate_limits_and_admin_exemptions.sql
+// (extended for video in 20260807170000_add_chat_video_messages.sql):
+// 60 messages/minute, plus 4 heavy-media (photo or video) messages/day
+// counted together, not separately. isBlocked is passed in rather than
+// re-derived here since chat-thread already tracks it client-side and
+// it's the far more common rejection reason -- no point re-deriving
+// something already known.
+export async function getChatSendRetryMessage(userId: string, hadMedia: boolean, isBlocked: boolean): Promise<string> {
   if (isBlocked) return "You can't send messages in this conversation.";
 
-  if (hadImage) {
+  if (hadMedia) {
     // Matches the RLS predicate exactly: view-once sends leave image_url
     // null (the path lives in view_once_photos instead), so they'd be
     // invisible to a plain "image_url is not null" count.
@@ -27,7 +29,7 @@ export async function getChatSendRetryMessage(userId: string, hadImage: boolean,
       .from('messages')
       .select('created_at')
       .eq('sender_id', userId)
-      .or('image_url.not.is.null,view_once.eq.true')
+      .or('image_url.not.is.null,view_once.eq.true,video_url.not.is.null')
       .gt('created_at', new Date(Date.now() - DAY_MS).toISOString())
       .order('created_at', { ascending: true })
       .limit(1);
@@ -35,7 +37,7 @@ export async function getChatSendRetryMessage(userId: string, hadImage: boolean,
     if (data?.[0]?.created_at) {
       const remainingMs = DAY_MS - (Date.now() - new Date(data[0].created_at).getTime());
       if (remainingMs > 0) {
-        return `You can only share 4 photos per day — try again in ${formatWait(remainingMs)}.`;
+        return `You can only share 4 photos or videos per day — try again in ${formatWait(remainingMs)}.`;
       }
     }
   }
