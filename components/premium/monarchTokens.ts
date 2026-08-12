@@ -5,10 +5,13 @@
 export type MonarchIntensity = 'subtle' | 'balanced' | 'vivid';
 
 export const MONARCH = {
-  // A twilight garden: indigo shading into a faint teal. Never pure black --
-  // the wings are the brightest thing on this card and need a surface with
+  // A rose-twilight garden: deep wine shading through plum. Never pure black
+  // -- the wings are the brightest thing on this card and need a surface with
   // some colour in it to sit against, or they read as stickers.
-  base: ['#0A0618', '#150C33', '#07161F'] as [string, string, ...string[]],
+  //
+  // Kept dark on purpose despite being a warm palette: the swarm includes
+  // rose and amber butterflies, and a lighter pink ground swallows them.
+  base: ['#12040E', '#2B0A24', '#160512'] as [string, string, ...string[]],
   violet: '#8B5CF6',
   indigo: '#6C3EFF',
   cyan: '#4DD9FF',
@@ -18,8 +21,10 @@ export const MONARCH = {
   amber: '#FFC46B',
   coral: '#FF7A5C',
   pollen: '#FFE9B0',
-  ray: '#DDE9FF',
-  body: '#160E2C',
+  // Warmed to a pink-white so the shafts read as light in this garden rather
+  // than a cool light leaking in from a different scene.
+  ray: '#FFE9F5',
+  body: '#1B0A18',
 };
 
 // [tip, root] per butterfly -- the wing gradient runs bright at the tip into

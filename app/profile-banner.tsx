@@ -173,7 +173,7 @@ function getStyles(colors: ThemeColors) {
     swatch_turbo: { backgroundColor: '#2E9BFF' },
     swatch_nebula: { backgroundColor: '#6C3EFF' },
     swatch_dragonwrath: { backgroundColor: '#FF7A18' },
-    swatch_monarch: { backgroundColor: '#8B5CF6' },
+    swatch_monarch: { backgroundColor: '#FF6FD8' },
     optionLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     premiumPill: {
       flexDirection: 'row', alignItems: 'center', gap: 3,

@@ -12,7 +12,7 @@ export const BANNER_THEMES: { key: BannerTheme; label: string; description: stri
   { key: 'turbo', label: 'Turbo Circuit', description: 'High-speed racing streaks and headlight glow', premium: true },
   { key: 'nebula', label: 'Nebula', description: 'Deep-space clouds, drifting stars and a slow light sweep', premium: true },
   { key: 'dragonwrath', label: "Dragon's Wrath", description: 'A living volcano of molten lava, fire and smoke', premium: true },
-  { key: 'monarch', label: 'Monarch', description: 'Iridescent butterflies drifting through a twilight garden', premium: true },
+  { key: 'monarch', label: 'Monarch', description: 'Iridescent butterflies drifting through a rose-twilight garden', premium: true },
 ];
 
 export const RING_GRADIENTS: Record<BannerTheme, [string, string, ...string[]]> = {
@@ -38,5 +38,5 @@ export const BASE_GRADIENTS: Record<BannerTheme, [string, string, ...string[]]> 
   turbo: ['#12151a', '#0d1420', '#08090c'],
   nebula: ['#07060F', '#0C0A1B', '#050409'],
   dragonwrath: ['#0B0506', '#1A0A09', '#070405'],
-  monarch: ['#0A0618', '#150C33', '#07161F'],
+  monarch: ['#12040E', '#2B0A24', '#160512'],
 };
