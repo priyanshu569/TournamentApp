@@ -22,7 +22,7 @@ export const RING_GRADIENTS: Record<BannerTheme, [string, string, ...string[]]> 
   // exists only so the maps stay total over BannerTheme.
   nebula: ['#7FE6FF', '#4DB7FF', '#6C3EFF', '#7FE6FF'],
   dragonwrath: ['#FFD98A', '#FF7A18', '#B3261E', '#FFD98A'],
-  monarch: ['#FF6FD8', '#D946EF', '#FF7A5C', '#FFD98A', '#FF6FD8'],
+  monarch: ['#FF6F91', '#E0245E', '#FF7A5C', '#FFD98A', '#FF6F91'],
 };
 
 export const RING_ROTATE_MS: Record<BannerTheme, number> = {
@@ -38,5 +38,5 @@ export const BASE_GRADIENTS: Record<BannerTheme, [string, string, ...string[]]> 
   turbo: ['#12151a', '#0d1420', '#08090c'],
   nebula: ['#07060F', '#0C0A1B', '#050409'],
   dragonwrath: ['#0B0506', '#1A0A09', '#070405'],
-  monarch: ['#12040E', '#2B0A24', '#160512'],
+  monarch: ['#160309', '#3B0A1B', '#1C050E'],
 };

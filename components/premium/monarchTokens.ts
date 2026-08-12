@@ -11,23 +11,26 @@ export const MONARCH = {
   //
   // Kept dark on purpose despite being a warm palette: the swarm includes
   // rose and amber butterflies, and a lighter pink ground swallows them.
-  base: ['#12040E', '#2B0A24', '#160512'] as [string, string, ...string[]],
-  // Every accent lives on the magenta -> gold arc. Nothing cool anywhere:
-  // one stray cyan reads as a different scene bleeding in.
-  magenta: '#D946EF',
-  pink: '#FF9ECF',
-  rose: '#FF6FD8',
-  blush: '#FF4D8D',
+  base: ['#160309', '#3B0A1B', '#1C050E'] as [string, string, ...string[]],
+  // Every accent sits in the rose-red band (hue ~335-350) or the warm
+  // coral/gold band just past it. Nothing above ~350: anything with as much
+  // blue in it as red -- magenta, orchid, violet -- drags the whole card
+  // back toward purple, which is what the earlier palette did.
   crimson: '#E0245E',
+  raspberry: '#D6336C',
+  deepRose: '#C2185B',
+  blush: '#FF4D8D',
+  rose: '#FF6F91',
+  pink: '#FF9EB5',
   coral: '#FF7A5C',
   ember: '#FFA05C',
   amber: '#FFC46B',
   gold: '#FFD98A',
   peach: '#FFB4A2',
   pollen: '#FFE9B0',
-  // A pink-white, so the shafts read as light in *this* garden.
-  ray: '#FFE9F5',
-  body: '#1B0A18',
+  // A warm pink-white, so the shafts read as light in *this* garden.
+  ray: '#FFEDF0',
+  body: '#1E0710',
 };
 
 // [tip, root] per butterfly -- the wing gradient runs bright at the tip into
@@ -38,11 +41,11 @@ export const MONARCH = {
 // kept bright: on a deep wine ground the swarm separates on brightness, not
 // on hue, so value contrast is what has to be protected here.
 export const WING_PAIRS: [string, string][] = [
-  [MONARCH.pink, MONARCH.magenta],
+  [MONARCH.pink, MONARCH.crimson],
   [MONARCH.amber, MONARCH.coral],
-  [MONARCH.rose, MONARCH.blush],
+  [MONARCH.rose, MONARCH.deepRose],
   [MONARCH.gold, MONARCH.ember],
-  [MONARCH.peach, MONARCH.crimson],
+  [MONARCH.peach, MONARCH.raspberry],
 ];
 
 type MonarchConfig = {
