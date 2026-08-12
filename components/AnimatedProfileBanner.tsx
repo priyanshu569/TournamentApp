@@ -8,6 +8,7 @@ import Animated, {
 import { BannerTheme, BASE_GRADIENTS } from './bannerThemes';
 import PremiumNebulaBanner from './premium/PremiumNebulaBanner';
 import DragonWrathBanner from './premium/DragonWrathBanner';
+import MonarchBanner from './premium/MonarchBanner';
 import SoftOrb from './premium/SoftOrb';
 
 type Props = {
@@ -34,6 +35,10 @@ export default function AnimatedProfileBanner({ theme, classicColors, style, chi
 
   if (theme === 'dragonwrath') {
     return <DragonWrathBanner style={style}>{children}</DragonWrathBanner>;
+  }
+
+  if (theme === 'monarch') {
+    return <MonarchBanner style={style}>{children}</MonarchBanner>;
   }
 
   return (

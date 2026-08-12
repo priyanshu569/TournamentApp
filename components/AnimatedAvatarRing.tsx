@@ -5,6 +5,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withTiming, Eas
 import { BannerTheme, RING_GRADIENTS, RING_ROTATE_MS, PREMIUM_THEMES } from './bannerThemes';
 import PremiumAvatarAura from './premium/PremiumAvatarAura';
 import MoltenAvatarRing from './premium/MoltenAvatarRing';
+import MonarchAvatarRing from './premium/MonarchAvatarRing';
 import { useAppTheme } from '@/lib/ThemeContext';
 
 type Props = {
@@ -56,6 +57,10 @@ export default function AnimatedAvatarRing({ theme, size, children }: Props) {
 
   if (theme === 'dragonwrath') {
     return <MoltenAvatarRing size={size}>{children}</MoltenAvatarRing>;
+  }
+
+  if (theme === 'monarch') {
+    return <MonarchAvatarRing size={size}>{children}</MonarchAvatarRing>;
   }
 
   const ringSize = size + 10;
