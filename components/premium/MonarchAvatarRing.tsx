@@ -55,7 +55,7 @@ export default function MonarchAvatarRing({ size, reduceMotion, lowPerformance, 
   return (
     <View style={{ width: layoutSize, height: layoutSize, justifyContent: 'center', alignItems: 'center' }}>
       <Animated.View style={[glowStyle, { position: 'absolute' }]} pointerEvents="none">
-        <SoftOrb size={haloSize} color={MONARCH.violet} opacity={0.55} core={0.44} />
+        <SoftOrb size={haloSize} color={MONARCH.rose} opacity={0.55} core={0.44} />
       </Animated.View>
 
       {/* Rotating gradient clipped to a circle -- the same trick the other
@@ -68,7 +68,7 @@ export default function MonarchAvatarRing({ size, reduceMotion, lowPerformance, 
         pointerEvents="none"
       >
         <LinearGradient
-          colors={[MONARCH.cyan, MONARCH.violet, MONARCH.rose, MONARCH.amber, MONARCH.cyan]}
+          colors={[MONARCH.rose, MONARCH.magenta, MONARCH.crimson, MONARCH.coral, MONARCH.gold, MONARCH.rose]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={{

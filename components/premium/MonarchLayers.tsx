@@ -18,9 +18,9 @@ import { seededRandom } from './premiumTokens';
 // ============================================================
 
 const GLOWS = [
-  { size: 250, color: MONARCH.violet, left: '-20%', top: '-28%', dx: 64, dy: 42, dur: 18000, alpha: 0.55, core: 0.44 },
-  { size: 205, color: MONARCH.cyan,   left: '60%',  top: '22%',  dx: -58, dy: -46, dur: 23000, alpha: 0.34, core: 0.40 },
-  { size: 175, color: MONARCH.rose,   left: '26%',  top: '56%',  dx: 46, dy: -38, dur: 15000, alpha: 0.40, core: 0.48 },
+  { size: 250, color: MONARCH.magenta, left: '-20%', top: '-28%', dx: 64, dy: 42, dur: 18000, alpha: 0.55, core: 0.44 },
+  { size: 205, color: MONARCH.rose,    left: '60%',  top: '22%',  dx: -58, dy: -46, dur: 23000, alpha: 0.40, core: 0.40 },
+  { size: 175, color: MONARCH.coral,   left: '26%',  top: '56%',  dx: 46, dy: -38, dur: 15000, alpha: 0.38, core: 0.48 },
 ];
 
 export function MeadowGlow({ active, opacity }: { active: boolean; opacity: number }) {
@@ -334,7 +334,7 @@ export function IridescentSweep({
       pointerEvents="none"
     >
       <LinearGradient
-        colors={['transparent', `${MONARCH.cyan}66`, `${MONARCH.rose}55`, 'transparent']}
+        colors={['transparent', `${MONARCH.rose}66`, `${MONARCH.gold}55`, 'transparent']}
         locations={[0, 0.42, 0.62, 1]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
@@ -345,7 +345,7 @@ export function IridescentSweep({
 }
 
 // ============================================================
-// Border -- cycles violet -> cyan -> rose, the swarm's own colours, so the
+// Border -- cycles rose -> coral -> gold, the swarm's own colours, so the
 // card's edge always belongs to whatever is flying inside it.
 // ============================================================
 
@@ -357,7 +357,7 @@ export function MonarchBorder({
   );
 
   const style = useAnimatedStyle(() => ({
-    borderColor: interpolateColor(t.value, [0, 0.5, 1], [MONARCH.violet, MONARCH.cyan, MONARCH.rose]),
+    borderColor: interpolateColor(t.value, [0, 0.5, 1], [MONARCH.rose, MONARCH.coral, MONARCH.gold]),
     opacity: opacity * (0.45 + t.value * 0.55),
   }));
 

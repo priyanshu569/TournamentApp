@@ -12,17 +12,20 @@ export const MONARCH = {
   // Kept dark on purpose despite being a warm palette: the swarm includes
   // rose and amber butterflies, and a lighter pink ground swallows them.
   base: ['#12040E', '#2B0A24', '#160512'] as [string, string, ...string[]],
-  violet: '#8B5CF6',
-  indigo: '#6C3EFF',
-  cyan: '#4DD9FF',
-  mint: '#7CF5C4',
+  // Every accent lives on the magenta -> gold arc. Nothing cool anywhere:
+  // one stray cyan reads as a different scene bleeding in.
+  magenta: '#D946EF',
+  pink: '#FF9ECF',
   rose: '#FF6FD8',
   blush: '#FF4D8D',
-  amber: '#FFC46B',
+  crimson: '#E0245E',
   coral: '#FF7A5C',
+  ember: '#FFA05C',
+  amber: '#FFC46B',
+  gold: '#FFD98A',
+  peach: '#FFB4A2',
   pollen: '#FFE9B0',
-  // Warmed to a pink-white so the shafts read as light in this garden rather
-  // than a cool light leaking in from a different scene.
+  // A pink-white, so the shafts read as light in *this* garden.
   ray: '#FFE9F5',
   body: '#1B0A18',
 };
@@ -30,12 +33,16 @@ export const MONARCH = {
 // [tip, root] per butterfly -- the wing gradient runs bright at the tip into
 // the deeper shade at the body. Cycled in order rather than picked at random
 // so a swarm always reads as one deliberate colourway instead of confetti.
+//
+// All warm, but spread wide across the arc (hot pink through to gold) and
+// kept bright: on a deep wine ground the swarm separates on brightness, not
+// on hue, so value contrast is what has to be protected here.
 export const WING_PAIRS: [string, string][] = [
-  [MONARCH.cyan, MONARCH.violet],
-  [MONARCH.rose, MONARCH.blush],
+  [MONARCH.pink, MONARCH.magenta],
   [MONARCH.amber, MONARCH.coral],
-  [MONARCH.mint, MONARCH.cyan],
-  [MONARCH.violet, MONARCH.indigo],
+  [MONARCH.rose, MONARCH.blush],
+  [MONARCH.gold, MONARCH.ember],
+  [MONARCH.peach, MONARCH.crimson],
 ];
 
 type MonarchConfig = {

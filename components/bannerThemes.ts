@@ -22,7 +22,7 @@ export const RING_GRADIENTS: Record<BannerTheme, [string, string, ...string[]]> 
   // exists only so the maps stay total over BannerTheme.
   nebula: ['#7FE6FF', '#4DB7FF', '#6C3EFF', '#7FE6FF'],
   dragonwrath: ['#FFD98A', '#FF7A18', '#B3261E', '#FFD98A'],
-  monarch: ['#4DD9FF', '#8B5CF6', '#FF6FD8', '#4DD9FF'],
+  monarch: ['#FF6FD8', '#D946EF', '#FF7A5C', '#FFD98A', '#FF6FD8'],
 };
 
 export const RING_ROTATE_MS: Record<BannerTheme, number> = {
