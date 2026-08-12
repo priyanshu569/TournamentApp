@@ -135,54 +135,65 @@ function Mote({
 
 // ============================================================
 // Layer 3 -- Light rays.
-// Two soft shafts angled through the card, breathing very slowly. Kept far
-// below the wings in brightness: they're atmosphere, not a light source.
+// Two shafts angled through the card, breathing very slowly. Kept far below
+// the wings in brightness: they're atmosphere, not a light source.
+//
+// Built from the radial SoftOrb rather than a LinearGradient band. A band
+// can only fade along one axis, which left the shafts with hard vertical
+// cuts down both sides; squeezing a radial orb into an ellipse instead
+// gives falloff in every direction, so the shaft has no edge at all.
 // ============================================================
 
 const RAYS = [
-  { left: '18%', width: 60, angle: '18deg', dur: 7000, delay: 0 },
-  { left: '62%', width: 42, angle: '13deg', dur: 9000, delay: 2200 },
+  { cx: 0.22, angle: '16deg', dur: 7000, delay: 0, narrow: 0.20, long: 2.4, alpha: 0.55 },
+  { cx: 0.68, angle: '11deg', dur: 9000, delay: 2200, narrow: 0.15, long: 2.2, alpha: 0.42 },
 ];
 
-export function LightRays({ active, opacity, height }: { active: boolean; opacity: number; height: number }) {
+export function LightRays({
+  active, opacity, width, height,
+}: { active: boolean; opacity: number; width: number; height: number }) {
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       {RAYS.map((r, i) => (
-        <Ray key={i} {...r} active={active} layerOpacity={opacity} height={height} />
+        <Ray key={i} {...r} active={active} layerOpacity={opacity} width={width} height={height} />
       ))}
     </View>
   );
 }
 
 function Ray({
-  left, width, angle, dur, delay, active, layerOpacity, height,
+  cx, angle, dur, delay, narrow, long, alpha, active, layerOpacity, width, height,
 }: {
-  left: string; width: number; angle: string; dur: number; delay: number;
-  active: boolean; layerOpacity: number; height: number;
+  cx: number; angle: string; dur: number; delay: number;
+  narrow: number; long: number; alpha: number;
+  active: boolean; layerOpacity: number; width: number; height: number;
 }) {
   const t = useLoopValue(active, 0, () =>
     withDelay(delay, withRepeat(withTiming(1, { duration: dur, easing: Easing.inOut(Easing.sin) }), -1, true)),
   );
 
+  // Transforms are applied right-to-left, so this is: stretch tall, squeeze
+  // thin, then tilt -- i.e. build the shaft, then angle it.
   const style = useAnimatedStyle(() => ({
-    opacity: layerOpacity * (0.35 + t.value * 0.65),
-    transform: [{ rotate: angle }, { scaleX: 0.85 + t.value * 0.3 }],
+    opacity: layerOpacity * (0.4 + t.value * 0.6),
+    transform: [{ rotate: angle }, { scaleX: narrow }, { scaleY: long + t.value * 0.25 }],
   }));
 
-  // Overshoots the card top and bottom so the tilted shaft never shows an end.
-  const span = height * 1.8;
+  // Pre-scale diameter. Once stretched by `long` it comfortably overshoots
+  // the card, so the soft ends stay outside the clip.
+  const size = Math.max(120, height);
 
   return (
     <Animated.View
-      style={[style, { position: 'absolute', left: left as DimensionValue, top: -height * 0.4, width, height: span }]}
+      style={[
+        style,
+        { position: 'absolute', left: cx * width - size / 2, top: height / 2 - size / 2 },
+      ]}
       pointerEvents="none"
     >
-      <LinearGradient
-        colors={['transparent', `${MONARCH.ray}44`, 'transparent']}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
+      {/* High `core` flattens the falloff into a haze rather than a hot
+          centre with a visible bright spot. */}
+      <SoftOrb size={size} color={MONARCH.ray} opacity={alpha} core={0.6} />
     </Animated.View>
   );
 }

@@ -67,7 +67,7 @@ export default function MonarchBanner({
       <LinearGradient colors={MONARCH.base} start={{ x: 0.15, y: 0 }} end={{ x: 0.85, y: 1 }} style={StyleSheet.absoluteFill} />
 
       <MeadowGlow active={active} opacity={cfg.glowOpacity} />
-      {cfg.showRays && <LightRays active={active} opacity={cfg.rayOpacity} height={height} />}
+      {cfg.showRays && <LightRays active={active} opacity={cfg.rayOpacity} width={width} height={height} />}
       <PollenField active={active} count={cfg.pollenCount} />
 
       {/* Butterflies are skipped outright when motion is off -- a row of

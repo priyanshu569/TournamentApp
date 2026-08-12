@@ -43,10 +43,13 @@ type MonarchConfig = {
   showRays: boolean;
 };
 
+// rayOpacity is deliberately the lowest number in each row -- the rays are
+// the one layer that spans the whole card, so they read far stronger than
+// their alpha suggests and have to stay near-invisible to work as haze.
 export const MONARCH_INTENSITY: Record<MonarchIntensity, MonarchConfig> = {
-  subtle:   { butterflyCount: 3, pollenCount: 10, glowOpacity: 0.50, rayOpacity: 0.10, sweepOpacity: 0.12, borderOpacity: 0.50, showRays: true },
-  balanced: { butterflyCount: 5, pollenCount: 16, glowOpacity: 0.75, rayOpacity: 0.16, sweepOpacity: 0.20, borderOpacity: 0.70, showRays: true },
-  vivid:    { butterflyCount: 7, pollenCount: 22, glowOpacity: 0.95, rayOpacity: 0.22, sweepOpacity: 0.28, borderOpacity: 0.90, showRays: true },
+  subtle:   { butterflyCount: 3, pollenCount: 10, glowOpacity: 0.50, rayOpacity: 0.05, sweepOpacity: 0.12, borderOpacity: 0.50, showRays: true },
+  balanced: { butterflyCount: 5, pollenCount: 16, glowOpacity: 0.75, rayOpacity: 0.08, sweepOpacity: 0.20, borderOpacity: 0.70, showRays: true },
+  vivid:    { butterflyCount: 7, pollenCount: 22, glowOpacity: 0.95, rayOpacity: 0.12, sweepOpacity: 0.28, borderOpacity: 0.90, showRays: true },
 };
 
 // Applied on top of the chosen intensity for weaker devices. Butterflies are
