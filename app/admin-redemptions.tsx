@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { formatRelativeTime } from '@/lib/time';
+import { notifyAndLog } from '@/lib/notifications';
 import { CoinAmount } from '@/components/FragCoin';
 import { useAppTheme } from '@/lib/ThemeContext';
 import { ThemeColors } from '@/constants/theme';
@@ -49,6 +50,19 @@ export default function AdminRedemptionsScreen() {
     setLoading(false);
   }
 
+  // A redemption sat silent between "requested" and the parcel arriving --
+  // the player spent real coins and got no acknowledgement that anything was
+  // happening. Notifying is best-effort: the status change is what matters
+  // and has already committed, so a failed notify never surfaces as an error.
+  async function notifyRequester(item: any, title: string, body: string) {
+    try {
+      const { data: token } = await supabase.rpc('admin_get_push_token', { p_user_id: item.user_id });
+      await notifyAndLog(item.user_id, token as string | null, title, body);
+    } catch (err: any) {
+      console.log('Failed to notify requester:', err?.message);
+    }
+  }
+
   async function markStatus(item: any, status: 'shipped' | 'fulfilled') {
     setActingId(item.id);
     const { error } = await supabase
@@ -61,6 +75,13 @@ export default function AdminRedemptionsScreen() {
       Alert.alert('Error', error.message);
       return;
     }
+
+    if (status === 'shipped') {
+      notifyRequester(item, '📦 Your reward has shipped!', `${item.reward_name} is on its way to you.`);
+    } else {
+      notifyRequester(item, '🎉 Reward delivered', `${item.reward_name} has been marked as delivered. Enjoy!`);
+    }
+
     setRedemptions((prev) => prev.filter((r) => r.id !== item.id));
   }
 
@@ -84,6 +105,13 @@ export default function AdminRedemptionsScreen() {
       Alert.alert('Error', error.message);
       return;
     }
+
+    notifyRequester(
+      item,
+      'Redemption cancelled',
+      `${item.reward_name} couldn't be fulfilled. ${Number(item.coin_cost).toLocaleString('en-IN')} FragCoins have been refunded to your wallet.`,
+    );
+
     setRedemptions((prev) => prev.filter((r) => r.id !== item.id));
   }
 

@@ -8,7 +8,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import VerifiedBadge from '@/components/VerifiedBadge';
-import { notifyAndLog } from '@/lib/notifications';
+import { notifyAndLog, sendPushNotification } from '@/lib/notifications';
 import { isEffectivelyHost } from '@/lib/effectiveRole';
 import * as Clipboard from 'expo-clipboard';
 import { useAppTheme } from '@/lib/ThemeContext';
@@ -270,7 +270,7 @@ export default function TournamentDetails() {
       // it (the incomplete-results warning above). The RPC itself guards
       // against running twice and against tournaments with no coin_rules set.
       if (s === 'completed') {
-        const { error: distributeError } = await supabase.rpc('distribute_tournament_prizes', {
+        const { data: winners, error: distributeError } = await supabase.rpc('distribute_tournament_prizes', {
           p_tournament_id: tournament.id,
         });
 
@@ -279,6 +279,21 @@ export default function TournamentDetails() {
             'Prizes Not Distributed',
             `The tournament was marked complete, but FragCoins couldn't be paid out: ${distributeError.message}`
           );
+        }
+
+        // The in-app notification is already written inside the RPC, in the
+        // same transaction as the payout. Only the push is left to do here,
+        // since Postgres can't reach Expo's push service. A failure to push
+        // is deliberately silent: the player has still been credited and
+        // still has the notification waiting in the bell.
+        for (const w of winners ?? []) {
+          if (!w.winner_push_token) continue;
+          sendPushNotification(
+            [w.winner_push_token],
+            '🏆 You won FragCoins!',
+            `You earned ${Number(w.winner_coins).toLocaleString('en-IN')} FragCoins in ${tournament.title}.`,
+            { tournament_id: tournament.id },
+          ).catch((err: any) => console.log('Failed to push coin win:', err?.message));
         }
       }
     } else {
