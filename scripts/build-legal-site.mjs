@@ -140,27 +140,13 @@ const iconFor = (title) => (ICON_RULES.find(([re]) => re.test(title))?.[1]) ?? '
 // landing page -- a policy is read, not scrolled through for a pitch.
 const SITE_STYLE = `
   :root {
-    --ink: #2A1F42; --ink-dim: #6B5F8A; --ink-faint: #9A8FBB;
-    --ground: #F3EFFB; --panel: #FFFFFF; --panel-alt: #ECE5F9; --line: #DCD1F2;
-    --violet: #7C3AED; --violet-2: #9D6BFA; --violet-deep: #4C1D95; --violet-soft: #EDE3FE;
-    --ember: #C97A17; --ember-soft: #FCEBCC;
-    --font-display: 'Arial Black', 'Segoe UI Black', 'Helvetica Neue', Impact, sans-serif;
-    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    --font-mono: ui-monospace, "Cascadia Code", "SFMono-Regular", Menlo, Consolas, monospace;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --ink: #F3EEFB; --ink-dim: #B7ACD6; --ink-faint: #786D9C;
-      --ground: #07050D; --panel: #120B1F; --panel-alt: #170F26; --line: #2A2044;
-      --violet: #8B5CF6; --violet-2: #A78BFA; --violet-deep: #6D28D9; --violet-soft: rgba(139,92,246,0.14);
-      --ember: #F0A63A; --ember-soft: rgba(240,166,58,0.14);
-    }
-  }
-  :root[data-theme="dark"] {
     --ink: #F3EEFB; --ink-dim: #B7ACD6; --ink-faint: #786D9C;
     --ground: #07050D; --panel: #120B1F; --panel-alt: #170F26; --line: #2A2044;
     --violet: #8B5CF6; --violet-2: #A78BFA; --violet-deep: #6D28D9; --violet-soft: rgba(139,92,246,0.14);
     --ember: #F0A63A; --ember-soft: rgba(240,166,58,0.14);
+    --font-display: 'Arial Black', 'Segoe UI Black', 'Helvetica Neue', Impact, sans-serif;
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: ui-monospace, "Cascadia Code", "SFMono-Regular", Menlo, Consolas, monospace;
   }
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
