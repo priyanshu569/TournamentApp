@@ -1,0 +1,419 @@
+// Generates the public legal site (legal/) from the SAME section arrays the
+// in-app screens render. Legal text that exists twice will eventually say two
+// different things, and for a privacy policy that's a real problem -- Play
+// compares the hosted policy against your Data Safety answers. So this parses
+// app/privacy-policy.tsx and app/terms-of-service.tsx rather than duplicating
+// their content here.
+//
+// Run: node scripts/build-legal-site.mjs
+
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+const OUT = join(ROOT, 'legal');
+
+const SUPPORT_EMAIL = 'fragify.support@gmail.com';
+const SUPPORT_WHATSAPP = '+91 78000 96706';
+const LAST_UPDATED = 'August 2026';
+
+/** Pulls `const SECTIONS = [...]` out of a screen and evaluates it. The array
+ *  is plain object literals with string concatenation, so eval is enough and
+ *  avoids depending on a TS parser for a build step this small. */
+function readSections(file) {
+  const src = readFileSync(join(ROOT, 'app', file), 'utf8');
+  const match = src.match(/const SECTIONS = (\[[\s\S]*?\n\]);/);
+  if (!match) throw new Error(`Could not find SECTIONS in ${file}`);
+  return eval(match[1]);
+}
+
+const esc = (s) =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/** Blank lines in the source become paragraph breaks. */
+const paragraphs = (body) =>
+  body.split('\n\n').map((p) => `<p>${esc(p)}</p>`).join('\n        ');
+
+// The real brand mark (same paths as components/FragifyLogo.tsx) inlined as
+// SVG so the hosted pages carry the actual logo, not a placeholder letter.
+const LOGO_MARK = `<svg viewBox="241.68 55.54 771.87 771.87" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#legalLogoClip)">
+<path d="M849.542 275.263L850.454 275.327C848.287 278.095 820.574 297.021 816.337 300.067C797.227 313.783 778.288 327.739 759.527 341.931C779.654 332.693 799.713 323.31 819.704 313.782C808.242 328.78 795.408 343.388 783.664 358.189C744.397 360.548 670.792 365.878 629.565 369.698C626.694 369.964 591.952 395.494 587.347 399.195C600.299 393.296 613.29 387.481 626.32 381.752C619.273 409.224 609.973 439.12 602.117 466.652C619.083 454.213 636.172 441.949 653.39 429.862C678.409 428.604 703.85 426.128 728.9 424.639C740.044 423.977 751.451 422.572 762.595 422.402C754.665 431.277 746.405 439.3 738.513 447.971C734.79 452.063 729.775 460.527 725.875 465.472C717.229 476.431 708.424 487.136 699.576 497.929C687.532 499.193 673.59 499.738 661.289 500.714L590.733 506.523C573.097 519.738 553.996 534.176 536.973 548.105C552.651 538.763 571.076 529.262 587.252 520.392L555.481 626.859C555.454 628.898 556.734 636.24 557.108 638.671C519.289 664.155 483.075 691.947 448.673 721.889C458.492 689.841 466.907 656.985 476.584 624.839C480.612 611.458 484.761 596.968 487.967 583.379C492.198 578.829 499.61 572.221 504.262 567.793C514.808 557.663 525.445 547.628 536.172 537.689C518.575 546.936 501.318 556.83 483.664 566.073L510.209 474.804C513.403 463.995 516.187 451.817 520.138 441.313C521.272 438.297 528.122 432.334 530.923 429.697C544.739 434.35 559.104 437.963 572.773 443.098C562.037 435.349 548.621 427.988 538.591 419.723C542.537 417.347 546.497 414.831 550.415 412.393C535.982 417.736 532.562 418.477 518.372 412.604C520.772 405.676 523.455 395.172 525.534 387.907L539.677 337.996C521.331 324.027 500.104 309.36 481.258 295.653C533.432 292.459 585.623 289.532 637.825 286.871C707.708 282.816 779.758 277.956 849.542 275.263Z" fill="url(#legalPaint0)"/>
+<path d="M750.998 183.623L780.983 197.048C784.044 198.384 789.794 200.708 792.457 202.302C794.092 202.79 794.086 202.558 795.31 203.523C800.258 205.265 805.003 207.466 809.798 209.598C812.467 210.738 817.274 212.61 819.692 213.875C824.879 215.99 833.714 219.319 838.368 221.916C845.33 224.044 859.217 230.274 866.393 233.24C882.619 239.973 898.919 246.507 915.298 252.842C903.211 282.521 890.756 312.048 877.935 341.417C882.435 339.901 904.503 332.034 907.852 331.393L914.177 329.118C915.151 331.472 914.434 330.411 916.804 332.102C922.351 330.389 933.526 326.379 938.29 329.743C926.889 336.592 915.696 342.717 904.264 349.338C924.488 341.645 956.212 330.037 976.902 323.934C961.331 376.671 945.38 429.297 929.062 481.807C923.209 477.587 932.51 463.103 932.834 456.734L932.167 456.308C931.597 459.236 929.522 460.11 930.146 463.307C922.811 462.962 920.515 460.403 914.385 459.191C910.258 458.376 908.109 460.78 905.372 463.726C916.247 426.866 926.925 389.952 937.426 352.984C893.175 366.417 856.927 383.133 815.939 403.79C817.653 399.443 819.839 395.324 821.848 391.088C830.738 372.35 839.788 353.625 848.661 334.884C852.224 327.345 856.621 320.564 860.392 313.261L889.893 255.311C876.141 255.364 862.321 256.439 848.569 256.855C842.476 257.039 835.992 257.668 829.961 256.753C824.407 255.911 740.962 217.687 732.745 212.74C731.214 208.676 710.427 204.314 710.463 198.891C713.035 196.304 719.905 194.638 723.45 193.209C734.258 188.848 730.4 197.213 736.058 199.645C738.752 199.214 740.277 197.864 742.573 196.327C741.942 193.655 741.33 191.283 742.56 188.881C744.642 188.934 744.593 189.037 746.516 188.319C747.979 186.478 747.63 187.371 747.349 184.463C749.326 183.252 748.255 183.717 750.998 183.623Z" fill="url(#legalPaint1)"/>
+<path d="M819.692 213.875C824.879 215.99 833.714 219.319 838.368 221.916C836.965 222.009 824.579 218.949 822.552 218.352C821.56 216.193 821.242 215.681 819.692 213.875Z" fill="#A342FA"/>
+<path d="M795.311 203.523C800.258 205.265 805.003 207.466 809.798 209.598C807.514 210.991 806.534 211.858 804.128 211.605C800.001 205.134 799.713 208.087 795.311 203.523Z" fill="#A342FA"/>
+<path d="M780.982 197.048C784.044 198.384 789.793 200.708 792.457 202.302C789.334 202.296 783.934 203.135 781.827 201.629C780.523 199.212 780.903 200.083 780.982 197.048Z" fill="#A342FA"/>
+<path d="M907.852 331.393L914.177 329.118C915.151 331.472 914.434 330.411 916.804 332.102C912.885 333.014 911.14 334.138 907.852 331.393Z" fill="#9533F3"/>
+<path d="M627.367 126.106C641.23 132.303 655.405 139.39 669.218 145.898C696.356 158.738 723.615 171.314 750.998 183.623C748.255 183.717 749.326 183.252 747.348 184.463C747.63 187.371 747.979 186.478 746.516 188.319C744.593 189.037 744.642 188.934 742.56 188.881C741.329 191.283 741.942 193.655 742.572 196.327C740.276 197.864 738.752 199.214 736.057 199.645C730.4 197.213 734.257 188.848 723.45 193.209C719.905 194.638 713.035 196.304 710.463 198.891C710.426 204.314 731.214 208.676 732.745 212.74C721.662 208.279 706.22 200.276 695.186 194.889C672.47 183.828 649.857 172.561 627.343 161.089C567.764 191.242 507.168 219.339 445.66 245.33C431.691 251.265 417.663 257.06 403.578 262.714C398.899 264.577 388.963 268.717 384.285 270.046C384.738 279.491 397.263 294.345 394.322 302.879C392.217 304.832 391.22 304.5 388.115 304.425C385.827 301.417 386.734 299.38 382.665 298.262C376.905 296.678 370.503 293.869 364.755 292.573C363.335 289.45 357.061 273.869 355.662 272.667C355.201 276.827 375.25 314.269 373.998 322.045C372.728 321.374 371.622 320.815 370.965 319.442C367.519 312.238 364.153 304.64 360.852 297.387L340.478 252.946C439.917 213.769 530.931 170.888 627.367 126.106Z" fill="#A342FA"/>
+<path d="M364.755 292.573C370.503 293.869 376.905 296.678 382.665 298.262C386.734 299.38 385.827 301.417 388.115 304.425C391.22 304.5 392.217 304.832 394.322 302.879C397.263 294.345 384.738 279.491 384.286 270.046C388.251 276.563 399.301 304.453 403.009 313.038L443.241 405.736C414.383 390.497 384.511 377.26 353.837 366.12C344.029 362.465 328.972 356.827 319.101 354.558L341.635 428.357C345.598 441.169 350.541 455.637 353.686 468.556C355.91 474.78 358.054 481.742 359.817 488.128C366.054 510.734 373.937 533.222 380.1 555.802C379.557 559.928 384.344 574.606 385.835 579.642C384.26 578.264 383.269 576.849 381.984 575.21C363.362 581.649 356.993 565.272 346.576 572.032C345.131 569.291 344.006 566.547 341.276 564.936C338.535 561.025 332.05 548.787 329.317 543.858L309.782 509.313C323.674 524.435 338.867 541.078 352.436 556.369C344.573 535.404 339.226 513.059 331.946 491.841C330.678 488.145 329.171 483.573 328.384 479.804C322.23 463.64 315.415 439.955 310.144 423.254L277.587 321.146C313.477 328.716 349.08 337.59 384.325 347.75C382.515 342.82 379.944 337.182 377.856 332.29C380.013 331.929 381.573 331.542 383.697 330.995L394.383 336.804C385.47 330.187 384.447 327.321 373.998 322.045C375.25 314.269 355.201 276.827 355.662 272.667C357.061 273.869 363.335 289.45 364.755 292.573Z" fill="url(#legalPaint2)"/>
+<path d="M339.096 423.821C339.751 426.726 342.062 433.012 343.065 436.346C346.426 447.514 350.067 458.376 352.92 469.714L353.686 468.556C355.91 474.78 358.054 481.742 359.817 488.128C366.054 510.734 373.937 533.222 380.1 555.802C379.557 559.928 384.344 574.606 385.835 579.643C384.261 578.264 383.269 576.849 381.985 575.21C363.363 581.649 356.993 565.272 346.576 572.032C345.131 569.292 344.006 566.547 341.276 564.936C338.535 561.025 332.05 548.787 329.317 543.858L309.782 509.313C323.674 524.435 338.867 541.078 352.436 556.369C344.573 535.404 339.226 513.059 331.946 491.841C330.678 488.145 329.171 483.573 328.384 479.804C329.738 474.495 316.301 444.682 315.925 437.08C315.404 426.524 331.326 424.191 339.096 423.821Z" fill="#5C15B2"/>
+<path d="M880.096 418.096C878.48 426.618 874.291 434.143 872.65 441.974C865.131 462.785 858.77 485.345 851.03 506.234C849.028 511.625 843.633 530.185 841.123 533.909C832.973 545.99 822.074 558.529 813.159 570.522C808.444 576.858 801.048 588.135 794.386 592.186C794.159 592.271 793.933 592.355 793.706 592.439C792.365 589.757 799.627 580.43 801.268 578.082C798.2 579.878 784.344 589.248 783.058 589.753C777.051 592.776 761.799 598.539 757.28 602.674C757.868 605.912 756.527 604.61 755.866 608.424L754.169 609.604C750.881 609.456 747.152 611.946 744.385 609.861L744.146 610.156C739.297 612.611 730.743 618.495 725.82 621.495C712.912 629.357 700.115 637.734 687.092 645.424C695.223 638.524 705.981 627.569 713.831 619.995C729.451 604.841 745.199 589.82 761.082 574.936C780.162 557.301 799.045 539.448 817.721 521.383C825.191 514.276 834.418 506.069 841.454 498.732C844.074 495.997 850.24 480.867 852.053 476.529C854.514 472.569 859.443 461.806 861.696 457.049C867.734 444.02 873.869 431.036 880.096 418.096Z" fill="#9533F3"/>
+<path d="M757.28 602.674C757.868 605.912 756.527 604.61 755.865 608.424L754.169 609.604C750.881 609.456 747.152 611.946 744.385 609.861C748.653 608.854 753.41 605.166 757.28 602.674Z" fill="#5C15B2"/>
+<path d="M905.372 463.726C908.109 460.78 910.258 458.376 914.385 459.191C920.514 460.403 922.811 462.962 930.146 463.307C929.521 460.11 931.597 459.236 932.167 456.308L932.834 456.734C932.509 463.103 923.209 477.587 929.062 481.807C922.627 505.463 915.622 528.96 908.048 552.276L938.204 515.768C943.176 509.721 948.65 502.439 953.787 496.747L954.626 498.731C941.774 523.039 927.446 547.785 914.238 572.011C911.336 577.342 899.457 598.708 896.579 602.61L895.79 602.468C896.714 599.986 897.351 600.435 896.684 597.956C895.416 596.877 874.788 589.611 870.299 587.609L870.612 586.546C871.591 583.348 871.812 583.185 871.414 579.804C872.449 574.431 876.624 561.058 878.284 555.337C885.656 529.896 890.401 509.16 906.303 487.51C903.321 489.391 899.929 491.154 896.818 492.863C900.621 482.556 901.986 473.509 905.372 463.726Z" fill="url(#legalPaint3)"/>
+<path d="M627.435 186.842C672.268 212.056 728.514 238.555 775.539 260.141C770.218 260.06 747.306 261.474 744.899 260.411C708.724 244.399 660.658 216.666 627.349 197.705C608.4 209.18 582.899 222.264 563.183 232.515C523.748 253.019 481.828 273.08 440.12 288.334C443.362 296.899 448.157 306.269 450.659 314.063L450.309 314.382C447.825 310.089 446.662 305.541 444.65 301.059C442.783 296.899 440.677 293.343 438.996 289.038C440.823 286.325 443.195 287.422 445.272 284.848L444.864 283.823C442.208 283.567 440.034 285.047 437.164 285.369C433.141 285.82 429.358 285.047 425.399 284.398L424.578 283.802L424.058 284.502C425.089 290.855 429.956 298.259 428.843 303.243C424.616 296.968 420.429 288.751 416.635 282.003C455.221 268.756 497.792 249.817 534.735 232.451C566.012 218.028 596.921 202.82 627.435 186.842Z" fill="url(#legalPaint4)"/>
+<path d="M871.414 579.804C871.812 583.185 871.591 583.348 870.612 586.546L870.299 587.609C874.788 589.611 895.416 596.877 896.684 597.956C897.351 600.435 896.714 599.986 895.79 602.468L896.58 602.61C891.295 613.144 884.836 623.381 878.976 633.613C874.965 640.618 870.955 649.906 865.615 655.882C856.78 665.777 745.885 741.115 730.725 748.157C741.599 738.072 751.978 727.357 762.718 717.107C793.216 687.532 824.597 658.883 856.816 631.194C861.433 614.276 866.24 596.53 871.414 579.804Z" fill="url(#legalPaint5)"/>
+<path d="M757.28 602.674C761.799 598.539 777.052 592.776 783.058 589.753C782.526 593.455 779.029 596.156 776.182 598.92C779.066 596.87 783.285 593.33 786.573 593.042L787.926 593.733C789.892 602.439 760.293 644.004 754.023 651.682C766.091 643.771 778.27 636.025 790.553 628.445C793.774 626.431 804.293 620.173 806.522 618.146L807.263 619.303C771.688 650.586 735.997 683.332 699.95 713.972C708.229 696.215 716.195 678.311 723.842 660.273C727.828 650.751 735.501 630.006 740.981 621.826C741.856 618.373 744.201 613.015 744.146 610.156L744.385 609.861C747.153 611.946 750.882 609.456 754.17 609.604L755.866 608.424C756.527 604.61 757.868 605.912 757.28 602.674Z" fill="#6D19CF"/>
+<path d="M744.385 609.861C747.152 611.946 750.881 609.456 754.169 609.604L744.422 619.45L740.98 621.826C741.856 618.373 744.201 613.015 744.146 610.156L744.385 609.861Z" fill="#310570"/>
+<path d="M755.866 608.424L756.301 609.007C754.654 611.855 747.918 620.779 744.422 619.45L754.17 609.604L755.866 608.424Z" fill="#9533F3"/>
+<path d="M548.621 676.75C551.4 678.697 556.165 681.838 558.526 684.006C561.262 685.947 565.992 689.063 568.453 691.053C585.967 703.373 610.107 721.687 627.661 732.341C645.92 719.868 664.559 706.661 683.081 694.715C684.501 693.184 688.751 690.527 690.673 689.241C684.318 699.485 680.668 711.486 674.184 721.632C669.243 729.359 637.189 750.508 627.398 757.929C597.731 737.19 564.058 709.453 535.409 686.89C539.892 683.614 544.298 680.234 548.621 676.75Z" fill="#310570"/>
+<path d="M568.453 691.053C585.967 703.373 610.107 721.687 627.661 732.341C645.92 719.868 664.559 706.661 683.081 694.715C683.222 695.039 683.142 695.419 683.154 695.768C664.485 710.273 646.637 723.371 627.539 737.307C608.305 724.179 585.666 706.496 567.109 692.168L568.453 691.053Z" fill="#6D19CF"/>
+<path d="M558.526 684.006C561.262 685.947 565.992 689.063 568.453 691.053L567.109 692.168C564.342 690.484 560.182 687.961 558.308 685.451L558.526 684.006Z" fill="#5C15B2"/>
+<path d="M380.1 555.802C386.522 573.663 394.747 602.732 399.717 621.22C413.124 633.79 428.3 646.649 442.19 658.889C440.183 665.82 438.129 672.745 436.028 679.646L435.578 679.279C425.699 671.215 414.436 664.179 404.012 656.776C400.007 653.929 395.394 651.211 391.88 647.8C388.879 644.885 344.195 572.218 341.276 564.936C344.006 566.547 345.131 569.291 346.575 572.032C356.993 565.272 363.362 581.649 381.984 575.21C383.269 576.849 384.26 578.264 385.835 579.642C384.344 574.606 379.557 559.928 380.1 555.802Z" fill="#310570"/>
+<path d="M378.153 428.575C376.741 424.601 374.822 419.748 374.177 415.675C375.7 417.673 380.655 428.811 381.992 431.673C386.466 441.245 391.02 450.777 395.653 460.273C397.796 464.696 401.322 472.449 403.778 476.489C405.419 480.25 410.37 492.414 412.239 495.195C420.385 507.315 430.613 520.09 439.414 531.9L447.006 542.337C449.695 545.301 452.478 549.445 454.851 552.773C456.964 555.006 458.02 556.358 459.847 558.843C457.783 565.038 456.284 570.601 454.613 576.893C449.256 571.127 441.177 562.926 436.419 556.999C435.281 555.831 433.777 554.016 432.664 552.748C429.629 549.434 415.742 535.783 414.607 532.828C401.624 499.037 391.092 462.362 378.153 428.575Z" fill="#9533F3"/>
+<path d="M436.419 557C436.704 554.958 435.59 551.741 435.005 549.57C437.229 548.35 446.508 555.757 454.851 552.773C456.964 555.006 458.02 556.358 459.848 558.843C457.783 565.038 456.284 570.601 454.613 576.893C449.256 571.127 441.177 562.926 436.419 557Z" fill="#5C15B2"/>
+<path d="M439.414 531.901L447.006 542.337C449.695 545.301 452.478 549.445 454.851 552.773C446.509 555.757 437.229 548.35 435.005 549.57C435.59 551.741 436.704 554.958 436.419 557C435.281 555.831 433.778 554.016 432.664 552.748C434.184 546.376 429.976 543.556 425.788 539.317L434.33 540.343C435.429 538.969 435.278 536.514 435.385 534.635C436.826 532.572 436.723 533.109 439.414 531.901Z" fill="#6D19CF"/>
+<path d="M439.414 531.901L447.006 542.337C444.394 542.8 437.302 540.995 434.33 540.343C435.429 538.969 435.278 536.514 435.385 534.635C436.825 532.572 436.723 533.109 439.414 531.901Z" fill="#6D19CF"/>
+<path d="M868.964 419.552C851.606 427.53 833.879 434.908 816.582 443.052C813.024 444.726 809.197 446.558 805.505 447.845L804.899 447.312C819.515 439.173 837.639 424.142 852.695 414.873C866.742 406.224 878.057 400.484 892.716 392.821C890.095 400.257 877.157 439.463 872.65 441.974C874.291 434.143 878.48 426.618 880.096 418.096C873.869 431.036 867.734 444.02 861.696 457.049C859.443 461.806 854.514 472.569 852.053 476.529C851.808 475.922 851.354 474.88 851.52 474.317C856.486 457.518 863.631 435.814 868.964 419.552Z" fill="url(#legalPaint6)"/>
+<path d="M403.994 571.003C420.526 585.371 439.321 599.145 455.426 613.303L450.814 628.433C450.011 627.778 444.151 623.051 443.813 622.604C439.406 619.132 424.421 607.956 422.077 603.691C418.373 596.952 413.918 587.328 409.973 580.022C407.818 577.147 405.921 574.04 403.994 571.003Z" fill="#310570"/>
+<path d="M409.973 580.022C412.59 581.424 414.993 586.994 416.425 589.9L418.363 589.267L416.66 585.689L417.205 585.277C424.393 588.618 422.658 606.915 440.016 612.384C442.858 615.691 443.945 616.872 444.357 621.146L443.813 622.604C439.406 619.132 424.421 607.956 422.077 603.691C418.372 596.952 413.918 587.328 409.973 580.022Z" fill="#5C15B2"/>
+<path d="M806.522 618.146C806.62 617.534 806.718 616.928 806.809 616.315C816.061 608.309 835.073 594.798 844.025 588.325C845.807 587.043 847.632 585.819 849.493 584.654C840.107 603.386 834.222 616.995 815.602 627.723C809.571 631.194 794.11 644.445 789.285 646.343L788.422 645.81L790.491 644.169C796.37 639.509 810.048 626.082 812.351 618.832L812.094 617.522C809.834 617.319 809.338 617.699 807.263 619.303L806.522 618.146Z" fill="#19192C"/>
+<path d="M363.113 393.844C381.841 402.663 399.373 412.36 416.375 424.12C418.877 425.851 423.819 428.708 425.443 430.783C422.896 431.493 391.589 406.37 385.274 407.099C384.894 408.018 381.875 415.593 381.863 415.77C383.19 417.355 383.03 418.487 383.183 420.45C380.948 425.833 380.474 425.554 382.765 430.947C387.889 443.012 397.405 457.812 401.482 469.891L402.071 470.093C401.952 467.904 400.48 464.597 399.992 461.932C398.861 455.757 386.515 424.734 387.175 419.766C392.171 421.202 431.493 438.29 434.632 440.584C433.114 440.935 392.586 422.478 387.32 420.317C390.284 429.99 404.697 469.248 403.778 476.489C401.322 472.449 397.796 464.696 395.653 460.273C391.02 450.778 386.466 441.245 381.992 431.673C380.655 428.811 375.7 417.673 374.177 415.675C374.822 419.748 376.741 424.601 378.153 428.575C373.422 424.21 366.167 401.34 363.113 393.844Z" fill="#19192C"/>
+<path d="M512.328 702.816C515.679 704.083 557.547 744.22 562.083 748.861C559.018 747.012 556.016 744.881 553.08 742.83C537.253 734.104 515.976 721.142 500.762 711.284C504.601 708.437 508.456 705.614 512.328 702.816Z" fill="#0B012D"/>
+<path d="M676.603 1021.33L679.358 1021.34C681.446 1021.33 682.389 1021.01 684.055 1022.26C685.089 1024.19 684.532 1026.06 684.263 1028.34C682.095 1028.54 679.083 1029.09 677.344 1028.04C676.107 1026.18 676.529 1023.68 676.603 1021.33Z" fill="black"/>
+<path d="M478.362 1021.4C481.792 1021.32 483.608 1020.79 486.052 1022.77C486.735 1024.86 486.227 1026.68 485.915 1028.9L478.345 1029.22L478.362 1021.4Z" fill="black"/>
+<path d="M884.67 495.245L885.178 495.857C885.043 500.834 887.052 503.82 889.25 508.314C887.621 510.099 886.011 512.072 884.443 513.924C884.021 518.078 884.094 518.94 884.89 523.049L885.092 524.079L884.529 524.751L882.502 523.506C880.273 525.652 875.528 545.719 873.795 549.979C871.677 555.186 868.738 560.827 866.57 565.922C865.737 568.193 864.115 571.106 862.97 573.32C865.59 555.905 870.856 540.442 875.736 523.59C878.161 515.21 881.369 503.016 884.67 495.245Z" fill="#19192C"/>
+<path d="M914.177 329.118C931.787 323.004 949.507 317.212 967.331 311.745L968.029 313.496C958.11 318.677 947.896 323.999 938.289 329.743C933.526 326.379 922.351 330.389 916.804 332.102C914.434 330.411 915.15 331.472 914.177 329.118Z" fill="#A342FA"/>
+<path d="M428.843 303.243C429.956 298.259 425.089 290.855 424.058 284.502L424.578 283.802L425.399 284.398L424.669 284.706C425.373 287.105 424.947 287.134 426.526 288.399C429.688 288.418 431.367 287.955 433.884 289.402C437.892 297.216 426.734 297.508 432.092 307.676C434.701 312.629 445.105 327.416 445.431 331.379C445.001 331.125 429.957 305.874 428.843 303.243Z" fill="#19192C"/>
+<path d="M980.165 307.271C976.467 309.993 972.254 311.69 968.029 313.496L967.331 311.745C971.574 310.189 975.836 308.566 980.165 307.271Z" fill="#9533F3"/>
+<path d="M961.637 486.201C959.371 491.12 957.516 494.091 954.626 498.731L953.787 496.747C956.402 493.119 958.863 489.702 961.637 486.201Z" fill="#5C15B2"/>
+</g>
+<defs>
+<linearGradient id="legalPaint0" x1="649.3" y1="717.725" x2="648.173" y2="276.645" gradientUnits="userSpaceOnUse"><stop stop-color="#D6D5D6"/><stop offset="1" stop-color="white"/></linearGradient>
+<linearGradient id="legalPaint1" x1="784.038" y1="406.399" x2="873.092" y2="232.757" gradientUnits="userSpaceOnUse"><stop stop-color="#6A19D0"/><stop offset="1" stop-color="#A843FF"/></linearGradient>
+<linearGradient id="legalPaint2" x1="411.36" y1="429.17" x2="298.53" y2="305.113" gradientUnits="userSpaceOnUse"><stop stop-color="#6714D5"/><stop offset="1" stop-color="#A944FF"/></linearGradient>
+<linearGradient id="legalPaint3" x1="921.935" y1="593.403" x2="896.481" y2="461.822" gradientUnits="userSpaceOnUse"><stop stop-color="#2E0369"/><stop offset="1" stop-color="#7220D3"/></linearGradient>
+<linearGradient id="legalPaint4" x1="589.297" y1="190.606" x2="596.061" y2="287.66" gradientUnits="userSpaceOnUse"><stop stop-color="#111121"/><stop offset="1" stop-color="#2C2B42"/></linearGradient>
+<linearGradient id="legalPaint5" x1="822.442" y1="736.419" x2="807.214" y2="593.917" gradientUnits="userSpaceOnUse"><stop stop-color="#010019"/><stop offset="1" stop-color="#2C056A"/></linearGradient>
+<linearGradient id="legalPaint6" x1="808.965" y1="420.509" x2="884.076" y2="432.979" gradientUnits="userSpaceOnUse"><stop stop-color="#0F0F1D"/><stop offset="1" stop-color="#27273F"/></linearGradient>
+<clipPath id="legalLogoClip"><rect width="1254" height="1254" fill="white" transform="translate(241.68 55.54)"/></clipPath>
+</defs>
+</svg>`;
+
+// Small glyphs for section headers, matched by keyword against the section
+// title. Falls back to a plain dot so an unmatched title still looks tidy
+// rather than breaking the layout.
+const ICON_RULES = [
+  [/collect/i, '🗂️'],
+  [/how we use/i, '⚙️'],
+  [/third-party/i, '🔗'],
+  [/sharing/i, '🤝'],
+  [/retention|deletion|delete|deleted/i, '🗑️'],
+  [/children/i, '🧒'],
+  [/your rights/i, '✅'],
+  [/security/i, '🔒'],
+  [/changes to/i, '🔄'],
+  [/acceptance/i, '📜'],
+  [/your account/i, '👤'],
+  [/tournament/i, '🏆'],
+  [/fragcoin/i, '🪙'],
+  [/redemption|shipping/i, '📦'],
+  [/conduct/i, '🚫'],
+  [/your content/i, '🖼️'],
+  [/disclaimer/i, '⚠️'],
+  [/governing law/i, '⚖️'],
+  [/contact/i, '✉️'],
+  [/in the app/i, '📱'],
+  [/by email/i, '✉️'],
+  [/kept, and why/i, '📋'],
+];
+const iconFor = (title) => (ICON_RULES.find(([re]) => re.test(title))?.[1]) ?? '•';
+
+const BASE_STYLE = `
+  :root {
+    --bg: #0a0a0a; --bg-alt: #0d0a16; --card: #150f24; --card-hover: #1a1330;
+    --line: #2a2140; --line-soft: #201933;
+    --text: #f1eefb; --muted: #b3a9d1; --faint: #766e97;
+    --accent: #8B5CF6; --accent-2: #C084FC; --accent-dim: #4C1D95;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    position: relative; overflow-x: hidden;
+  }
+  /* Soft ambient glows, fixed behind the content -- echoes the app's own
+     premium-banner look without needing any raster imagery. */
+  body::before, body::after {
+    content: ''; position: fixed; z-index: 0; border-radius: 50%;
+    filter: blur(90px); pointer-events: none;
+  }
+  body::before {
+    width: 520px; height: 520px; top: -220px; left: -160px;
+    background: radial-gradient(circle, rgba(139,92,246,0.35), transparent 70%);
+  }
+  body::after {
+    width: 460px; height: 460px; bottom: -200px; right: -160px;
+    background: radial-gradient(circle, rgba(192,132,252,0.22), transparent 70%);
+  }
+  .page { position: relative; z-index: 1; padding: 40px 20px 80px; }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  header { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+  .mark {
+    width: 46px; height: 46px; border-radius: 14px; flex: none;
+    background: linear-gradient(150deg, #1c1030, #0a0614);
+    display: grid; place-items: center; padding: 8px;
+    box-shadow: 0 0 0 1px rgba(139,92,246,0.35), 0 6px 20px rgba(139,92,246,0.25);
+  }
+  .mark svg { width: 100%; height: 100%; display: block; }
+  .brand { font-size: 19px; font-weight: 800; letter-spacing: 1.5px; }
+  .brand small { display: block; font-size: 11px; font-weight: 600; letter-spacing: .4px; color: var(--faint); margin-top: 1px; }
+  h1 {
+    font-size: 30px; line-height: 1.25; margin: 28px 0 8px; font-weight: 800;
+    background: linear-gradient(90deg, #fff, #d9c9ff 65%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .updated {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--accent-2); font-size: 12px; font-weight: 700; letter-spacing: .3px;
+    background: rgba(139,92,246,0.12); border: 1px solid rgba(139,92,246,0.25);
+    padding: 4px 10px; border-radius: 20px; margin: 0 0 20px;
+  }
+  .intro { color: var(--muted); margin: 0 0 32px; font-size: 15.5px; max-width: 56ch; }
+  section {
+    background: linear-gradient(180deg, var(--card), var(--bg-alt));
+    border: 1px solid var(--line); border-radius: 16px;
+    padding: 20px 22px; margin-bottom: 14px;
+    transition: border-color .15s ease, background .15s ease;
+  }
+  section:hover { border-color: var(--line-soft); background: linear-gradient(180deg, var(--card-hover), var(--bg-alt)); }
+  h2 {
+    display: flex; align-items: center; gap: 10px;
+    color: var(--text); font-size: 15px; font-weight: 700; letter-spacing: .2px; margin: 0 0 12px;
+  }
+  h2 .ico {
+    width: 28px; height: 28px; border-radius: 9px; flex: none;
+    background: rgba(139,92,246,0.14); border: 1px solid rgba(139,92,246,0.25);
+    display: grid; place-items: center; font-size: 14px; line-height: 1;
+  }
+  section p { color: var(--muted); margin: 0 0 12px; font-size: 14.5px; }
+  section p:last-child { margin-bottom: 0; }
+  a { color: var(--accent-2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  footer {
+    margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--line-soft);
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+    color: var(--faint); font-size: 12.5px;
+  }
+  footer .flinks { display: flex; gap: 16px; }
+  footer a { color: var(--faint); }
+  footer a:hover { color: var(--accent-2); }
+  .back {
+    display: inline-flex; align-items: center; gap: 6px; margin-bottom: 22px;
+    color: var(--muted); text-decoration: none; font-size: 13.5px; font-weight: 600;
+  }
+  .back:hover { color: var(--accent-2); }
+`;
+
+function page({ title, heading, intro, bodyHtml, showBack = true }) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(title)} · Fragify</title>
+<meta name="description" content="${esc(intro)}">
+<meta name="theme-color" content="#0a0a0a">
+<style>${BASE_STYLE}</style>
+</head>
+<body>
+  <div class="page">
+    <div class="wrap">
+      ${showBack ? '<a class="back" href="./">&larr; Back to Fragify</a>' : ''}
+      <header>
+        <div class="mark">${LOGO_MARK}</div>
+        <div class="brand">FRAGIFY<small>Esports Tournaments</small></div>
+      </header>
+
+      <h1>${esc(heading)}</h1>
+      <p class="updated">🕒 Last updated: ${LAST_UPDATED}</p>
+      <p class="intro">${esc(intro)}</p>
+
+      ${bodyHtml}
+
+      <section>
+        <h2><span class="ico">✉️</span>Contact Us</h2>
+        <p>Questions? Reach us at <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>
+           or on WhatsApp at ${SUPPORT_WHATSAPP}.</p>
+      </section>
+
+      <footer>
+        <span>&copy; ${new Date().getFullYear()} Fragify</span>
+        <span class="flinks">
+          <a href="./privacy-policy.html">Privacy</a>
+          <a href="./terms.html">Terms</a>
+          <a href="./delete-account.html">Delete Account</a>
+        </span>
+      </footer>
+    </div>
+  </div>
+</body>
+</html>
+`;
+}
+
+const sectionsHtml = (sections) =>
+  sections
+    .map((s) => `<section>\n      <h2><span class="ico">${iconFor(s.title)}</span>${esc(s.title)}</h2>\n        ${paragraphs(s.body)}\n    </section>`)
+    .join('\n    ');
+
+mkdirSync(OUT, { recursive: true });
+
+writeFileSync(
+  join(OUT, 'privacy-policy.html'),
+  page({
+    title: 'Privacy Policy',
+    heading: 'Privacy Policy',
+    intro: "This policy explains what information Fragify collects, how it's used, and your choices — in plain language, not legalese.",
+    bodyHtml: sectionsHtml(readSections('privacy-policy.tsx')),
+  }),
+);
+
+writeFileSync(
+  join(OUT, 'terms.html'),
+  page({
+    title: 'Terms of Service',
+    heading: 'Terms of Service',
+    intro: 'These terms explain what you can expect from Fragify, and what we expect from you — in plain language, not legalese.',
+    bodyHtml: sectionsHtml(readSections('terms-of-service.tsx')),
+  }),
+);
+
+// Google Play requires a way to request account deletion that does NOT need
+// the app installed -- the in-app Settings flow satisfies the other half of
+// that policy, not this one.
+writeFileSync(
+  join(OUT, 'delete-account.html'),
+  page({
+    title: 'Delete Your Account',
+    heading: 'Delete Your Fragify Account',
+    intro: 'You can delete your Fragify account and associated data at any time. Here are both ways to do it.',
+    bodyHtml: [
+      {
+        title: 'Option 1 — In the app (instant)',
+        body: 'Open Fragify and go to Settings → Delete Account. Confirm, and your account is deleted immediately. No waiting and no request needed.',
+      },
+      {
+        title: "Option 2 — By email (if you can't access the app)",
+        body: `Email ${SUPPORT_EMAIL} from the email address associated with your Fragify account, with the subject "Delete my account".\n\nInclude your Fragify username so we can locate the right account. We'll confirm once the deletion is complete, and we aim to action requests within 30 days.`,
+      },
+      {
+        title: 'What gets deleted',
+        body: 'Your username, display name, bio, profile photo, game UIDs (Free Fire / BGMI), email or phone number, login credentials, and push notification token.',
+      },
+      {
+        title: 'What is kept, and why',
+        body: "Tournament history is kept in anonymized form — for example, that a team placed 2nd in a match. This is so deleting your account doesn't retroactively change other players' and hosts' standings and results.\n\nPast reward redemptions keep their shipping details on file for order and delivery support obligations.",
+      },
+    ].map((s) => `<section>\n      <h2><span class="ico">${iconFor(s.title)}</span>${esc(s.title)}</h2>\n        ${paragraphs(s.body)}\n    </section>`).join('\n    '),
+  }),
+);
+
+// The landing page is a small hub, not just a redirect stub -- it's the first
+// thing a reviewer (or a curious player) sees at the bare domain root.
+writeFileSync(
+  join(OUT, 'index.html'),
+  `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fragify</title>
+<meta name="description" content="Free-to-enter esports tournaments for Free Fire, BGMI, COD Mobile and Valorant. Compete, climb the leaderboard, earn FragCoins, and redeem them for real rewards.">
+<meta name="theme-color" content="#0a0a0a">
+<style>${BASE_STYLE}
+  .hero { text-align: center; padding: 28px 0 8px; }
+  .hero .mark {
+    width: 88px; height: 88px; border-radius: 24px; margin: 0 auto 20px;
+    padding: 15px;
+    box-shadow: 0 0 0 1px rgba(139,92,246,0.4), 0 10px 40px rgba(139,92,246,0.35);
+  }
+  .hero h1 {
+    font-size: 34px; margin: 0 0 10px; letter-spacing: .5px;
+  }
+  .hero .tagline { color: var(--muted); font-size: 15.5px; max-width: 46ch; margin: 0 auto 8px; }
+  .games { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin: 18px 0 36px; }
+  .games span {
+    font-size: 12px; font-weight: 700; color: var(--accent-2); letter-spacing: .3px;
+    background: rgba(139,92,246,0.12); border: 1px solid rgba(139,92,246,0.25);
+    padding: 5px 12px; border-radius: 20px;
+  }
+  .links { display: grid; gap: 12px; margin-bottom: 8px; }
+  .linkcard {
+    display: flex; align-items: center; gap: 14px;
+    background: linear-gradient(180deg, var(--card), var(--bg-alt));
+    border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px;
+    text-decoration: none; color: var(--text);
+    transition: transform .15s ease, border-color .15s ease, background .15s ease;
+  }
+  .linkcard:hover {
+    text-decoration: none; transform: translateY(-2px);
+    border-color: rgba(139,92,246,0.4); background: linear-gradient(180deg, var(--card-hover), var(--bg-alt));
+  }
+  .linkcard .ico {
+    width: 42px; height: 42px; border-radius: 12px; flex: none;
+    background: rgba(139,92,246,0.14); border: 1px solid rgba(139,92,246,0.25);
+    display: grid; place-items: center; font-size: 19px;
+  }
+  .linkcard .body { flex: 1; min-width: 0; }
+  .linkcard .title { font-weight: 700; font-size: 15px; margin-bottom: 2px; }
+  .linkcard .desc { color: var(--faint); font-size: 12.5px; }
+  .linkcard .chev { color: var(--faint); font-size: 18px; flex: none; }
+  .linkcard:hover .chev { color: var(--accent-2); }
+</style>
+</head>
+<body>
+  <div class="page">
+    <div class="wrap">
+      <div class="hero">
+        <div class="mark">${LOGO_MARK}</div>
+        <h1>FRAGIFY</h1>
+        <p class="tagline">Free-to-enter esports tournaments. Compete, climb the leaderboard, earn FragCoins, and redeem them for real rewards.</p>
+        <div class="games">
+          <span>Free Fire</span><span>BGMI</span><span>COD Mobile</span><span>Valorant</span>
+        </div>
+      </div>
+
+      <div class="links">
+        <a class="linkcard" href="./privacy-policy.html">
+          <div class="ico">🔒</div>
+          <div class="body">
+            <div class="title">Privacy Policy</div>
+            <div class="desc">What we collect, how it's used, and your choices</div>
+          </div>
+          <div class="chev">&rsaquo;</div>
+        </a>
+        <a class="linkcard" href="./terms.html">
+          <div class="ico">📜</div>
+          <div class="body">
+            <div class="title">Terms of Service</div>
+            <div class="desc">What to expect from Fragify, and from players</div>
+          </div>
+          <div class="chev">&rsaquo;</div>
+        </a>
+        <a class="linkcard" href="./delete-account.html">
+          <div class="ico">🗑️</div>
+          <div class="body">
+            <div class="title">Delete Your Account</div>
+            <div class="desc">In-app or by email — both ways, explained</div>
+          </div>
+          <div class="chev">&rsaquo;</div>
+        </a>
+      </div>
+
+      <footer>
+        <span>&copy; ${new Date().getFullYear()} Fragify</span>
+        <span class="flinks">
+          <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>
+        </span>
+      </footer>
+    </div>
+  </div>
+</body>
+</html>
+`,
+);
+
+console.log('Built legal site -> legal/');
+console.log('  index.html  privacy-policy.html  terms.html  delete-account.html');
