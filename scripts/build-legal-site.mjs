@@ -332,13 +332,7 @@ writeFileSync(
   .hero h1 {
     font-size: 34px; margin: 0 0 10px; letter-spacing: .5px;
   }
-  .hero .tagline { color: var(--muted); font-size: 15.5px; max-width: 46ch; margin: 0 auto 8px; }
-  .games { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin: 18px 0 36px; }
-  .games span {
-    font-size: 12px; font-weight: 700; color: var(--accent-2); letter-spacing: .3px;
-    background: rgba(139,92,246,0.12); border: 1px solid rgba(139,92,246,0.25);
-    padding: 5px 12px; border-radius: 20px;
-  }
+  .hero .tagline { color: var(--muted); font-size: 15.5px; max-width: 46ch; margin: 0 auto 32px; }
   .links { display: grid; gap: 12px; margin-bottom: 8px; }
   .linkcard {
     display: flex; align-items: center; gap: 14px;
@@ -370,9 +364,6 @@ writeFileSync(
         <div class="mark">${LOGO_MARK}</div>
         <h1>FRAGIFY</h1>
         <p class="tagline">Free-to-enter esports tournaments. Compete, climb the leaderboard, earn FragCoins, and redeem them for real rewards.</p>
-        <div class="games">
-          <span>Free Fire</span><span>BGMI</span><span>COD Mobile</span><span>Valorant</span>
-        </div>
       </div>
 
       <div class="links">
