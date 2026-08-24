@@ -44,7 +44,7 @@ export default function BlockedUsersScreen() {
 
     const blockedIds = (blocks ?? []).map((b: any) => b.blocked_id);
     const { data: profiles } = blockedIds.length > 0
-      ? await supabase.from('public_profiles').select('id, username, display_name, avatar_id, avatar_url').in('id', blockedIds)
+      ? await supabase.from('public_profiles').select('id, username, display_name, avatar_id, avatar_frame, avatar_url').in('id', blockedIds)
       : { data: [] };
 
     const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));

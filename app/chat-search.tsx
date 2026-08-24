@@ -71,7 +71,7 @@ export default function ChatSearchScreen() {
         }
         const otherIds = [...new Set(otherIdByConvo.values())];
         const { data: profiles } = otherIds.length > 0
-          ? await supabase.from('public_profiles').select('id, username, display_name, avatar_id, avatar_url, is_verified').in('id', otherIds)
+          ? await supabase.from('public_profiles').select('id, username, display_name, avatar_id, avatar_frame, avatar_url, is_verified').in('id', otherIds)
           : { data: [] };
         const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
 
@@ -93,7 +93,7 @@ export default function ChatSearchScreen() {
     if (!isGroup) {
       let sb = supabase
         .from('public_profiles')
-        .select('id, username, display_name, avatar_id, avatar_url, is_verified')
+        .select('id, username, display_name, avatar_id, avatar_frame, avatar_url, is_verified')
         .neq('id', me)
         .order('username', { ascending: true })
         .limit(40);
@@ -155,7 +155,7 @@ export default function ChatSearchScreen() {
         onLongPress={() => showAvatarPreview({ avatarId: item.avatar_id, avatarUrl: item.avatar_url, username: item.display_name })}
         disabled={startingId === item.id}
       >
-        <Avatar avatarId={item.avatar_id} avatarUrl={item.avatar_url} username={item.display_name} size={46} />
+        <Avatar avatarId={item.avatar_id} frameId={item.avatar_frame} avatarUrl={item.avatar_url} username={item.display_name} size={46} />
         <View style={styles.rowInfo}>
           <View style={styles.nameRow}>
             <Text style={styles.displayName} numberOfLines={1}>{item.display_name ?? 'Unknown'}</Text>

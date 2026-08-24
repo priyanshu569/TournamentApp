@@ -261,7 +261,7 @@ export default function UserProfileScreen() {
               activeOpacity={1}
               onLongPress={() => showAvatarPreview({ avatarId: profile.avatar_id, avatarUrl: profile.avatar_url, username: profile.display_name })}
             >
-              <Avatar avatarId={profile.avatar_id} avatarUrl={profile.avatar_url} username={profile.display_name} size={84} />
+              <Avatar avatarId={profile.avatar_id} frameId={profile.avatar_frame} avatarUrl={profile.avatar_url} username={profile.display_name} size={84} animated />
             </TouchableOpacity>
           </AnimatedAvatarRing>
         </View>

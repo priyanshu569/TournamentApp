@@ -78,7 +78,7 @@ export default function FollowListScreen() {
 
     const { data: profiles } = await supabase
       .from('public_profiles')
-      .select('id, username, display_name, avatar_id, avatar_url, is_verified')
+      .select('id, username, display_name, avatar_id, avatar_frame, avatar_url, is_verified')
       .in('id', otherIds);
 
     let iFollowSet = new Set<string>();
@@ -212,7 +212,7 @@ export default function FollowListScreen() {
               style={styles.row}
               onPress={() => router.push(`/user-profile?id=${item.id}`)}
             >
-              <Avatar avatarId={item.avatar_id} avatarUrl={item.avatar_url} username={item.display_name} size={44} />
+              <Avatar avatarId={item.avatar_id} frameId={item.avatar_frame} avatarUrl={item.avatar_url} username={item.display_name} size={44} />
               <View style={styles.rowInfo}>
                 <View style={styles.nameRow}>
                   <Text style={styles.username} numberOfLines={1}>{item.display_name ?? 'Unknown'}</Text>

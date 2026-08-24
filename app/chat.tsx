@@ -96,7 +96,7 @@ export default function ChatInboxScreen() {
     )];
 
     const { data: profiles } = otherUserIds.length > 0
-      ? await supabase.from('public_profiles').select('id, display_name, avatar_id, avatar_url').in('id', otherUserIds)
+      ? await supabase.from('public_profiles').select('id, display_name, avatar_id, avatar_frame, avatar_url').in('id', otherUserIds)
       : { data: [] };
 
     const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));

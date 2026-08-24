@@ -11,6 +11,7 @@ import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import FragifyLogo from '@/components/FragifyLogo';
 import Avatar from '@/components/Avatar';
 import { AVATAR_PRESETS } from '@/lib/avatars';
+import { AVATAR_FRAMES } from '@/lib/avatarFrames';
 import { INDIAN_STATES } from '@/lib/indianStates';
 import { pickAndUploadAvatarPhoto } from '@/lib/avatarUpload';
 import { useAppTheme } from '@/lib/ThemeContext';
@@ -40,6 +41,7 @@ export default function EditProfileScreen() {
   const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null);
   const [agePublic, setAgePublic] = useState(true);
   const [avatarId, setAvatarId] = useState<string | null>(null);
+  const [avatarFrame, setAvatarFrame] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [gamesOnboarded, setGamesOnboarded] = useState(true);
 
@@ -97,7 +99,7 @@ export default function EditProfileScreen() {
 
     const { data } = await supabase
       .from('Profiles')
-      .select('username, display_name, bio, gender, state, city, city_public, date_of_birth, age_public, avatar_id, avatar_url, games_onboarded')
+      .select('username, display_name, bio, gender, state, city, city_public, date_of_birth, age_public, avatar_id, avatar_url, avatar_frame, games_onboarded')
       .eq('id', userData.user.id)
       .single();
 
@@ -112,6 +114,7 @@ export default function EditProfileScreen() {
       setDateOfBirth(data.date_of_birth ? new Date(data.date_of_birth) : null);
       setAgePublic(data.age_public !== false);
       setAvatarId(data.avatar_id || null);
+      setAvatarFrame(data.avatar_frame || null);
       setAvatarUrl(data.avatar_url || null);
       setGamesOnboarded(!!data.games_onboarded);
     }
@@ -182,6 +185,7 @@ export default function EditProfileScreen() {
         date_of_birth: dateOfBirth ? dateOfBirth.toISOString().slice(0, 10) : null,
         age_public: agePublic,
         avatar_id: avatarId,
+        avatar_frame: avatarFrame,
         avatar_url: avatarUrl,
       });
 
@@ -294,6 +298,40 @@ export default function EditProfileScreen() {
             {avatarUrl
               ? 'Using your uploaded photo. Tap an avatar below to switch back to a preset.'
               : 'Tap an avatar to select it, or tap it again to use your initials instead.'}
+          </Text>
+        </View>
+
+        {/* Frames sit behind whichever icon is chosen above, so each swatch
+            previews the player's actual icon rather than a stand-in. */}
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Avatar Frame</Text>
+          <View style={styles.avatarGrid}>
+            <TouchableOpacity
+              style={[styles.avatarOption, !avatarFrame && styles.avatarOptionActive]}
+              onPress={() => setAvatarFrame(null)}
+            >
+              <Avatar avatarId={avatarId} username={displayName || username} size={52} />
+            </TouchableOpacity>
+            {AVATAR_FRAMES.map((frame) => (
+              <TouchableOpacity
+                key={frame.id}
+                style={[styles.avatarOption, avatarFrame === frame.id && styles.avatarOptionActive]}
+                onPress={() => setAvatarFrame(avatarFrame === frame.id ? null : frame.id)}
+              >
+                <Avatar
+                  avatarId={avatarId}
+                  frameId={frame.id}
+                  username={displayName || username}
+                  size={52}
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
+          <Text style={styles.hint}>
+            {avatarUrl
+              ? 'Frames apply to preset avatars. Remove your uploaded photo above to use one.'
+              : AVATAR_FRAMES.find((f) => f.id === avatarFrame)?.description
+                ?? 'Pick a frame to sit behind your avatar, or keep the classic flat look.'}
           </Text>
         </View>
 

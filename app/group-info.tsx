@@ -73,7 +73,7 @@ export default function GroupInfoScreen() {
 
     const userIds = (participants ?? []).map((p: any) => p.user_id);
     const { data: profiles } = userIds.length > 0
-      ? await supabase.from('public_profiles').select('id, username, display_name, avatar_id, avatar_url').in('id', userIds)
+      ? await supabase.from('public_profiles').select('id, username, display_name, avatar_id, avatar_frame, avatar_url').in('id', userIds)
       : { data: [] };
 
     const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
@@ -223,7 +223,7 @@ export default function GroupInfoScreen() {
 
     const { data: profiles } = await supabase
       .from('public_profiles')
-      .select('id, display_name, avatar_id, avatar_url')
+      .select('id, display_name, avatar_id, avatar_frame, avatar_url')
       .in('id', otherIds);
     setCandidates(profiles ?? []);
     setCandidatesLoading(false);
@@ -371,7 +371,7 @@ export default function GroupInfoScreen() {
               onPress={() => member.id !== myId && router.push(`/user-profile?id=${member.id}`)}
               onLongPress={() => showAvatarPreview({ avatarId: member.avatar_id, avatarUrl: member.avatar_url, username: member.display_name })}
             >
-              <Avatar avatarId={member.avatar_id} avatarUrl={member.avatar_url} username={member.display_name} size={44} />
+              <Avatar avatarId={member.avatar_id} frameId={member.avatar_frame} avatarUrl={member.avatar_url} username={member.display_name} size={44} />
             </TouchableOpacity>
             <View style={{ flex: 1 }}>
               <Text style={styles.memberName}>
@@ -440,7 +440,7 @@ export default function GroupInfoScreen() {
                   const isSelected = selectedCandidates.has(item.id);
                   return (
                     <TouchableOpacity style={styles.candidateRow} onPress={() => toggleCandidate(item.id)}>
-                      <Avatar avatarId={item.avatar_id} avatarUrl={item.avatar_url} username={item.display_name} size={38} />
+                      <Avatar avatarId={item.avatar_id} frameId={item.avatar_frame} avatarUrl={item.avatar_url} username={item.display_name} size={38} />
                       <Text style={styles.memberName}>{item.display_name ?? 'Unknown'}</Text>
                       <Ionicons
                         name={isSelected ? 'checkbox' : 'square-outline'}

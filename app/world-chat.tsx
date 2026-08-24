@@ -134,7 +134,7 @@ export default function WorldChatScreen() {
 
     const [{ data: profiles }, { data: replyRows }, { data: reactionRows }] = await Promise.all([
       authorIds.length > 0
-        ? supabase.from('public_profiles').select('id, username, display_name, avatar_id, avatar_url, is_verified, role, is_admin').in('id', authorIds)
+        ? supabase.from('public_profiles').select('id, username, display_name, avatar_id, avatar_frame, avatar_url, is_verified, role, is_admin').in('id', authorIds)
         : Promise.resolve({ data: [] }),
       postIds.length > 0
         ? supabase.from('world_chat_replies').select('post_id').in('post_id', postIds)

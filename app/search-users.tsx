@@ -45,7 +45,7 @@ export default function SearchUsersScreen() {
 
     let sb = supabase
       .from('public_profiles')
-      .select('id, username, display_name, avatar_id, avatar_url, is_verified')
+      .select('id, username, display_name, avatar_id, avatar_frame, avatar_url, is_verified')
       .order('username', { ascending: true })
       .limit(30);
     if (me) sb = sb.neq('id', me);
@@ -76,7 +76,7 @@ export default function SearchUsersScreen() {
 
     let sb = supabase
       .from('public_profiles')
-      .select('id, username, display_name, avatar_id, avatar_url, is_verified')
+      .select('id, username, display_name, avatar_id, avatar_frame, avatar_url, is_verified')
       .or(`username.ilike.%${safeQ}%,display_name.ilike.%${safeQ}%`)
       .limit(30);
 
@@ -112,7 +112,7 @@ export default function SearchUsersScreen() {
     const isFollowing = followingIds.has(item.id);
     return (
       <TouchableOpacity style={styles.row} onPress={() => router.push(`/user-profile?id=${item.id}`)}>
-        <Avatar avatarId={item.avatar_id} avatarUrl={item.avatar_url} username={item.display_name} size={46} />
+        <Avatar avatarId={item.avatar_id} frameId={item.avatar_frame} avatarUrl={item.avatar_url} username={item.display_name} size={46} />
         <View style={styles.rowInfo}>
           <View style={styles.nameRow}>
             <Text style={styles.displayName} numberOfLines={1}>{item.display_name ?? 'Unknown'}</Text>

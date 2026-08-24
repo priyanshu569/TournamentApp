@@ -728,7 +728,7 @@ export default function ChatThreadScreen() {
     const participantIds = (participants ?? []).map((p: any) => p.user_id);
 
     const { data: profiles } = participantIds.length > 0
-      ? await supabase.from('public_profiles').select('id, username, display_name, avatar_id, avatar_url').in('id', participantIds)
+      ? await supabase.from('public_profiles').select('id, username, display_name, avatar_id, avatar_frame, avatar_url').in('id', participantIds)
       : { data: [] };
 
     const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
@@ -1284,7 +1284,7 @@ export default function ChatThreadScreen() {
 
     const otherUserIds = [...new Set((otherParticipants ?? []).map((p: any) => p.user_id))];
     const { data: profiles } = otherUserIds.length > 0
-      ? await supabase.from('public_profiles').select('id, display_name, avatar_id, avatar_url').in('id', otherUserIds)
+      ? await supabase.from('public_profiles').select('id, display_name, avatar_id, avatar_frame, avatar_url').in('id', otherUserIds)
       : { data: [] };
 
     const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));

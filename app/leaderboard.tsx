@@ -143,7 +143,7 @@ export default function Leaderboard() {
                   >
                     <Text style={styles.podiumMedal}>{podium.icon}</Text>
                     <View style={[styles.avatarWrap, !linked && styles.avatarWrapUnlinked]}>
-                      <Avatar avatarId={item.avatar_id} avatarUrl={item.avatar_url} username={item.username} size={34} />
+                      <Avatar avatarId={item.avatar_id} frameId={item.avatar_frame} avatarUrl={item.avatar_url} username={item.username} size={34} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <View style={styles.usernameRow}>
@@ -175,7 +175,7 @@ export default function Leaderboard() {
               <TouchableOpacity style={styles.row} activeOpacity={linked ? 0.85 : 1} onPress={() => goToProfile(item)} disabled={!linked}>
                 <Text style={styles.rank} numberOfLines={1}>#{index + 1}</Text>
                 <View style={[styles.avatarWrap, !linked && styles.avatarWrapUnlinked]}>
-                  <Avatar avatarId={item.avatar_id} avatarUrl={item.avatar_url} username={item.username} size={34} />
+                  <Avatar avatarId={item.avatar_id} frameId={item.avatar_frame} avatarUrl={item.avatar_url} username={item.username} size={34} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <View style={styles.usernameRow}>

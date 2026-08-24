@@ -28,7 +28,7 @@ export default function ProfileBannerScreen() {
 
     const { data } = await supabase
       .from('Profiles')
-      .select('display_name, username, avatar_id, avatar_url, banner_theme')
+      .select('display_name, username, avatar_id, avatar_frame, avatar_url, banner_theme')
       .eq('id', userData.user.id)
       .single();
 

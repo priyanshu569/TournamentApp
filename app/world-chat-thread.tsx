@@ -123,7 +123,7 @@ export default function WorldChatThreadScreen() {
 
     const { data: authorProfile } = await supabase
       .from('public_profiles')
-      .select('id, username, display_name, avatar_id, avatar_url, is_verified, role, is_admin')
+      .select('id, username, display_name, avatar_id, avatar_frame, avatar_url, is_verified, role, is_admin')
       .eq('id', postRow.author_id)
       .single();
 
@@ -146,7 +146,7 @@ export default function WorldChatThreadScreen() {
 
     const [{ data: profiles }, { data: likeRows }] = await Promise.all([
       authorIds.length > 0
-        ? supabase.from('public_profiles').select('id, username, display_name, avatar_id, avatar_url, is_verified, role, is_admin').in('id', authorIds)
+        ? supabase.from('public_profiles').select('id, username, display_name, avatar_id, avatar_frame, avatar_url, is_verified, role, is_admin').in('id', authorIds)
         : Promise.resolve({ data: [] }),
       replyIds.length > 0
         ? supabase.from('world_chat_reply_likes').select('reply_id, user_id').in('reply_id', replyIds)
