@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { View, StyleSheet, ActivityIndicator, Alert, Text, TouchableOpacity } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  ActivityIndicator,
+  Alert,
+  Text,
+  TouchableOpacity,
+} from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -13,10 +20,21 @@ export default function Payment() {
   const router = useRouter();
   const { colors } = useAppTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
-  const { amount, tournament_id, team_id, registration_id } = useLocalSearchParams();
+
+  const {
+    amount,
+    tournament_id,
+    team_id,
+    registration_id,
+  } = useLocalSearchParams();
+
   const [loading, setLoading] = useState(true);
   const [webViewKey, setWebViewKey] = useState(0);
-  const [order, setOrder] = useState<{ order_id: string; amount: number; key_id: string } | null>(null);
+  const [order, setOrder] = useState<{
+    order_id: string;
+    amount: number;
+    key_id: string;
+  } | null>(null);
   const [orderError, setOrderError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -26,12 +44,20 @@ export default function Payment() {
   async function createOrder() {
     setLoading(true);
     setOrderError(null);
-    const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
-      body: { registration_id },
-    });
+
+    const { data, error } = await supabase.functions.invoke(
+      'create-razorpay-order',
+      {
+        body: { registration_id },
+      }
+    );
 
     if (error || !data?.order_id) {
-      setOrderError(data?.error || error?.message || 'Could not start payment. Please try again.');
+      setOrderError(
+        data?.error ||
+          error?.message ||
+          'Could not start payment. Please try again.'
+      );
       setLoading(false);
       return;
     }
@@ -40,7 +66,8 @@ export default function Payment() {
     setLoading(false);
   }
 
-  const htmlContent = order ? `
+  const htmlContent = order
+    ? `
     <!DOCTYPE html>
     <html>
     <head>
@@ -57,18 +84,21 @@ export default function Payment() {
           height: 100vh;
           font-family: -apple-system, sans-serif;
         }
+
         .info {
           color: #aaa;
           font-size: 14px;
           text-align: center;
           padding: 20px;
         }
+
         .amount {
           color: #7C3AED;
           font-size: 32px;
           font-weight: 800;
           margin-bottom: 8px;
         }
+
         .label {
           color: #555;
           font-size: 12px;
@@ -77,12 +107,14 @@ export default function Payment() {
         }
       </style>
     </head>
+
     <body>
       <div class="info">
         <div class="label">Entry Fee</div>
         <div class="amount">₹${amount}</div>
         <div class="label">Opening payment...</div>
       </div>
+
       <script>
         var options = {
           key: '${order.key_id}',
@@ -92,6 +124,7 @@ export default function Payment() {
           name: 'Fragify',
           description: 'Tournament Entry Fee',
           theme: { color: '#7C3AED' },
+
           handler: function(response) {
             window.ReactNativeWebView.postMessage(JSON.stringify({
               success: true,
@@ -100,6 +133,7 @@ export default function Payment() {
               razorpay_signature: response.razorpay_signature
             }));
           },
+
           modal: {
             ondismiss: function() {
               window.ReactNativeWebView.postMessage(JSON.stringify({
@@ -109,21 +143,28 @@ export default function Payment() {
             }
           }
         };
+
         var rzp = new Razorpay(options);
+
         rzp.on('payment.failed', function(response) {
           window.ReactNativeWebView.postMessage(JSON.stringify({
             success: false,
             reason: response.error.description
           }));
         });
-        setTimeout(function() { rzp.open(); }, 500);
+
+        setTimeout(function() {
+          rzp.open();
+        }, 500);
       </script>
     </body>
     </html>
-  ` : '';
+  `
+    : '';
 
   const handleMessage = async (event: any) => {
     let data;
+
     try {
       data = JSON.parse(event.nativeEvent.data);
     } catch (e) {
@@ -132,26 +173,38 @@ export default function Payment() {
 
     if (data.success) {
       setLoading(true);
-      const { data: verifyResult, error } = await supabase.functions.invoke('verify-razorpay-payment', {
-        body: {
-          registration_id,
-          razorpay_order_id: data.razorpay_order_id,
-          razorpay_payment_id: data.razorpay_payment_id,
-          razorpay_signature: data.razorpay_signature,
-        },
-      });
+
+      const {
+        data: verifyResult,
+        error,
+      } = await supabase.functions.invoke(
+        'verify-razorpay-payment',
+        {
+          body: {
+            registration_id,
+            razorpay_order_id: data.razorpay_order_id,
+            razorpay_payment_id: data.razorpay_payment_id,
+            razorpay_signature: data.razorpay_signature,
+          },
+        }
+      );
+
       setLoading(false);
 
       if (error || !verifyResult?.success) {
         Alert.alert(
           'Verification Failed',
-          verifyResult?.error || error?.message || 'We could not verify your payment. If money was deducted, contact support.',
+          verifyResult?.error ||
+            error?.message ||
+            'We could not verify your payment. If money was deducted, contact support.'
         );
         return;
       }
 
       try {
-        const { data: userData } = await supabase.auth.getUser();
+        const { data: userData } =
+          await supabase.auth.getUser();
+
         if (userData.user) {
           const { data: profile } = await supabase
             .from('Profiles')
@@ -161,7 +214,9 @@ export default function Payment() {
 
           await notifyAndLog(
             userData.user.id,
-            profile?.push_enabled ? profile?.push_token : null,
+            profile?.push_enabled
+              ? profile?.push_token
+              : null,
             '✅ Registration Confirmed',
             'Payment received! Your team is confirmed for the tournament.',
             tournament_id as string
@@ -171,24 +226,51 @@ export default function Payment() {
         console.log('Notify error:', err);
       }
 
-      Alert.alert('Payment Successful! 🎉', 'Your team is confirmed for the tournament!', [
-        { text: 'OK', onPress: () => router.push('/') }
-      ]);
+      Alert.alert(
+        'Payment Successful! 🎉',
+        'Your team is confirmed for the tournament!',
+        [
+          {
+            text: 'OK',
+            onPress: () => router.push('/'),
+          },
+        ]
+      );
     } else {
       if (data.reason === 'dismissed') {
         Alert.alert(
           'Payment Cancelled',
           'You cancelled the payment. Want to try again?',
           [
-            { text: 'Try Again', onPress: () => setWebViewKey(k => k + 1) },
-            { text: 'Go Back', style: 'cancel', onPress: () => router.back() }
+            {
+              text: 'Try Again',
+              onPress: () =>
+                setWebViewKey((k) => k + 1),
+            },
+            {
+              text: 'Go Back',
+              style: 'cancel',
+              onPress: () => router.back(),
+            },
           ]
         );
       } else {
-        Alert.alert('Payment Failed', data.reason, [
-          { text: 'Try Again', onPress: () => setWebViewKey(k => k + 1) },
-          { text: 'Go Back', style: 'cancel', onPress: () => router.back() }
-        ]);
+        Alert.alert(
+          'Payment Failed',
+          data.reason,
+          [
+            {
+              text: 'Try Again',
+              onPress: () =>
+                setWebViewKey((k) => k + 1),
+            },
+            {
+              text: 'Go Back',
+              style: 'cancel',
+              onPress: () => router.back(),
+            },
+          ]
+        );
       }
     }
   };
@@ -197,10 +279,19 @@ export default function Payment() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => router.back()}
+        >
+          <Ionicons
+            name="chevron-back"
+            size={20}
+            color={colors.textPrimary}
+          />
         </TouchableOpacity>
+
         <Text style={styles.headerTitle}>Payment</Text>
+
         <View style={{ width: 36 }} />
       </View>
 
@@ -211,27 +302,54 @@ export default function Payment() {
         end={{ x: 1, y: 1 }}
         style={styles.amountBox}
       >
-        <Text style={styles.amountLabel}>ENTRY FEE</Text>
-        <Text style={styles.amountValue}>₹{amount}</Text>
+        <Text style={styles.amountLabel}>
+          ENTRY FEE
+        </Text>
+
+        <Text style={styles.amountValue}>
+          ₹{amount}
+        </Text>
+
         <View style={styles.amountSubRow}>
-          <Ionicons name="shield-checkmark" size={13} color={colors.success} />
-          <Text style={styles.amountSub}>Secured by Razorpay</Text>
+          <Ionicons
+            name="shield-checkmark"
+            size={13}
+            color={colors.success}
+          />
+
+          <Text style={styles.amountSub}>
+            Secured by Razorpay
+          </Text>
         </View>
       </LinearGradient>
 
       {orderError ? (
         <View style={styles.loadingOverlay}>
-          <Text style={styles.errorText}>{orderError}</Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={createOrder}>
-            <Text style={styles.retryBtnText}>Retry</Text>
+          <Text style={styles.errorText}>
+            {orderError}
+          </Text>
+
+          <TouchableOpacity
+            style={styles.retryBtn}
+            onPress={createOrder}
+          >
+            <Text style={styles.retryBtnText}>
+              Retry
+            </Text>
           </TouchableOpacity>
         </View>
       ) : (
         <>
           {loading && (
             <View style={styles.loadingOverlay}>
-              <ActivityIndicator size="large" color={colors.accent} />
-              <Text style={styles.loadingText}>Opening payment...</Text>
+              <ActivityIndicator
+                size="large"
+                color={colors.accent}
+              />
+
+              <Text style={styles.loadingText}>
+                Opening payment...
+              </Text>
             </View>
           )}
 
@@ -253,40 +371,109 @@ export default function Payment() {
 
 function getStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background },
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+
     header: {
-      flexDirection: 'row', justifyContent: 'space-between',
-      alignItems: 'center', paddingHorizontal: 24,
-      paddingTop: 60, paddingBottom: 16,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 24,
+      paddingTop: 60,
+      paddingBottom: 16,
     },
+
     backBtn: {
-      width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceAlt,
-      justifyContent: 'center', alignItems: 'center',
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.surfaceAlt,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
-    headerTitle: { color: colors.textPrimary, fontSize: 18, fontWeight: '800' },
+
+    headerTitle: {
+      color: colors.textPrimary,
+      fontSize: 18,
+      fontWeight: '800',
+    },
+
     amountBox: {
-      alignItems: 'center', paddingVertical: 28,
-      marginHorizontal: 24, borderRadius: 18, marginBottom: 8,
-      borderWidth: 1, borderColor: '#2f2447',
+      alignItems: 'center',
+      paddingVertical: 28,
+      marginHorizontal: 24,
+      borderRadius: 18,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: '#2f2447',
     },
-    amountLabel: { color: colors.textTertiary, fontSize: 11, fontWeight: '800', letterSpacing: 2, marginBottom: 8 },
-    amountValue: { color: colors.textPrimary, fontSize: 42, fontWeight: '900', marginBottom: 8 },
-    amountSubRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-    amountSub: { color: colors.success, fontSize: 12, fontWeight: '600' },
-    webview: { flex: 1, backgroundColor: colors.background },
+
+    amountLabel: {
+      color: colors.textTertiary,
+      fontSize: 11,
+      fontWeight: '800',
+      letterSpacing: 2,
+      marginBottom: 8,
+    },
+
+    amountValue: {
+      color: colors.textPrimary,
+      fontSize: 42,
+      fontWeight: '900',
+      marginBottom: 8,
+    },
+
+    amountSubRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+    },
+
+    amountSub: {
+      color: colors.success,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+
+    webview: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+
     loadingOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       justifyContent: 'center',
       alignItems: 'center',
       backgroundColor: colors.background,
       zIndex: 10,
       gap: 12,
     },
-    loadingText: { color: colors.textSecondary, fontSize: 14 },
-    errorText: { color: colors.error, fontSize: 14, textAlign: 'center', paddingHorizontal: 32 },
-    retryBtn: {
-      backgroundColor: colors.accent, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 10,
+
+    loadingText: {
+      color: colors.textSecondary,
+      fontSize: 14,
     },
-    retryBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+
+    errorText: {
+      color: colors.error,
+      fontSize: 14,
+      textAlign: 'center',
+      paddingHorizontal: 32,
+    },
+
+    retryBtn: {
+      backgroundColor: colors.accent,
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      borderRadius: 10,
+    },
+
+    retryBtnText: {
+      color: '#fff',
+      fontSize: 14,
+      fontWeight: '700',
+    },
   });
 }
