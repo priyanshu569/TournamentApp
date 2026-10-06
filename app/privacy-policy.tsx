@@ -77,7 +77,7 @@ export default function PrivacyPolicyScreen() {
       <Text style={styles.lastUpdated}>Last updated: August 2026</Text>
 
       <Text style={styles.intro}>
-        This policy explains what information Fragify collects, how it's used, and your choices —
+        This policy explains what information Fragify collects, how it&apos;s used, and your choices —
         in plain language, not legalese.
       </Text>
 

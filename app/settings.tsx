@@ -302,7 +302,7 @@ export default function SettingsScreen() {
         <View style={[styles.row, !notificationsEnabled && styles.rowDisabled]}>
           <View style={{ flex: 1 }}>
             <Text style={styles.rowLabel}>Message Requests</Text>
-            <Text style={styles.rowSubLabel}>First-time messages from people you haven't chatted with</Text>
+            <Text style={styles.rowSubLabel}>First-time messages from people you haven&apos;t chatted with</Text>
           </View>
           <Switch
             value={notifySocial}
@@ -391,8 +391,8 @@ export default function SettingsScreen() {
             </View>
             <Text style={styles.deleteModalTitle}>Delete Your Account?</Text>
             <Text style={styles.deleteModalBody}>
-              This permanently deletes your account and personal info. You'll lose access to your chats, follows,
-              and profile. Your tournament history stays on record (anonymized) so other players' results aren't
+              This permanently deletes your account and personal info. You&apos;ll lose access to your chats, follows,
+              and profile. Your tournament history stays on record (anonymized) so other players&apos; results aren&apos;t
               affected.{'\n\n'}This cannot be undone.
             </Text>
             <Text style={styles.deleteConfirmLabel}>Type DELETE to confirm</Text>

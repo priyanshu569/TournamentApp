@@ -359,7 +359,7 @@ export default function CreateTournament() {
       <View style={styles.fieldGroup}>
         <Text style={styles.label}>Entry Fee</Text>
         <View style={styles.freeNotice}>
-          <Text style={styles.freeNoticeText}>🎟 FREE — entry fees aren't enabled yet</Text>
+          <Text style={styles.freeNoticeText}>🎟 FREE — entry fees aren&apos;t enabled yet</Text>
         </View>
       </View>
 

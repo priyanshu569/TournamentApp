@@ -316,7 +316,7 @@ if (tournamentData?.max_teams && (registeredCount ?? 0) >= tournamentData.max_te
         {Number(entry_fee) > 0 && (
           <View style={styles.feeNote}>
             <Text style={styles.feeNoteText}>
-              💰 Entry Fee: ₹{entry_fee} — You'll be redirected to payment after this step.
+              💰 Entry Fee: ₹{entry_fee} — You&apos;ll be redirected to payment after this step.
             </Text>
           </View>
         )}

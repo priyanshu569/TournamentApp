@@ -65,7 +65,7 @@ export default function SelectRoleScreen() {
         onPress={() => router.push('/request-host-access')}
         disabled={loading}
       >
-        <Text style={styles.hostLinkText}>I'm a host/organiser — Request Access</Text>
+        <Text style={styles.hostLinkText}>I&apos;m a host/organiser — Request Access</Text>
       </TouchableOpacity>
     </View>
   );

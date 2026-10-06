@@ -459,7 +459,7 @@ export default function EditTournament() {
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>Entry Fee</Text>
           <View style={styles.freeNotice}>
-            <Text style={styles.freeNoticeText}>🎟 FREE — entry fees aren't enabled yet</Text>
+            <Text style={styles.freeNoticeText}>🎟 FREE — entry fees aren&apos;t enabled yet</Text>
           </View>
         </View>
 
@@ -549,7 +549,7 @@ export default function EditTournament() {
           </TouchableOpacity>
           {!isAdmin && (
             <Text style={styles.dateLockedHint}>
-              Date & time can't be changed once a tournament is created. Contact an admin if this needs fixing.
+              Date & time can&apos;t be changed once a tournament is created. Contact an admin if this needs fixing.
             </Text>
           )}
         </View>

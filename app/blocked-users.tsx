@@ -22,14 +22,6 @@ export default function BlockedUsersScreen() {
   const [myId, setMyId] = useState<string | null>(null);
   const [actingId, setActingId] = useState<string | null>(null);
 
-  useEffect(() => { load(); }, []);
-
-  async function onRefresh() {
-    setRefreshing(true);
-    await load();
-    setRefreshing(false);
-  }
-
   async function load() {
     const { data: userData } = await supabase.auth.getUser();
     const me = userData.user?.id ?? null;
@@ -50,6 +42,14 @@ export default function BlockedUsersScreen() {
     const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
     setBlocked((blocks ?? []).map((b: any) => ({ ...b, profile: profileMap.get(b.blocked_id) ?? null })));
     setLoading(false);
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function onRefresh() {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
   }
 
   function confirmUnblock(item: any) {
@@ -96,7 +96,7 @@ export default function BlockedUsersScreen() {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Ionicons name="shield-checkmark-outline" size={32} color={colors.textDisabled} />
-              <Text style={styles.emptyText}>You haven't blocked anyone.</Text>
+              <Text style={styles.emptyText}>You haven&apos;t blocked anyone.</Text>
             </View>
           }
           renderItem={({ item }) => (

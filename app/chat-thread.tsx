@@ -164,7 +164,7 @@ function VoiceMessagePlayer({ message, isMine, styles, colors }: {
           <Ionicons name="alert-circle" size={16} color={colors.error} />
         </View>
         <Text style={[styles.audioDuration, isMine ? styles.messageTextMine : styles.messageTextTheirs]} numberOfLines={1}>
-          Couldn't load audio
+          Couldn&apos;t load audio
         </Text>
       </TouchableOpacity>
     );
@@ -297,7 +297,7 @@ function ImageMessage({ message, isMine, styles, colors, onPress }: {
     return (
       <View style={[styles.imageBubble, styles.imageBubbleCenter, box]}>
         <Ionicons name="alert-circle" size={20} color={colors.error} />
-        <Text style={styles.imageErrorText}>Couldn't load image</Text>
+        <Text style={styles.imageErrorText}>Couldn&apos;t load image</Text>
       </View>
     );
   }
@@ -1564,7 +1564,7 @@ export default function ChatThreadScreen() {
         ) : isBlocked ? (
           <View style={[styles.inputRow, styles.blockedBanner, { paddingBottom: keyboardVisible ? 12 : 34 }]}>
             <Ionicons name="ban" size={16} color={colors.error} />
-            <Text style={styles.blockedBannerText}>You've blocked this user.</Text>
+            <Text style={styles.blockedBannerText}>You&apos;ve blocked this user.</Text>
             <TouchableOpacity onPress={confirmToggleBlock}>
               <Text style={styles.blockedBannerAction}>Unblock</Text>
             </TouchableOpacity>
@@ -1708,7 +1708,7 @@ export default function ChatThreadScreen() {
           {pendingViewOnce && (
             <View style={styles.viewOnceHint}>
               <ViewOnceGlyph color={colors.accent} styles={styles} />
-              <Text style={styles.viewOnceHintText}>View once — disappears after it's opened</Text>
+              <Text style={styles.viewOnceHintText}>View once — disappears after it&apos;s opened</Text>
             </View>
           )}
 

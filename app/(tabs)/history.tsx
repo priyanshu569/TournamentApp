@@ -146,7 +146,7 @@ export default function HistoryScreen() {
               <View style={styles.emptyIconCircle}>
                 <Ionicons name="file-tray-outline" size={28} color={colors.textDisabled} />
               </View>
-              <Text style={styles.emptyText}>You haven't registered for any tournaments yet.</Text>
+              <Text style={styles.emptyText}>You haven&apos;t registered for any tournaments yet.</Text>
             </View>
           }
           renderItem={({ item }) => (
@@ -217,7 +217,7 @@ export default function HistoryScreen() {
               <View style={styles.emptyIconCircle}>
                 <Ionicons name="trophy-outline" size={28} color={colors.textDisabled} />
               </View>
-              <Text style={styles.emptyText}>You haven't created any tournaments yet.</Text>
+              <Text style={styles.emptyText}>You haven&apos;t created any tournaments yet.</Text>
             </View>
           }
           renderItem={({ item }) => (

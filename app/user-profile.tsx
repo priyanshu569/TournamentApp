@@ -359,7 +359,7 @@ export default function UserProfileScreen() {
         ) : null}
       </View>
       {!canSeeLists && (
-        <Text style={styles.privateHint}>🔒 This user's follower/following lists are private.</Text>
+        <Text style={styles.privateHint}>🔒 This user&apos;s follower/following lists are private.</Text>
       )}
 
       {!isOwnProfile && (
