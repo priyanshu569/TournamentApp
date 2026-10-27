@@ -1,50 +1,77 @@
-# Welcome to your Expo app 👋
+# Fragify
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Fragify is a cross-platform (iOS/Android/Web) esports tournament platform built with React Native and Expo, backed by Supabase. Players join tournaments for popular mobile titles, compete, track results on live scoreboards and leaderboards, chat with other players, and earn/spend an in-app currency that can be redeemed for real rewards.
 
-## Get started
+## Features
 
-1. Install dependencies
+**Tournaments & Competition**
+- Create, edit, and browse tournaments for BGMI, Call of Duty Mobile, Free Fire, and Valorant
+- Team creation and player/team registration
+- Live scoreboards and result entry
+- Global and per-event leaderboards
+- Match/registration history
 
-   ```bash
-   npm install
-   ```
+**Social & Chat**
+- Direct messages and group chats with text, photo, and voice messages
+- A world chat for all users
+- User profiles, search, follow/unfollow, and blocking
+- User reporting with admin review
 
-2. Start the app
+**Economy & Rewards**
+- FragCoins, an in-app virtual currency with a wallet view
+- Reward catalog with redemption requests
+- Real-money top-ups via Razorpay, processed through Supabase Edge Functions (order creation + signature verification)
 
-   ```bash
-   npx expo start
-   ```
+**Premium Cosmetics**
+- Animated avatar rings/frames and profile banners
+- Multiple premium visual themes (e.g. Monarch, Dragon Wrath, Nebula) built with custom Reanimated/SVG animation layers
 
-In the output, you'll find options to open the app in a
+**Admin Tools**
+- Broadcast notifications
+- Host access request review
+- Reward and redemption management
+- User report moderation
+- Role-based access (player / host / admin)
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+**Notifications**
+- Push notifications for match updates, wallet/redemption changes, and chat activity
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Tech Stack
 
-## Get a fresh project
+- **App**: React Native 0.86, Expo SDK 57, Expo Router (file-based, typed routes), React 19
+- **Styling/UX**: React Native Reanimated & Worklets, React Native SVG, custom theming via `ThemeContext`
+- **Backend**: Supabase (Postgres, Auth, Storage, Realtime) with 60+ SQL migrations
+- **Serverless**: Supabase Edge Functions for Razorpay order creation and payment verification
+- **Payments**: Razorpay
+- **Language/Tooling**: TypeScript, ESLint
 
-When you're ready, run:
+## Project Structure
 
-```bash
-npm run reset-project
+```
+app/              Screens and navigation (Expo Router file-based routing)
+app/(tabs)/       Bottom-tab screens: home, events, history, profile
+components/       Shared UI components
+components/premium/  Animated premium cosmetic components (avatar rings, banners)
+lib/              Client-side business logic (Supabase client, uploads, rate limiting, etc.)
+constants/        Theming and shared config
+supabase/
+  migrations/     Database schema history
+  functions/      Edge Functions (Razorpay integration)
+marketing-site/    Static landing page, privacy policy, terms, account deletion page
+legal/            Legal page templates used to build marketing-site
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Getting Started
 
-## Learn more
+```bash
+npm install
+npx expo start
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+From the Expo CLI output you can open the app in a development build, Android emulator, iOS simulator, or Expo Go.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+The app ships pointed at a live Supabase project (`lib/supabase.ts`) using Supabase's public anon key, which is safe to expose client-side and is protected by Postgres Row Level Security policies. To run against your own backend instead, create a Supabase project, apply the SQL files in `supabase/migrations/`, deploy the functions in `supabase/functions/`, and update the URL/key in `lib/supabase.ts`.
 
-## Join the community
+## License
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+No license has been set yet — all rights reserved by default until one is added.
