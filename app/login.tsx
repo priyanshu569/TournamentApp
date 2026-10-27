@@ -8,12 +8,30 @@ import {
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import * as WebBrowser from 'expo-web-browser';
-import * as QueryParams from 'expo-auth-session/build/QueryParams';
 import { AntDesign } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import FragifyLogo from '@/components/FragifyLogo';
 
 WebBrowser.maybeCompleteAuthSession();
+
+// expo-auth-session no longer exposes this as public API (its package
+// exports map dropped the deep `build/QueryParams` path in SDK 58), so
+// Supabase's redirect-URL params -- which can land in the query string
+// or the hash fragment depending on OAuth flow -- are parsed here instead.
+function getQueryParams(input: string): { errorCode: string | null; params: Record<string, string> } {
+  const url = new URL(input, 'https://phony.example');
+  const errorCode = url.searchParams.get('errorCode');
+  url.searchParams.delete('errorCode');
+
+  const params: Record<string, string> = Object.fromEntries(url.searchParams);
+  if (url.hash) {
+    new URLSearchParams(url.hash.replace(/^#/, '')).forEach((value, key) => {
+      params[key] = value;
+    });
+  }
+
+  return { errorCode, params };
+}
 
 export default function LoginScreen() {
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -91,7 +109,7 @@ export default function LoginScreen() {
        * 2. authorization code
        */
       const { params, errorCode } =
-        QueryParams.getQueryParams(result.url);
+        getQueryParams(result.url);
 
       if (errorCode) {
         console.log(

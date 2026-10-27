@@ -24,7 +24,7 @@ export function useAnimationGate(reduceMotion?: boolean) {
     () => AppState.currentState === 'active'
   );
 
-  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState as AppStateStatus);
 
   useEffect(() => {
     const subscription = AppState.addEventListener(

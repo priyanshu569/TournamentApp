@@ -245,7 +245,7 @@ export default function ChatSearchScreen() {
                   {q ? `No matches for "${query.trim()}"` : 'No suggestions right now'}
                 </Text>
               </View>
-            ) : null
+            ) : undefined
           }
           renderItem={({ item }) => renderSuggestedRow(item)}
         />

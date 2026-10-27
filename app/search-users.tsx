@@ -183,7 +183,7 @@ export default function SearchUsersScreen() {
           ListHeaderComponent={
             !isSearching && listData.length > 0 ? (
               <Text style={styles.sectionLabel}>SUGGESTED FOR YOU</Text>
-            ) : null
+            ) : undefined
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
