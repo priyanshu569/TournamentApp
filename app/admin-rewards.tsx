@@ -6,7 +6,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
-import { pickRewardImages, uploadRewardImage } from '@/lib/rewardImageUpload';
+import { pickRewardImages, uploadRewardImage, deleteRewardImage } from '@/lib/rewardImageUpload';
 import { RawImage } from '@/lib/chatImage';
 import ImageCropPreview from '@/components/ImageCropPreview';
 import { MAX_REWARD_IMAGES } from '@/constants/reward';
@@ -104,7 +104,11 @@ export default function AdminRewardsScreen() {
   }
 
   function removePhoto(index: number) {
-    setDraft((prev) => prev && { ...prev, image_urls: prev.image_urls.filter((_, i) => i !== index) });
+    setDraft((prev) => {
+      if (!prev) return prev;
+      deleteRewardImage(prev.image_urls[index]);
+      return { ...prev, image_urls: prev.image_urls.filter((_, i) => i !== index) };
+    });
   }
 
   function makeCover(index: number) {

@@ -97,7 +97,7 @@ export default function CreateTournament() {
 
     setUploadingBanner(true);
     try {
-      const url = await uploadBanner(user.id, cropped);
+      const url = await uploadBanner(user.id, cropped, bannerUrl);
       setBannerUrl(url);
     } catch (err: any) {
       Alert.alert('Error', err.message ?? 'Failed to upload banner.');

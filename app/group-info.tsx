@@ -90,7 +90,7 @@ export default function GroupInfoScreen() {
     if (!isAdmin) return;
     setUploadingPhoto(true);
     try {
-      const url = await pickAndUploadGroupPhoto(id);
+      const url = await pickAndUploadGroupPhoto(id, conversation?.avatar_url);
       if (url) {
         const { error } = await supabase.from('conversations').update({ avatar_url: url }).eq('id', id);
         if (error) throw error;

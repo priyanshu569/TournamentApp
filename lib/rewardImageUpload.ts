@@ -43,3 +43,15 @@ export async function uploadRewardImage(adminId: string, image: RawImage): Promi
   const { data } = supabase.storage.from('reward-images').getPublicUrl(path);
   return data.publicUrl;
 }
+
+// Reward photos are a gallery, not a single replaceable slot -- removing one
+// from the draft (before or after it's saved) previously just dropped it
+// from the array and left the file in storage forever.
+export function deleteRewardImage(url: string): void {
+  const marker = '/object/public/reward-images/';
+  const i = url.indexOf(marker);
+  if (i === -1) return;
+
+  const path = url.slice(i + marker.length);
+  supabase.storage.from('reward-images').remove([path]).catch(() => {});
+}

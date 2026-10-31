@@ -11,8 +11,18 @@ import { supabase } from './supabase';
 // than their 1600px, since none of them are ever displayed that large.
 const AVATAR_MAX_DIMENSION = 512;
 
+// Replacing an avatar previously just left the old file in storage forever
+// -- extracts the bucket-relative path from a public URL so the old file
+// can be cleaned up once the new one is safely uploaded.
+function pathFromPublicUrl(url: string, bucket: string): string | null {
+  const marker = `/object/public/${bucket}/`;
+  const i = url.indexOf(marker);
+  return i === -1 ? null : url.slice(i + marker.length);
+}
+
 // Returns the new public avatar photo URL, or null if the user cancelled/denied permission.
-export async function pickAndUploadAvatarPhoto(userId: string): Promise<string | null> {
+// `previousUrl`, if given, is deleted from storage after the new upload succeeds.
+export async function pickAndUploadAvatarPhoto(userId: string, previousUrl?: string | null): Promise<string | null> {
   const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!permission.granted) {
     throw new Error('Photo library permission is required to set a profile photo.');
@@ -40,6 +50,11 @@ export async function pickAndUploadAvatarPhoto(userId: string): Promise<string |
     .upload(path, decode(base64), { contentType: 'image/jpeg' });
 
   if (uploadError) throw uploadError;
+
+  if (previousUrl) {
+    const oldPath = pathFromPublicUrl(previousUrl, 'profile-photos');
+    if (oldPath) supabase.storage.from('profile-photos').remove([oldPath]).catch(() => {});
+  }
 
   const { data } = supabase.storage.from('profile-photos').getPublicUrl(path);
   return data.publicUrl;

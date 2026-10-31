@@ -125,7 +125,7 @@ export default function EditProfileScreen() {
     if (!userId) return;
     setUploadingPhoto(true);
     try {
-      const url = await pickAndUploadAvatarPhoto(userId);
+      const url = await pickAndUploadAvatarPhoto(userId, avatarUrl);
       if (url) {
         setAvatarUrl(url);
         setAvatarId(null);
